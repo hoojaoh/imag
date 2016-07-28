@@ -16,6 +16,8 @@ let
     pkgconfig
     which
     zlib
+    dbus
+    pkgconfig
   ];
 in
 
