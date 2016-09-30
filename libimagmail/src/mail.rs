@@ -3,6 +3,8 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::fs::File;
 use std::io::Read;
+use std::error::Error;
+use std::marker::PhantomData;
 
 use libimagstore::store::{FileLockEntry, Store};
 use libimagref::reference::Ref;
@@ -53,6 +55,38 @@ impl<'a> Mail<'a> {
                     .map(Buffer::from)
                     .map(|buffer| Mail(reference, buffer))
             })
+    }
+
+    /// Imports mails from a directory path, recursively
+    ///
+    /// If a path to a file is passed, this behaves like `Mail::import_from_path()` and returns a
+    /// `Vec` of len 1.
+    pub fn import_from_dir<P, F, I, T: 'a>(store: &Store, p: P, tracefn: F) -> MailIterator<'a, T, I>
+        where P: AsRef<Path>,
+              F: Fn(&Error) -> (),
+              I: Iterator<Item = Result<Mail<'a>>>
+    {
+        use walkdir::WalkDir;
+
+        let iter = WalkDir::new(p)
+            .follow_links(false)
+            .into_iter()
+            .filter_map(|result| {
+                match result {
+                    Err(err) => {
+                        tracefn(&err);
+                        None
+                    },
+                    Ok(entry) => if entry.file_type().is_file() {
+                        Some(entry)
+                    } else {
+                        None
+                    },
+                }
+            })
+            .map(|entry| Mail::import_from_path(store, entry.path()));
+
+        MailIterator::new(iter)
     }
 
     /// Opens a mail by the passed hash
@@ -118,3 +152,26 @@ impl<'a> Mail<'a> {
     }
 
 }
+
+pub struct MailIterator<'a, T: 'a, I: Iterator<Item = Result<Mail<'a>>>> {
+    phan: PhantomData<&'a T>,
+    i: I
+}
+
+impl<'a, T: 'a, I: Iterator<Item = Result<Mail<'a>>>> MailIterator<'a, T, I> {
+
+    pub fn new(i: I) -> MailIterator<'a, T, I> {
+        MailIterator { phan: PhantomData, i: i }
+    }
+
+}
+
+impl<'a, T: 'a, I: Iterator<Item = Result<Mail<'a>>>> Iterator for MailIterator<'a, T, I> {
+    type Item = Result<Mail<'a>>;
+
+    fn next(&mut self) -> Option<Result<Mail<'a>>> {
+        self.i.next()
+    }
+
+}
+
