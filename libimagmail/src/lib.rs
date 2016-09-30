@@ -3,6 +3,7 @@ extern crate mailparse;
 extern crate semver;
 extern crate toml;
 extern crate filters;
+extern crate walkdir;
 
 #[macro_use] extern crate libimagerror;
 extern crate libimagstore;
