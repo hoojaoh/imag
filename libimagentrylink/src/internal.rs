@@ -385,6 +385,65 @@ pub mod iter {
 
 }
 
+pub mod pred {
+    pub mod entry {
+        //! Predicate types to be used on iterators over `libimagstore::store::Entry` to filter
+        //! for links
+
+        use std::error::Error;
+        use std::cell::RefCell;
+
+        use filters::filter::Filter;
+
+        use libimagstore::store::Entry;
+
+        use super::super::Link;
+        use super::super::InternalLinker;
+
+        pub enum LinkCountOp {
+            LT,
+            EQ,
+            GT,
+        }
+
+        pub struct FilterLinkCount {
+            op: LinkCountOp,
+            n: usize,
+            errfn: Box<Fn(&Error) -> bool>,
+        }
+
+        impl FilterLinkCount {
+
+            /// Construct a new FilterLinkCount object using the `LinkCountOp` as comperator and `n`
+            /// as righthandside of the comparison.
+            ///
+            /// If the retrieval of the internal links for the `Entry` failed, use the `errfn`
+            /// function to decide whether the entry should be filtered out.
+            pub fn new(op: LinkCountOp, n: usize, errfn: Box<Fn(&Error) -> bool>) -> FilterLinkCount {
+                FilterLinkCount {
+                    op: op,
+                    n: n,
+                    errfn: errfn
+                }
+            }
+        }
+
+        impl Filter<Entry> for FilterLinkCount {
+            fn filter(&self, entry: &Entry) -> bool {
+                match entry.get_internal_links() {
+                    Err(e)    => (self.errfn)(&e),
+                    Ok(links) => match self.op {
+                        LinkCountOp::LT => links.count() < self.n,
+                        LinkCountOp::EQ => links.count() == self.n,
+                        LinkCountOp::GT => links.count() > self.n,
+                    },
+                }
+            }
+        }
+    }
+
+}
+
 impl InternalLinker for Entry {
 
     fn get_internal_links(&self) -> Result<LinkIter> {
