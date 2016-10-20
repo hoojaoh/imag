@@ -391,13 +391,12 @@ pub mod pred {
         //! for links
 
         use std::error::Error;
-        use std::cell::RefCell;
 
         use filters::filter::Filter;
 
         use libimagstore::store::Entry;
+        use libimagerror::trace::trace_error;
 
-        use super::super::Link;
         use super::super::InternalLinker;
 
         pub enum LinkCountOp {
@@ -440,6 +439,25 @@ pub mod pred {
                 }
             }
         }
+
+        /// Helper function to be passed to ``FilterLinkCount::new()` and denying all entries where
+        /// the link count cannot be found
+        ///
+        /// Additionally, this function invokes `libimagerror::trace::trace_error()` on the error
+        pub fn on_err_no(e: &Error) -> bool {
+            trace_error(e);
+            false
+        }
+
+        /// Helper function to be passed to ``FilterLinkCount::new()` and allowing all entries where
+        /// the link count cannot be found
+        ///
+        /// Additionally, this function invokes `libimagerror::trace::trace_error()` on the error
+        pub fn on_err_yes(e: &Error) -> bool {
+            trace_error(e);
+            true
+        }
+
     }
 
 }
