@@ -17,9 +17,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use std::collections::BTreeMap;
 #[cfg(test)]
 use std::path::PathBuf;
+
+use std::collections::BTreeMap;
+use std::cmp::Ordering;
 
 use libimagstore::storeid::StoreId;
 use libimagstore::storeid::IntoStoreId;
@@ -391,6 +393,7 @@ pub mod pred {
         //! for links
 
         use std::error::Error;
+        use std::cmp::Ordering;
 
         use filters::filter::Filter;
 
@@ -399,26 +402,20 @@ pub mod pred {
 
         use super::super::InternalLinker;
 
-        pub enum LinkCountOp {
-            LT,
-            EQ,
-            GT,
-        }
-
         pub struct FilterLinkCount {
-            op: LinkCountOp,
+            op: Ordering,
             n: usize,
             errfn: Box<Fn(&Error) -> bool>,
         }
 
         impl FilterLinkCount {
 
-            /// Construct a new FilterLinkCount object using the `LinkCountOp` as comperator and `n`
+            /// Construct a new FilterLinkCount object using the `Ordering` as comperator and `n`
             /// as righthandside of the comparison.
             ///
             /// If the retrieval of the internal links for the `Entry` failed, use the `errfn`
             /// function to decide whether the entry should be filtered out.
-            pub fn new(op: LinkCountOp, n: usize, errfn: Box<Fn(&Error) -> bool>) -> FilterLinkCount {
+            pub fn new(op: Ordering, n: usize, errfn: Box<Fn(&Error) -> bool>) -> FilterLinkCount {
                 FilterLinkCount {
                     op: op,
                     n: n,
@@ -431,11 +428,7 @@ pub mod pred {
             fn filter(&self, entry: &Entry) -> bool {
                 match entry.get_internal_links() {
                     Err(e)    => (self.errfn)(&e),
-                    Ok(links) => match self.op {
-                        LinkCountOp::LT => links.count() < self.n,
-                        LinkCountOp::EQ => links.count() == self.n,
-                        LinkCountOp::GT => links.count() > self.n,
-                    },
+                    Ok(links) => links.count().cmp(&self.n) == self.op,
                 }
             }
         }
