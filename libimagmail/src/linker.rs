@@ -62,7 +62,18 @@ impl<'a> Linker<'a> {
     pub fn build<I>(i: I, flags: LinkerOpts) -> Result<Linker<'a>, LinkerError>
         where I: Iterator<Item = Mail<'a>>
     {
-        let v : Vec<Mail> = i.collect();
+        use std::cmp::Ordering;
+
+        let mut v : Vec<Mail> = i.collect();
+        v.sort_by(|a, b| {
+            match (a.get_message_id(), b.get_message_id()) {
+                (Ok(Some(aid)), Ok(Some(bid))) => aid.cmp(&bid),
+                (Ok(None), _) => Ordering::Less,
+                (Err(_), _)   => Ordering::Less,
+                (_, Ok(None)) => Ordering::Greater,
+                (_, Err(_))   => Ordering::Greater,
+            }
+        });
 
         let mut hm : HashMap<MessageId, Vec<MessageId>> = HashMap::new();
 
