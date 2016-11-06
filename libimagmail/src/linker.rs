@@ -52,7 +52,8 @@ type MessageId = String;
 struct MemMail<'a>(Mail<'a>, Option<MessageId>);
 
 pub struct Linker<'a> {
-    h: HashMap<MessageId, MemMail<'a>>,
+    v: Vec<Mail<'a>>,
+    hm: HashMap<MessageId, Vec<MessageId>>,
     flags: LinkerOpts,
 }
 
@@ -61,47 +62,29 @@ impl<'a> Linker<'a> {
     pub fn build<I>(i: I, flags: LinkerOpts) -> Result<Linker<'a>, LinkerError>
         where I: Iterator<Item = Mail<'a>>
     {
-        let mut h : HashMap<MessageId, MemMail> = HashMap::new();
+        let v : Vec<Mail> = i.collect();
 
-        for mail in i {
-            let id = try!(mail.get_message_id().map_err_into(LEK::LinkerConstructionError));
-            let inrepto_id =
-                match mail.get_in_reply_to().map_err_into(LEK::LinkerConstructionError) {
-                    Ok(r) => r,
-                    Err(e) => if flags.contains(IGNORE_IMPORT_REPTOERR) {
-                        debug!("Could not retrieve In-Reply-To header of: {:?}", id);
-                        None
-                    } else {
-                        return Err(e)
-                    },
-                };
+        let mut hm : HashMap<MessageId, Vec<MessageId>> = HashMap::new();
 
-            match (id, inrepto_id) {
-                (Some(id), Some(repto)) => {
-                    debug!("Mail: {} in reply to {}", id, repto);
-                    h.insert(id, MemMail(mail, Some(repto)));
-                },
-                (Some(id), None)        => {
-                    debug!("Mail that does not reply to any other mail: {}", id);
-                    h.insert(id, MemMail(mail, None));
-                },
-                (None, _)               => {
-                    debug!("No message id for mail: {:?}", mail);
-                    if flags.contains(IGNORE_IMPORT_NOMSGID) {
-                        debug!("Ignoring no message id");
-                    } else {
-                        let nomsgid = LEK::NoMessageIdFoundError;
-                        let lce = LEK::LinkerConstructionError;
+        for mail in v.iter() {
+            let m_id = match mail.get_message_id().map_err_into(LEK::LinkerConstructionError) {
+                Err(e) => return Err(e),
+                Ok(None) => return Err(LEK::NoMessageIdFoundError.into_error()),
+                Ok(Some(mid)) => mid,
+            };
 
-                        return Err(nomsgid.into_error()).map_err_into(lce);
-                    }
-                },
+            let other = try!(mail.get_in_reply_to().map_err_into(LEK::LinkerConstructionError));
+
+            if hm.contains_key(&m_id) {
+                other.map(|o| hm.get_mut(&m_id).map(|v| v.push(o)));
+            } else {
+                let mut to_insert = vec![];
+                other.map(|o| to_insert.push(o));
+                hm.insert(m_id, to_insert);
             }
         }
 
-        h.shrink_to_fit(); // as we won't add things anymore now
-
-        Ok(Linker { h: h, flags: flags })
+        Ok(Linker { v: v, hm: hm, flags: flags })
     }
 
     /// Run the linker
@@ -115,32 +98,7 @@ impl<'a> Linker<'a> {
     pub fn run(&mut self) -> Result<(), LinkerError> {
         use libimagentrylink::internal::InternalLinker;
 
-        for (id, &mut MemMail(ref mut mail, ref mut o_replyto)) in self.h.iter_mut() {
-            if o_replyto.is_none() {
-                continue;
-            }
-            let o_replyto = o_replyto.as_ref().unwrap();
-
-            let mut other_mail = match self.h.get_mut(o_replyto) {
-                None    => continue,
-                Some(o) => o,
-            };
-
-            match mail.add_internal_link(&mut other_mail.0).map_err_into(LEK::LinkerError) {
-                Ok(_) => if self.flags.contains(PRINT_INFO) {
-                    info!("{} -> {}", id, o_replyto);
-                } else {
-                    debug!("Linking succeeded: {id} -> {other}", id = id, other = o_replyto);
-                },
-
-                err => if self.flags.contains(RETURN_SOON) {
-                    return err;
-                },
-            }
-
-        }
-
-        Ok(())
+        unimplemented!()
     }
 
 }
