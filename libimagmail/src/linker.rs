@@ -12,6 +12,7 @@ generate_error_module!(
 
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Error as FmtError, Result as FmtResult};
+use std::cell::RefCell;
 
 use libimagerror::into::IntoError;
 
@@ -52,7 +53,7 @@ type MessageId = String;
 struct MemMail<'a>(Mail<'a>, Option<MessageId>);
 
 pub struct Linker<'a> {
-    v: Vec<Mail<'a>>,
+    v: Vec<RefCell<Mail<'a>>>,
     hm: HashMap<MessageId, Vec<MessageId>>,
     flags: LinkerOpts,
 }
@@ -95,7 +96,7 @@ impl<'a> Linker<'a> {
             }
         }
 
-        Ok(Linker { v: v, hm: hm, flags: flags })
+        Ok(Linker { v: v.into_iter().map(RefCell::new).collect(), hm: hm, flags: flags })
     }
 
     /// Run the linker
@@ -108,8 +109,37 @@ impl<'a> Linker<'a> {
     ///
     pub fn run(&mut self) -> Result<(), LinkerError> {
         use libimagentrylink::internal::InternalLinker;
+        use std::ops::DerefMut;
 
-        unimplemented!()
+        // Naive
+        fn find_in_vec<'a>(v: &Vec<RefCell<Mail<'a>>>, k: &MessageId) -> Option<RefCell<Mail<'a>>> {
+            for item in v.into_iter() {
+                match item.borrow().get_message_id() {
+                    Ok(Some(id)) => if id == *k {
+                        return Some(item.clone())
+                    },
+                    _ => { }, // We catch errors later...
+                }
+            }
+
+            None
+        }
+
+        for (k, vs) in self.hm.iter() {
+            for v in vs.iter() {
+                let mut a = match find_in_vec(&mut self.v, k) { None => continue, Some(a) => a };
+                let mut a = a.borrow_mut();
+                let mut a = a.deref_mut();
+
+                let mut b = match find_in_vec(&mut self.v, v) { None => continue, Some(b) => b };
+                let mut b = b.borrow_mut();
+                let mut b = b.deref_mut();
+
+                try!(a.add_internal_link(b).map_err_into(LEK::LinkerConstructionError));
+            }
+        }
+
+        Ok(())
     }
 
 }
