@@ -17,10 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-#[macro_use] extern crate custom_derive;
-#[macro_use] extern crate derive_builder;
-extern crate notify_rust;
 
-pub mod notificator;
-pub mod result_notification;
+/// A Notificator provides a function that can be called to notify about a certain object.
+pub trait Notificator<T> {
+    fn notify(&self, item: &T);
+}
 
