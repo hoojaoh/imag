@@ -164,6 +164,7 @@ pub trait ResultNotification<T, E> {
 impl<T, E: Error> ResultNotification<T, E> for Result<T, E> {
 
     fn notify_with(self, n: &Notificator<T>) -> Self {
+        self.map(|item| { n.notify(&item); item })
     }
 
     fn notify(self) -> Self {
