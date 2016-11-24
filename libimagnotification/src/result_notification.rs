@@ -23,7 +23,7 @@ use notificator::Notificator;
 use self::err::*;
 use self::ok::*;
 
-mod err {
+pub mod err {
     use std::ops::Deref;
     use std::ops::DerefMut;
     use std::error::Error;
@@ -92,7 +92,7 @@ mod err {
 
 }
 
-mod ok {
+pub mod ok {
     use std::ops::Deref;
     use std::ops::DerefMut;
 
