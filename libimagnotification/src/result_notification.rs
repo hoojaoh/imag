@@ -23,6 +23,7 @@ use notify_rust::NotificationUrgency;
 
 use notificator::Notificator;
 use self::err::*;
+use self::ok::*;
 
 mod err {
     use std::ops::Deref;
@@ -93,6 +94,63 @@ mod err {
 
 }
 
+mod ok {
+    use std::ops::Deref;
+    use std::ops::DerefMut;
+    use std::error::Error;
+    use std::fmt::Display;
+
+    use notify_rust::Notification as RustNotification;
+    use notify_rust::NotificationUrgency;
+
+    use notificator::default::Urgency;
+    use notificator::default::Notification;
+    use notificator::Notificator;
+
+    #[derive(Debug, Default, Clone)]
+    pub struct OkNotification(Notification);
+
+    impl From<Notification> for OkNotification {
+
+        fn from(n: Notification) -> OkNotification {
+            OkNotification(n)
+        }
+
+    }
+
+    impl<T> Notificator<T> for OkNotification {
+
+        /// A default implementation for all Types that implement Display
+        fn notify(&self, item: &T) {
+            let mut n = RustNotification::new();
+            n.appname("imag");
+            n.summary("[Ok]");
+            n.urgency(self.0.urgency.clone().into());
+            n.body(&"< >".to_owned());
+            n.finalize().show().ok(); // Ignoring error here
+        }
+
+    }
+
+    impl Deref for OkNotification {
+        type Target = Notification;
+
+        fn deref(&self) -> &Notification {
+            &self.0
+        }
+
+    }
+
+    impl DerefMut for OkNotification {
+
+        fn deref_mut(&mut self) -> &mut Notification {
+            &mut self.0
+        }
+
+    }
+
+}
+
 pub trait ResultNotification<T, E> {
 
     fn notify_with(self, n: &Notificator<T>) -> Self;
@@ -109,6 +167,7 @@ impl<T, E: Error> ResultNotification<T, E> for Result<T, E> {
     }
 
     fn notify(self) -> Self {
+        self.notify_with(&OkNotification::default())
     }
 
     fn notify_on_err_with(self, n: &Notificator<E>) -> Self {
