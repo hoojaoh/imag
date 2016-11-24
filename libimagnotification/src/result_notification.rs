@@ -19,8 +19,6 @@
 
 use std::error::Error;
 
-use notify_rust::NotificationUrgency;
-
 use notificator::Notificator;
 use self::err::*;
 use self::ok::*;
@@ -97,13 +95,9 @@ mod err {
 mod ok {
     use std::ops::Deref;
     use std::ops::DerefMut;
-    use std::error::Error;
-    use std::fmt::Display;
 
     use notify_rust::Notification as RustNotification;
-    use notify_rust::NotificationUrgency;
 
-    use notificator::default::Urgency;
     use notificator::default::Notification;
     use notificator::Notificator;
 
@@ -121,7 +115,7 @@ mod ok {
     impl<T> Notificator<T> for OkNotification {
 
         /// A default implementation for all Types that implement Display
-        fn notify(&self, item: &T) {
+        fn notify(&self, _: &T) {
             let mut n = RustNotification::new();
             n.appname("imag");
             n.summary("[Ok]");
