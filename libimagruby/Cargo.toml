@@ -13,6 +13,10 @@ documentation = "https://matthiasbeyer.github.io/imag/imag_documentation/index.h
 repository    = "https://github.com/matthiasbeyer/imag"
 homepage      = "http://imag-pim.org"
 
+[features]
+default = ["tagging"]
+tagging = ["libimagentrytag"]
+
 [lib]
 crate-type = ["dylib"]
 
@@ -38,4 +42,9 @@ path = "../libimagstorestdhook"
 
 [dependencies.libimagutil]
 path = "../libimagutil"
+
+
+[dependencies.libimagentrytag]
+path = "../libimagentrytag"
+optional = true
 

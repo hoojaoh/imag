@@ -30,6 +30,9 @@ extern crate libimagstorestdhook;
 extern crate libimagrt;
 #[macro_use] extern crate libimagutil;
 
+#[cfg(feature = "tagging")]
+extern crate libimagentrytag;
+
 #[macro_use] mod util;
 #[macro_use] pub mod store;
 mod cache;
