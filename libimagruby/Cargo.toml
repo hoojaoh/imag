@@ -16,6 +16,10 @@ homepage      = "http://imag-pim.org"
 [lib]
 crate-type = ["dylib"]
 
+[features]
+default = ["linking"]
+linking = ["libimagentrylink"]
+
 [dependencies]
 ruru = "0.9"
 lazy_static = "0.2"
@@ -38,4 +42,9 @@ path = "../libimagstorestdhook"
 
 [dependencies.libimagutil]
 path = "../libimagutil"
+
+
+[dependencies.libimagentrylink]
+path = "../libimagentrylink"
+optional = true
 
