@@ -16,6 +16,9 @@ module Imag
   # Do not use.
   IMAG_INIT_FN_NAME = 'imag_ruby_initialize'
 
+  class UnsupportedOperationError < StandardError
+  end
+
   # Setup method
   #
   # Call this method for initializing the library.
@@ -113,6 +116,29 @@ module Imag
     Imag::StoreId.class_exec do
       def to_s
         self.to_str
+      end
+    end
+  end
+
+  def self.class_filelockentry_setup
+    ::Array::class_exec do
+      def without_external
+        self.select {|el| not el.external? }
+      end
+
+      def without_internal
+        self.select {|el| el.external? }
+      end
+
+      alias only_internal without_external
+      alias only_external without_internal
+    end
+
+    Imag::FileLockEntryHandle.class_exec do
+      def links
+        links = self.get_all_links
+        raise UnsupportedOperationError if links.nil?
+        links
       end
     end
   end
