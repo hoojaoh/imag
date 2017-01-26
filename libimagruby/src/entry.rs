@@ -339,7 +339,29 @@ methods!(
     // On failure: Nil, raising Exception
     //
     fn r_has_tag(s: RString) -> AnyObject {
-        unimplemented!()
+        #[cfg(feature = "tagging")]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle, s: RRResult<RString>) -> AnyObject {
+            let tag = typecheck!(s or return any NilClass::new());
+
+            call_on_fle_from_store!(itself (FLE_WRAPPER) -> fle -> {
+                match fle.has_tag(&tag.to_string()) {
+                    Err(e) => {
+                        VM::raise(Class::from_existing("RuntimeError"), e.description());
+                        NilClass::new().to_any_object()
+                    },
+                    Ok(b) => Boolean::new(b).to_any_object()
+                }
+            } on fail return NilClass::new().to_any_object())
+        }
+
+        #[cfg(not(feature = "tagging"))]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle, s: RRResult<RString>) -> AnyObject {
+            NilClass::new().to_any_object()
+        }
+
+        run(&itself, s)
     }
 
     // Check whether a list of tags are set for the entry
