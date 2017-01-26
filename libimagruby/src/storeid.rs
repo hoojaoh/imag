@@ -144,6 +144,22 @@ methods!(
         RString::new(local)
     }
 
+    // If we have linking enabled...
+    fn r_storeid_is_external_link() -> AnyObject {
+        #[cfg(feature = "linking")]
+        #[inline]
+        fn run(itself: &RStoreId) -> AnyObject {
+            use libimagentrylink::external::is_external_link_storeid as is_ext;
+            Boolean::new(is_ext(&itself.get_data(&*STOREID_WRAPPER))).to_any_object()
+        }
+
+        #[cfg(not(feature = "linking"))]
+        #[inline]
+        fn run(_: &RStoreId) -> AnyObject { NilClass::new().to_any_object() }
+
+        run(&itself)
+    }
+
 );
 
 pub fn setup() -> Class {
@@ -158,6 +174,8 @@ pub fn setup() -> Class {
         itself.def("exists"            , r_storeid_exists);
         itself.def("to_str"            , r_storeid_to_str);
         itself.def("local"             , r_storeid_local);
+
+        itself.def("external?"         , r_storeid_is_external_link);
     });
     class
 }
