@@ -175,6 +175,52 @@ methods!(
         NilClass::new()
     }
 
+
+    //
+    //
+    // Get internal links
+    //
+    //
+
+    fn r_links() -> AnyObject {
+        #[cfg(feature = "linking")]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle) -> AnyObject {
+            use std::ops::Deref;
+            use ruru::Array;
+            use libimagentrylink::internal::InternalLinker;
+
+            call_on_fle_from_store!(itself (FLE_WRAPPER) -> fle -> {
+                match fle.get_internal_links() {
+                    Ok(itr) => {
+                        let mut itms = vec![];
+                        for id in itr {
+                            match id.to_str() {
+                                Ok(s) => itms.push(RString::new(&s).to_any_object()),
+                                Err(e) => {
+                                    VM::raise(Class::from_existing("RuntimeError"), e.description());
+                                    return NilClass::new().to_any_object()
+                                },
+                            }
+                        }
+
+                        itms.into_iter().collect::<Array>().to_any_object()
+                    },
+                    Err(e) => {
+                        VM::raise(Class::from_existing("RuntimeError"), e.description());
+                        return NilClass::new().to_any_object();
+                    }
+                }
+            })
+        }
+
+        #[cfg(not(feature = "linking"))]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle) -> AnyObject { NilClass::new().to_any_object() }
+
+        run(&itself)
+    }
+
 );
 
 wrappable_struct!(Value, EntryHeaderWrapper, ENTRY_HEADER_WRAPPER);
@@ -254,6 +300,8 @@ pub fn setup_filelockentry() -> Class {
         itself.def("header=" , r_set_header);
         itself.def("content" , r_get_content);
         itself.def("content=", r_set_content);
+
+        itself.def("get_all_links"   , r_links);
     });
     class
 }
