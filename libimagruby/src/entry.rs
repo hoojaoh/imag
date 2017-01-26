@@ -310,8 +310,25 @@ methods!(
     // On success: Nil
     // On failure: Nil, raising Exception
     //
-    fn r_remove_tag(tag: RString) -> AnyObject {
-        unimplemented!()
+    fn r_remove_tag(tag: RString) -> NilClass {
+        #[cfg(feature = "tagging")]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle, tag: RRResult<RString>) -> NilClass {
+            let tag = typecheck!(tag or return NilClass::new());
+
+            call_on_fle_from_store!(itself (FLE_WRAPPER) -> fle -> {
+                if let Err(e) = fle.remove_tag(tag.to_string()) {
+                    VM::raise(Class::from_existing("RuntimeError"), e.description());
+                }
+                NilClass::new()
+            } on fail return NilClass::new())
+        }
+
+        #[cfg(not(feature = "tagging"))]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle, _: RRResult<RString>) -> NilClass { NilClass::new() }
+
+        run(&itself, tag)
     }
 
     // Check whether a tag is set for the entry
