@@ -24,6 +24,11 @@ use std::error::Error;
 use ruru::{Class, Object, AnyObject, Boolean, RString, VM, Hash, NilClass, VerifiedObject};
 use toml::Value;
 
+#[cfg(feature = "tagging")]
+use ruru::Array;
+
+
+use libimagstore::store::EntryHeader;
 use libimagstore::store::EntryContent;
 use libimagstore::store::Entry;
 use libimagstore::storeid::StoreId;
@@ -175,6 +180,78 @@ methods!(
         NilClass::new()
     }
 
+    //
+    //
+    // Tagging functionality from libimagentrytag
+    //
+    //
+
+    // Get the tags of the entry.
+    //
+    // # Returns
+    //
+    // On success: Array[Tag]
+    // On failure: Nil
+    //
+    fn r_get_tags() -> AnyObject {
+        unimplemented!()
+    }
+
+    // Set the tags of the entry.
+    //
+    // # Returns
+    //
+    // On success: Nil
+    // On failure: Nil, raising Exception
+    //
+    fn r_set_tags(ary: Array) -> AnyObject {
+        unimplemented!()
+    }
+
+    // Add a tag
+    //
+    // # Returns
+    //
+    // On success: Nil
+    // On failure: Nil, raising Exception
+    //
+    fn r_add_tag(tag: RString) -> AnyObject {
+        unimplemented!()
+    }
+
+    // Remove a tag
+    //
+    // # Returns
+    //
+    // On success: Nil
+    // On failure: Nil, raising Exception
+    //
+    fn r_remove_tag(tag: RString) -> AnyObject {
+        unimplemented!()
+    }
+
+    // Check whether a tag is set for the entry
+    //
+    // # Returns
+    //
+    // On success: Boolean
+    // On failure: Nil, raising Exception
+    //
+    fn r_has_tag(s: RString) -> AnyObject {
+        unimplemented!()
+    }
+
+    // Check whether a list of tags are set for the entry
+    //
+    // # Returns
+    //
+    // On success: Boolean
+    // On failure: Nil, raising Exception
+    //
+    fn r_has_tags(ary: Array) -> AnyObject {
+        unimplemented!()
+    }
+
 );
 
 wrappable_struct!(Value, EntryHeaderWrapper, ENTRY_HEADER_WRAPPER);
@@ -254,6 +331,15 @@ pub fn setup_filelockentry() -> Class {
         itself.def("header=" , r_set_header);
         itself.def("content" , r_get_content);
         itself.def("content=", r_set_content);
+
+        // Tagging functionality with libimagentrytag
+        itself.def("get_tags"   , r_get_tags);
+        itself.def("set_tags"   , r_set_tags);
+        itself.def("add_tag"    , r_add_tag);
+        itself.def("remove_tag" , r_remove_tag);
+        itself.def("has_tag"    , r_has_tag);
+        itself.def("has_tags"   , r_has_tags);
+
     });
     class
 }
