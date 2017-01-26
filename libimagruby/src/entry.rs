@@ -372,7 +372,46 @@ methods!(
     // On failure: Nil, raising Exception
     //
     fn r_has_tags(ary: Array) -> AnyObject {
-        unimplemented!()
+        #[cfg(feature = "tagging")]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle, ary: RRResult<Array>) -> AnyObject {
+            let ary = typecheck!(ary or return any NilClass::new());
+            let tags = {
+                let mut tags = Vec::with_capacity(ary.length());
+
+                // no iterator chaining because we need to typecheck!() here
+                for tag in ary.into_iter() {
+                    let tag = match tag.try_convert_to::<RString>() {
+                        Ok(t) => t,
+                        Err(e) => {
+                            VM::raise(Class::from_existing("RuntimeError"), e.description());
+                            return NilClass::new().to_any_object();
+                        },
+                    };
+                    tags.push(tag.to_string());
+                }
+
+                tags
+            };
+
+            call_on_fle_from_store!(itself (FLE_WRAPPER) -> fle -> {
+                match fle.has_tags(&tags) {
+                    Err(e) => {
+                        VM::raise(Class::from_existing("RuntimeError"), e.description());
+                        NilClass::new().to_any_object()
+                    }
+                    Ok(b) => Boolean::new(b).to_any_object()
+                }
+            } on fail return NilClass::new().to_any_object())
+        }
+
+        #[cfg(not(feature = "tagging"))]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle, _: RRResult<Array>) -> AnyObject {
+            NilClass::new().to_any_object()
+        }
+
+        run(&itself, ary)
     }
 
 );
