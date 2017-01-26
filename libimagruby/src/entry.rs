@@ -24,9 +24,15 @@ use std::error::Error;
 use ruru::{Class, Object, AnyObject, Boolean, RString, VM, Hash, NilClass, VerifiedObject};
 use toml::Value;
 
+
 #[cfg(feature = "tagging")]
 use ruru::Array;
 
+#[cfg(feature = "tagging")]
+use ruru::result::Result as RRResult;
+
+#[cfg(feature = "tagging")]
+use libimagentrytag::tagable::Tagable;
 
 use libimagstore::store::EntryHeader;
 use libimagstore::store::EntryContent;
@@ -194,7 +200,30 @@ methods!(
     // On failure: Nil
     //
     fn r_get_tags() -> AnyObject {
-        unimplemented!()
+        #[cfg(feature = "tagging")]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle) -> AnyObject {
+            call_on_fle_from_store!(itself (FLE_WRAPPER) -> fle -> {
+                match fle.get_tags() {
+                    Err(e) => {
+                        VM::raise(Class::from_existing("RuntimeError"), e.description());
+                        NilClass::new().to_any_object()
+                    }
+                    Ok(ts) => ts
+                        .into_iter()
+                        .map(|s| RString::new(&s))
+                        .map(|r| r.to_any_object())
+                        .collect::<Array>()
+                        .to_any_object(),
+                }
+            })
+        }
+
+        #[cfg(not(feature = "tagging"))]
+        #[inline]
+        fn run(itself: &RFileLockEntryHandle) -> AnyObject { NilClass::new().to_any_object() }
+
+        run(&itself)
     }
 
     // Set the tags of the entry.
