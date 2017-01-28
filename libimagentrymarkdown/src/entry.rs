@@ -17,29 +17,22 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-#![deny(
-    non_camel_case_types,
-    non_snake_case,
-    path_statements,
-    trivial_numeric_casts,
-    unstable_features,
-    unused_allocation,
-    unused_import_braces,
-    unused_imports,
-    unused_mut,
-    unused_qualifications,
-    while_true,
-)]
+use libimagstore::store::Entry;
 
-extern crate crossbeam;
-extern crate hoedown;
-extern crate url;
-extern crate libimagstore;
-#[macro_use] extern crate libimagerror;
+use result::Result;
+use html::HTML;
 
-pub mod entry;
-pub mod error;
-pub mod html;
-pub mod link;
-pub mod result;
+pub trait AsHTML {
+    fn content_as_html(&self) -> Result<HTML>;
+}
+
+impl AsHTML for Entry {
+
+    fn content_as_html(&self) -> Result<HTML> {
+        use html::to_html;
+
+        to_html(self.get_content())
+    }
+
+}
 
