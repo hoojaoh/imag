@@ -175,6 +175,39 @@ methods!(
         NilClass::new()
     }
 
+    // Convert entry content to HTML, if possible.
+    //
+    // Convenience function over `entry.content.html`, so basically a shortcut.
+    //
+    // # Returns
+    //
+    // On success: String
+    // On error: Exception + NIL
+    // On unimplemented: Nil
+    //
+    fn r_fle_content_as_html() -> AnyObject {
+        #[cfg(feature = "markdown")]
+        fn run(itself: &RFileLockEntryHandle) -> AnyObject {
+            use std::ops::Deref;
+            use libimagentrymarkdown::entry::AsHTML;
+
+            call_on_fle_from_store!(itself (FLE_WRAPPER) -> fle -> {
+                match fle.content_as_html() {
+                    Ok(html) => RString::new(&html).to_any_object(),
+                    Err(e) => {
+                        VM::raise(Class::from_existing("RuntimeError"), e.description());
+                        return Boolean::new(false).to_any_object();
+                    }
+                }
+            })
+        }
+
+        #[cfg(not(feature = "markdown"))]
+        fn run(_: &RFileLockEntryHandle) -> AnyObject { NilClass::new().to_any_object() }
+
+        run(&itself)
+    }
+
 );
 
 wrappable_struct!(Value, EntryHeaderWrapper, ENTRY_HEADER_WRAPPER);
@@ -287,6 +320,8 @@ pub fn setup_filelockentry() -> Class {
         itself.def("header=" , r_set_header);
         itself.def("content" , r_get_content);
         itself.def("content=", r_set_content);
+
+        itself.def("content_html", r_fle_content_as_html);
     });
     class
 }
