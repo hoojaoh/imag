@@ -242,6 +242,39 @@ class!(REntryContent);
 impl_wrap!(EntryContent => ENTRY_CONTENT_WRAPPER);
 impl_unwrap!(REntryContent => EntryContent => ENTRY_CONTENT_WRAPPER);
 
+methods!(
+    REntryContent,
+    itself,
+
+    // Convert entry content to HTML, if possible.
+    //
+    // # Returns
+    //
+    // On success: String
+    // On error: Exception + NIL
+    // On unimplemented: Nil
+    //
+    fn r_content_as_html() -> AnyObject {
+        #[cfg(feature = "markdown")]
+        fn run(itself: &REntryContent) -> AnyObject {
+            use libimagentrymarkdown::html::to_html;
+
+            match to_html(itself.get_data(&*ENTRY_CONTENT_WRAPPER)) {
+                Ok(html) => RString::new(&html).to_any_object(),
+                Err(e) => {
+                    VM::raise(Class::from_existing("RuntimeError"), e.description());
+                    return Boolean::new(false).to_any_object();
+                }
+            }
+        }
+
+        #[cfg(not(feature = "markdown"))]
+        fn run(_: &REntryContent) -> AnyObject { NilClass::new().to_any_object() }
+
+        run(&itself)
+    }
+);
+
 wrappable_struct!(Entry, EntryWrapper, ENTRY_WRAPPER);
 class!(REntry);
 impl_unwrap!(REntry => Entry => ENTRY_WRAPPER);
@@ -272,5 +305,11 @@ pub fn setup_entryheader() -> Class {
 
 pub fn setup_entrycontent() -> Class {
     let string = Class::from_existing("String");
-    Class::new("REntryContent", Some(&string))
+    let mut class = Class::new("REntryContent", Some(&string));
+
+    class.define(|itself| {
+        itself.def("as_html", r_content_as_html);
+    });
+
+    class
 }
