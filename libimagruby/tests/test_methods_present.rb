@@ -29,52 +29,52 @@ class BasicImagInterfaceTest < Minitest::Test
   end
 
   def test_file_lock_entry_handle_methods_exist
-    [ :get_location
-    , :get_header
-    , :set_header
-    , :get_content
-    , :set_content
+    [ :get_location,
+      :get_header,
+      :set_header,
+      :get_content,
+      :set_content
     ].each do |m|
       assert Imag::FileLockEntryHandle.methods.include? m
     end
   end
 
   def test_entry_header_methods_exist
-    [ :new
-    , :insert
-    , :set
-    , :get
+    [ :new,
+      :insert,
+      :set,
+      :get
     ].each do |m|
       assert Imag::EntryHeader.methods.include? m
     end
   end
 
   def test_store_handle_methods_exist
-    [ :new
-    , :create
-    , :retrieve
-    , :get
-    , :retrieve_for_module
-    , :update
-    , :delete
-    , :save_to
-    , :save_as
-    , :move_by_id
-    , :path
+    [ :new,
+      :create,
+      :retrieve,
+      :get,
+      :retrieve_for_module,
+      :update,
+      :delete,
+      :save_to,
+      :save_as,
+      :move_by_id,
+      :path
     ].each do |m|
       assert Imag::StoreHandle.methods.include? m
     end
   end
 
   def test_storeid_methods_exist
-    [ :new
-    , :new_baseless
-    , :without_base
-    , :with_base
-    , :into_pathbuf
-    , :exists
-    , :to_str
-    , :local
+    [ :new,
+      :new_baseless,
+      :without_base,
+      :with_base,
+      :into_pathbuf,
+      :exists,
+      :to_str,
+      :local
     ].each do |m|
       assert Imag::StoreId.methods.include? m
     end
