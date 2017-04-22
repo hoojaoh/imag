@@ -10,13 +10,13 @@ class BasicImagInterfaceTest < Minitest::Test
   end
 
   def test_constants_exist
-    [ :Logger
-    , :StoreId
-    , :StoreHandle
-    , :FileLockEntryHandle
-    , :EntryHeader
-    , :EntryContent
-    , :VERSION
+    [ :Logger,
+      :StoreId,
+      :StoreHandle,
+      :FileLockEntryHandle,
+      :EntryHeader,
+      :EntryContent,
+      :VERSION
     ].each do |k|
       assert Imag.constants.include? k
     end
