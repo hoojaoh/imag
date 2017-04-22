@@ -6,8 +6,8 @@ task default: %w(thermite:build)
 
 desc 'Run Rust & Ruby testsuites'
 task test: ['thermite:build', 'thermite:test'] do
-  [ "test_methods_present"
-  , "test_store_crud"
+  [ "test_methods_present",
+    "test_store_crud"
   ].each do |name|
     ruby File.join(File.dirname(__FILE__), 'tests', "#{name}.rb")
   end
