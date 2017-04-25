@@ -906,6 +906,16 @@ impl Store {
             .map_err_into(SEK::MoveByIdCallError)
     }
 
+    /// Get _all_ entries in the store (by id as iterator)
+    pub fn entries(&self) -> Result<StoreIdIterator> {
+        let hmap = match self.entries.write() {
+            Err(_) => return Err(SE::new(SEK::LockPoisoned, None)),
+            Ok(m)  => m,
+        };
+
+        Ok(StoreIdIterator::new(Box::new(hmap.keys().cloned())))
+    }
+
     /// Gets the path where this store is on the disk
     pub fn path(&self) -> &PathBuf {
         &self.location
