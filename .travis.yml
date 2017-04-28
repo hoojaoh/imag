@@ -24,9 +24,6 @@ before_install:
   rvm install "$IMAG_RUBY_VERSION"
   rvm use "$IMAG_RUBY_VERSION"
   ruby --version
-  pushd libimagruby
-  bundle install --jobs=3 --retry=3 --path=$TRAVIS_BUILD_DIR/libimagruby/vendor/bundle
-  popd
 
 before_script:
 - |
