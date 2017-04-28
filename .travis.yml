@@ -24,6 +24,7 @@ before_install:
   rvm install "$IMAG_RUBY_VERSION"
   rvm use "$IMAG_RUBY_VERSION"
   ruby --version
+  ruby -e 'require "pp"; pp RbConfig::CONFIG'
 
 before_script:
 - |
