@@ -25,6 +25,7 @@ before_install:
   rvm use "$IMAG_RUBY_VERSION"
   ruby --version
   ruby -e 'require "pp"; pp RbConfig::CONFIG'
+  tree /home/travis/.rvm/rubies/ruby-*/lib
 
 before_script:
 - |
@@ -33,6 +34,12 @@ before_script:
 
 script:
 - |
+  echo $LD_PRELOAD
+  echo adding...
+  for entity in $(ls /home/travis/.rvm/rubies/ruby-*/lib/libruby.so.*); do
+    export LD_PRELOAD=$LD_PRELOAD:$entity
+  done
+  echo $LD_PRELOAD
   CARGO=$(which travis-cargo) make all test
 
 addons:
