@@ -908,12 +908,10 @@ impl Store {
 
     /// Get _all_ entries in the store (by id as iterator)
     pub fn entries(&self) -> Result<StoreIdIterator> {
-        let hmap = match self.entries.write() {
-            Err(_) => return Err(SE::new(SEK::LockPoisoned, None)),
-            Ok(m)  => m,
-        };
+        let hmap = try!(self.entries.write().map_err(|_| SE::new(SEK::LockPoisoned, None)));
+        let keys = hmap.keys().cloned();
 
-        Ok(StoreIdIterator::new(Box::new(hmap.keys().cloned())))
+        Ok(StoreIdIterator::new(Box::new(keys)))
     }
 
     /// Gets the path where this store is on the disk
