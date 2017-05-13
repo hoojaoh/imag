@@ -41,7 +41,6 @@ impl AsRuby for Value {
             Value::Integer(i)      => Fixnum::new(i).to_any_object(),
             Value::Float(f)        => Float::new(f).to_any_object(),
             Value::Boolean(b)      => Boolean::new(b).to_any_object(),
-            Value::Datetime(ref s) => RString::new(&s).to_any_object(),
             Value::Array(ref a)    => {
                 let mut arr = Array::new();
                 for obj in a.into_iter().map(AsRuby::as_ruby) {
@@ -58,6 +57,8 @@ impl AsRuby for Value {
                 }
                 h.to_any_object()
             },
+
+            Value::Datetime(_) => unimplemented!(), // TODO: FIX ME
         }
     }
 
