@@ -9,6 +9,7 @@ members = [
     "imag-tag",
     "imag-view",
     "libimagannotation",
+    "libimagentrydate",
     "libimagentryedit",
     "libimagentryfilter",
     "libimagentrylink",
