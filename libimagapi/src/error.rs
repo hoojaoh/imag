@@ -17,16 +17,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-extern crate uuid;
-#[macro_use]
-extern crate lazy_static;
+generate_error_module!(
+    generate_error_types!(ApiError, ApiErrorKind,
+        CacheLockError => "Error while locking cache"
+    );
+);
 
-extern crate libimagstore;
-#[macro_use]
-extern crate libimagerror;
-
-pub mod cache;
-pub mod error;
-pub mod store;
-pub mod storeid;
+pub use self::error::ApiError;
+pub use self::error::ApiErrorKind;
+pub use self::error::MapErrInto;
 
