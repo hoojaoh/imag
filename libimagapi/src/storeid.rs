@@ -23,6 +23,7 @@ use libimagstore::storeid::StoreId;
 
 use handle::Handle;
 use cache::Cache;
+use result::Result;
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
 pub struct StoreIdHandle(Uuid);

@@ -17,19 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-extern crate uuid;
-extern crate sha1;
-#[macro_use]
-extern crate lazy_static;
+use error::ApiError;
 
-extern crate libimagstore;
-#[macro_use]
-extern crate libimagerror;
+use std::result::Result as RResult;
 
-pub mod cache;
-pub mod error;
-pub mod handle;
-pub mod result;
-pub mod store;
-pub mod storeid;
+pub type Result<T> = RResult<T, ApiError>;
 
