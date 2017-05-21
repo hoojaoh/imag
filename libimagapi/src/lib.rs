@@ -19,6 +19,7 @@
 
 extern crate uuid;
 extern crate sha1;
+extern crate toml;
 #[macro_use]
 extern crate lazy_static;
 

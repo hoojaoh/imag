@@ -20,6 +20,7 @@
 use std::path::PathBuf;
 
 use sha1::Sha1;
+use toml::Value;
 
 use libimagstore::store::Store;
 use libimagerror::into::IntoError;
