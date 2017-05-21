@@ -18,9 +18,12 @@
 //
 
 use std::ops::Deref;
+use std::sync::Mutex;
+use std::collections::BTreeMap;
 
 use cache::Cache;
 use store::handle::StoreHandle;
+
 use libimagstore::store::Store;
 
 pub struct StoreCache(Cache<StoreHandle, Store>);

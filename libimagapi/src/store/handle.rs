@@ -107,13 +107,14 @@ impl StoreHandle {
 
         STORE_CACHE.lock()
             .map_err_into(AEK::CacheLockError)
-            .and_then(|cache| {
+            .and_then(|mut cache| {
                 if cache.contains_key(&handle) {
                     Err(AEK::ResourceInUse.into_error())
                 } else {
                     Store::new(location, store_config)
                         .map(|s| cache.insert(handle.clone(), s))
                         .map(|_| handle)
+                        .map_err_into(AEK::StoreInstantiationError)
                 }
             })
 
