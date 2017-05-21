@@ -107,16 +107,30 @@ mod handle {
                     StoreHandle(sha)
                 })
         }
+
+        // The functions which can be executed on the cached object.
+
+        pub fn new(location: PathBuf, store_config: Option<Value>) -> Result<StoreHandle> {
+            let handle = try!(StoreHandle::from_path(&location));
+
+            STORE_CACHE.lock()
+                .map_err_into(AEK::CacheLockError)
+                .and_then(|cache| {
+                    if cache.contains_key(&handle) {
+                        Err(AEK::ResourceInUse)
+                    } else {
+                        Store::new(location, store_config)
+                            .map(|s| cache.insert(handle.clone(), s))
+                            .map(|_| handle)
+                    }
+                })
+
+        }
+
     }
 
 }
 pub use self::handle::*;
-
-impl StoreHandle {
-
-    // The functions which can be executed on the cached object.
-
-}
 
 pub struct StoreCache(Cache<StoreHandle, Store>);
 
