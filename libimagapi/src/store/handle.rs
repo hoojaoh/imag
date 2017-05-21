@@ -120,5 +120,21 @@ impl StoreHandle {
 
     }
 
+    /// Get the toml configuration of the store
+    ///
+    /// # Warning
+    ///
+    /// Does a full clone of the config toml document
+    ///
+    pub fn config(&self) -> Result<Option<Value>> {
+        STORE_CACHE.lock()
+            .map_err_into(AEK::CacheLockError)
+            .and_then(|cache| {
+                cache.get(&self)
+                    .ok_or_else(|| AEK::ResourceUnavailable.into_error())
+                    .map(|store| store.config().map(Clone::clone))
+            })
+    }
+
 }
 
