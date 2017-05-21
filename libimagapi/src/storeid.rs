@@ -21,15 +21,14 @@ use uuid::Uuid;
 
 use libimagstore::storeid::StoreId;
 
-use handle::Handle;
 use cache::Cache;
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
 pub struct StoreIdHandle(Uuid);
 
-impl Handle for StoreIdHandle {
-    fn uuid(&self) -> &Uuid {
-        &self.0
+impl ToString for StoreIdHandle {
+    fn to_string(&self) -> String {
+        self.0.simple().to_string()
     }
 }
 
