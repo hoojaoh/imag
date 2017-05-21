@@ -21,9 +21,11 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::collections::BTreeMap;
 
-pub struct Cache<H: ToString + Ord, O>(Arc<Mutex<BTreeMap<H, O>>>);
+use handle::Handle;
 
-impl<H: ToString + Ord, O> Cache<H, O> {
+pub struct Cache<H: Handle, O>(Arc<Mutex<BTreeMap<H, O>>>);
+
+impl<H: Handle, O> Cache<H, O> {
 
     pub fn new() -> Cache<H, O> {
         Cache(Arc::new(Mutex::new(BTreeMap::new())))

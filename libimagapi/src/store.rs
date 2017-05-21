@@ -17,18 +17,21 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use uuid::Uuid;
+use sha1::Sha1;
 
 use libimagstore::store::Store;
 
+use handle::Handle;
 use cache::Cache;
+use error::ApiErrorKind as AEK;
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
-pub struct StoreHandle(Uuid);
+pub struct StoreHandle(Sha1);
 
-impl ToString for StoreHandle {
-    fn to_string(&self) -> String {
-        self.0.simple().to_string()
+impl Handle for StoreHandle {
+    fn to_string(&self) -> Result<String> {
+        std::str::from_utf8(self.0.digest().bytes()).map(String::from)
+            .map_err_into(AEK::HandleToStringError)
     }
 }
 

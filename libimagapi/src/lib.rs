@@ -18,6 +18,7 @@
 //
 
 extern crate uuid;
+extern crate sha1;
 #[macro_use]
 extern crate lazy_static;
 
@@ -27,6 +28,7 @@ extern crate libimagerror;
 
 pub mod cache;
 pub mod error;
+pub mod handle;
 pub mod store;
 pub mod storeid;
 

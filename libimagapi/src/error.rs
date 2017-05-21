@@ -19,6 +19,8 @@
 
 generate_error_module!(
     generate_error_types!(ApiError, ApiErrorKind,
+        HandleToStringError => "Could not convert a Handle to its String representation",
+        ResourceInUse  => "The requested resource is already in use",
         CacheLockError => "Error while locking cache"
     );
 );

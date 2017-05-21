@@ -17,41 +17,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use uuid::Uuid;
+use result::Result;
 
-use libimagstore::storeid::StoreId;
+pub trait Handle : Ord {
 
-use handle::Handle;
-use cache::Cache;
-
-#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
-pub struct StoreIdHandle(Uuid);
-
-impl Handle for StoreIdHandle {
-    fn to_string(&self) -> Result<String> {
-        Ok(self.0.simple().to_string())
-    }
-}
-
-impl StoreIdHandle {
-
-    // The functions which can be executed on the cached object.
+    fn to_string(&self) -> Result<String>;
 
 }
-
-pub struct StoreIdCache(Cache<StoreIdHandle, StoreId>);
-
-impl StoreIdCache {
-
-    /// This is intensionally private.
-    fn new() -> StoreIdCache {
-        StoreIdCache(Cache::new())
-    }
-
-}
-
-lazy_static! {
-    pub static ref STORE_ID_CACHE: StoreIdCache = StoreIdCache::new();
-}
-
-

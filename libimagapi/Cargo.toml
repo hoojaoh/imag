@@ -16,6 +16,7 @@ homepage      = "http://imag-pim.org"
 [dependencies]
 log = "0.3"
 uuid = { version = "0.5", features = ["v4"] }
+sha1 = "0.2"
 lazy_static = "0.2"
 
 [dependencies.libimagstore]
