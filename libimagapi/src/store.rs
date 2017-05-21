@@ -17,14 +17,40 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-extern crate uuid;
-#[macro_use]
-extern crate lazy_static;
+use uuid::Uuid;
 
-extern crate libimagstore;
+use libimagstore::store::Store;
 
-pub mod cache;
-pub mod handle;
-pub mod store;
-pub mod storeid;
+use handle::Handle;
+use cache::Cache;
+
+#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
+pub struct StoreHandle(Uuid);
+
+impl Handle for StoreHandle {
+    fn uuid(&self) -> &Uuid {
+        &self.0
+    }
+}
+
+impl StoreHandle {
+
+    // The functions which can be executed on the cached object.
+
+}
+
+pub struct StoreCache(Cache<StoreHandle, Store>);
+
+impl StoreCache {
+
+    /// This is intensionally private.
+    fn new() -> StoreCache {
+        StoreCache(Cache::new())
+    }
+
+}
+
+lazy_static! {
+    pub static ref STORE_CACHE: StoreCache = StoreCache::new();
+}
 

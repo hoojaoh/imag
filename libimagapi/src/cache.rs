@@ -17,14 +17,19 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-extern crate uuid;
-#[macro_use]
-extern crate lazy_static;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::collections::BTreeMap;
 
-extern crate libimagstore;
+use handle::Handle;
 
-pub mod cache;
-pub mod handle;
-pub mod store;
-pub mod storeid;
+pub struct Cache<H: Handle + Ord, O>(Arc<Mutex<BTreeMap<H, O>>>);
+
+impl<H: Handle + Ord, O> Cache<H, O> {
+
+    pub fn new() -> Cache<H, O> {
+        Cache(Arc::new(Mutex::new(BTreeMap::new())))
+    }
+
+}
 

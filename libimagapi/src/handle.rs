@@ -17,14 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-extern crate uuid;
-#[macro_use]
-extern crate lazy_static;
+use uuid::Uuid;
 
-extern crate libimagstore;
-
-pub mod cache;
-pub mod handle;
-pub mod store;
-pub mod storeid;
+pub trait Handle {
+    fn uuid(&self) -> &Uuid;
+}
 
