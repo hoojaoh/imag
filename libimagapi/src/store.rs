@@ -17,23 +17,99 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::path::PathBuf;
+
 use sha1::Sha1;
 
 use libimagstore::store::Store;
+use libimagerror::into::IntoError;
 
 use handle::Handle;
 use cache::Cache;
 use error::ApiErrorKind as AEK;
+use error::MapErrInto;
+use result::Result;
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Debug)]
-pub struct StoreHandle(Sha1);
+mod handle {
+    use handle::Handle;
+    use error::ApiErrorKind as AEK;
+    use error::MapErrInto;
+    use result::Result;
 
-impl Handle for StoreHandle {
-    fn to_string(&self) -> Result<String> {
-        std::str::from_utf8(self.0.digest().bytes()).map(String::from)
-            .map_err_into(AEK::HandleToStringError)
+    use sha1::Sha1;
+
+    use std::cmp::Ordering;
+    use std::error::Error;
+    use std::fmt::Debug;
+    use std::fmt::Error as FmtError;
+    use std::fmt::{Display, Formatter};
+    use std::ops::Deref;
+    use std::result::Result as RResult;
+
+    #[derive(Clone)]
+    pub struct StoreHandle(Sha1);
+
+    impl Deref for StoreHandle {
+        type Target = Sha1;
+
+        fn deref(&self) -> &Sha1 {
+            &self.0
+        }
     }
+
+    impl PartialEq for StoreHandle {
+        fn eq(&self, other: &StoreHandle) -> bool {
+            self.0.digest().bytes().eq(&other.digest().bytes())
+        }
+    }
+
+    impl PartialOrd for StoreHandle {
+
+        fn partial_cmp(&self, other: &StoreHandle) -> Option<Ordering> {
+            self.0.digest().bytes().partial_cmp(&other.digest().bytes())
+        }
+
+    }
+
+    impl Ord for StoreHandle {
+        fn cmp(&self, other: &Self) -> Ordering {
+            self.0.digest().bytes().cmp(&other.digest().bytes())
+        }
+    }
+
+    impl Eq for StoreHandle {
+        // This is empty
+    }
+
+    impl Debug for StoreHandle {
+        fn fmt(&self, f: &mut Formatter) -> RResult<(), FmtError> {
+            write!(f, "StoreHandle({:?})", self.0.digest().bytes())
+        }
+    }
+
+    impl Handle for StoreHandle {
+        fn to_string(&self) -> Result<String> {
+            ::std::str::from_utf8(&self.0.digest().bytes())
+                .map(String::from)
+                .map_err_into(AEK::HandleToStringError)
+        }
+    }
+
+    impl StoreHandle {
+
+        fn from_path(loc: &PathBuf) -> Result<StoreHandle> {
+            loc.to_str()
+                .ok_or_else(|| AEK::HandleInstantiationError.into_error())
+                .map(|buf| {
+                    let mut sha = Sha1::new();
+                    sha.update(buf.as_bytes());
+                    StoreHandle(sha)
+                })
+        }
+    }
+
 }
+pub use self::handle::*;
 
 impl StoreHandle {
 
