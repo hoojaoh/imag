@@ -22,7 +22,9 @@ generate_error_module!(
         HandleInstantiationError => "Could not instantiate Handle",
         HandleToStringError => "Could not convert a Handle to its String representation",
         ResourceInUse  => "The requested resource is already in use",
-        CacheLockError => "Error while locking cache"
+        CacheLockError => "Error while locking cache",
+
+        StoreInstantiationError => "Could not instantiate Store object"
     );
 );
 
