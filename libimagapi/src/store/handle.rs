@@ -88,6 +88,41 @@ impl Handle for StoreHandle {
     }
 }
 
+/// Generate a function `$fnname` which wraps `Store::$fnname` and returns `Result<$rettype>`
+///
+/// The store is named `$store_name` inside the block, if further action on the store is
+/// required.
+///
+/// The result of the function call on the store is named `$function_result` in the block.
+macro_rules! wrap_function {
+    (
+        wrap $fnname:ident
+        (
+            $( $param_name:ident : $param_type:ty ),*
+        ) -> $rettype:ty
+        {
+            name store  = $store_name:ident
+            name result = $function_result:ident
+        }
+        do $block:block
+    ) => {
+        pub fn $fnname(&self, $( $param_name : $param_type ),*) -> Result<$rettype> {
+            STORE_CACHE.lock()
+                .map_err_into(AEK::CacheLockError)
+                .and_then(|cache| {
+                    cache.get(&self)
+                        .ok_or_else(|| AEK::ResourceUnavailable.into_error())
+                        .map(|$store_name| {
+                            let $function_result =
+                                $store_name.$fnname( $( $param_name : $param_type ),* );
+
+                            $block
+                        })
+                    })
+        }
+    }
+}
+
 impl StoreHandle {
 
     fn from_path(loc: &PathBuf) -> Result<StoreHandle> {
@@ -126,15 +161,14 @@ impl StoreHandle {
     ///
     /// Does a full clone of the config toml document
     ///
-    pub fn config(&self) -> Result<Option<Value>> {
-        STORE_CACHE.lock()
-            .map_err_into(AEK::CacheLockError)
-            .and_then(|cache| {
-                cache.get(&self)
-                    .ok_or_else(|| AEK::ResourceUnavailable.into_error())
-                    .map(|store| store.config().map(Clone::clone))
-            })
-    }
+    wrap_function! (
+        wrap config () -> Option<Value>
+        {
+            name store  = store
+            name result = res
+        }
+        do { res.map(Clone::clone) }
+    );
 
 }
 
