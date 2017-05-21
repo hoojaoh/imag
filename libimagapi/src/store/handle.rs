@@ -170,5 +170,14 @@ impl StoreHandle {
         do { res.map(Clone::clone) }
     );
 
+    wrap_function! (
+        wrap path () -> PathBuf
+        {
+            name store  = store
+            name result = res
+        }
+        do { res.clone() }
+    );
+
 }
 
