@@ -20,6 +20,7 @@
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::collections::BTreeMap;
+use std::ops::Deref;
 
 use handle::Handle;
 
@@ -31,5 +32,13 @@ impl<H: Handle, O> Cache<H, O> {
         Cache(Arc::new(Mutex::new(BTreeMap::new())))
     }
 
+}
+
+impl<H: Handle, O> Deref for Cache<H, O> {
+    type Target = Arc<Mutex<BTreeMap<H, O>>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 

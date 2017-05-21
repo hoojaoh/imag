@@ -17,6 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::ops::Deref;
+
+use cache::Cache;
 use store::handle::StoreHandle;
 use libimagstore::store::Store;
 
@@ -29,6 +32,14 @@ impl StoreCache {
         StoreCache(Cache::new())
     }
 
+}
+
+impl Deref for StoreCache {
+    type Target = Cache<StoreHandle, Store>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 lazy_static! {
