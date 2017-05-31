@@ -19,12 +19,18 @@
 
 extern crate toml_query;
 extern crate toml;
+#[macro_use]
+extern crate is_match;
 
 #[macro_use]
 extern crate libimagerror;
+#[macro_use]
 extern crate libimagstore;
 
 pub mod category;
 pub mod error;
+pub mod register;
 pub mod result;
+
+module_entry_path_mod!("category");
 
