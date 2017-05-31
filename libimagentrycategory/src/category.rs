@@ -66,8 +66,7 @@ impl EntryCategory for Entry {
 
     fn get_category(&self) -> Result<Option<Category>> {
         let res = self.get_header().read(&String::from("category.value"));
-        if res.is_err() {
-            let res = res.unwrap_err();
+        if let Err(res) = res {
             match res.kind() {
                 &TQEK::IdentifierNotFoundInDocument(_) => Ok(None),
                 _                                      => Err(res),
