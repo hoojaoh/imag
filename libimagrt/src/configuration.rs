@@ -243,30 +243,32 @@ fn fetch_config(rtp: &PathBuf) -> Result<Value> {
                                     .unwrap_or(vec![]),
     ].iter()
         .flatten()
-        .filter(|path| path.exists() && path.is_file())
-        .map(|path| {
-            let content = {
-                let mut s = String::new();
-                let f = File::open(path);
-                if f.is_err() {
-                    return None
-                }
-                let mut f = f.unwrap();
-                f.read_to_string(&mut s).ok();
-                s
-            };
+        .filter_map(|path| {
+            if !path.exists() || !path.is_file() {
+                None
+            } else {
+                let content = {
+                    let mut s = String::new();
+                    let f = File::open(path);
+                    if f.is_err() {
+                        return None
+                    }
+                    let mut f = f.unwrap();
+                    f.read_to_string(&mut s).ok();
+                    s
+                };
 
-            match ::toml::de::from_str(&content[..]) {
-                Ok(res) => res,
-                Err(e) => {
-                    write!(stderr(), "Config file parser error:").ok();
-                    trace_error(&e);
-                    None
+                match ::toml::de::from_str(&content[..]) {
+                    Ok(res) => res,
+                    Err(e) => {
+                        write!(stderr(), "Config file parser error:").ok();
+                        trace_error(&e);
+                        None
+                    }
                 }
             }
         })
-        .filter(|loaded| loaded.is_some())
         .nth(0)
-        .map(|inner| Value::Table(inner.unwrap()))
+        .map(Value::Table)
         .ok_or(ConfigErrorKind::NoConfigFileFound.into())
 }
