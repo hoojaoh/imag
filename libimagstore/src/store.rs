@@ -556,6 +556,8 @@ impl Store {
     pub fn delete<S: IntoStoreId>(&self, id: S) -> Result<()> {
         let id = try!(id.into_storeid()).with_base(self.path().clone());
 
+        debug!("Deleting id: '{}'", id);
+
         {
             let mut entries = match self.entries.write() {
                 Err(_) => return Err(SE::new(SEK::LockPoisoned, None))
@@ -582,6 +584,7 @@ impl Store {
             }
         }
 
+        debug!("Deleted");
         Ok(())
     }
 
