@@ -335,6 +335,8 @@ impl Store {
     pub fn create<'a, S: IntoStoreId>(&'a self, id: S) -> Result<FileLockEntry<'a>> {
         let id = try!(id.into_storeid()).with_base(self.path().clone());
 
+        debug!("Creating id: '{}'", id);
+
         {
             let mut hsmap = match self.entries.write() {
                 Err(_) => return Err(SEK::LockPoisoned.into_error()).map_err_into(SEK::CreateCallError),
@@ -342,14 +344,18 @@ impl Store {
             };
 
             if hsmap.contains_key(&id) {
+                debug!("Cannot create, internal cache already contains: '{}'", id);
                 return Err(SEK::EntryAlreadyExists.into_error()).map_err_into(SEK::CreateCallError);
             }
             hsmap.insert(id.clone(), {
+                debug!("Creating: '{}'", id);
                 let mut se = try!(StoreEntry::new(id.clone()));
                 se.status = StoreEntryStatus::Borrowed;
                 se
             });
         }
+
+        debug!("Constructing FileLockEntry: '{}'", id);
 
         Ok(FileLockEntry::new(self, Entry::new(id)))
     }
