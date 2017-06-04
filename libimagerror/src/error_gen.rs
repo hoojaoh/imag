@@ -58,6 +58,7 @@ macro_rules! generate_custom_error_types {
                     $( $kindname::$kind => $string ),*
                 };
                 try!(write!(fmt, "{}", s));
+                self.custom_data.map(|c| c.fmt(fmt))
                 Ok(())
             }
 
