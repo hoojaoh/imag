@@ -26,7 +26,6 @@ use std::sync::RwLock;
 use std::io::Read;
 use std::convert::From;
 use std::convert::Into;
-use std::sync::Mutex;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::fmt::Formatter;
@@ -47,7 +46,6 @@ use toml_ext::*;
 
 use libimagerror::into::IntoError;
 use libimagerror::trace::trace_error;
-use libimagutil::iter::FoldResult;
 use libimagutil::debug_result::*;
 
 use self::glob_store_iter::*;
@@ -475,7 +473,7 @@ impl Store {
     ///  - Errors Entry::verify() might return
     ///  - Errors StoreEntry::write_entry() might return
     ///
-    fn _update<'a>(&'a self, mut entry: &mut FileLockEntry<'a>, modify_presence: bool) -> Result<()> {
+    fn _update<'a>(&'a self, entry: &mut FileLockEntry<'a>, modify_presence: bool) -> Result<()> {
         let mut hsmap = match self.entries.write() {
             Err(_) => return Err(SE::new(SEK::LockPoisoned, None)),
             Ok(e) => e,

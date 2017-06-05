@@ -20,7 +20,6 @@
 use toml::Value;
 
 use libimagerror::into::IntoError;
-use libimagutil::iter::FoldResult;
 
 use store::Result;
 
