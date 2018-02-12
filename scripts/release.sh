@@ -29,6 +29,7 @@ CRATES=(
     ./lib/entry/libimagentrymarkdown
     ./lib/entry/libimagentryannotation
     ./lib/domain/libimagbookmark
+    ./lib/domain/libimagcalendar
     ./lib/domain/libimaghabit
     ./lib/domain/libimagnotes
     ./lib/domain/libimagcontact
