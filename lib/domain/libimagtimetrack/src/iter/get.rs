@@ -23,7 +23,7 @@ use libimagstore::store::FileLockEntry;
 
 use failure::Fallible as Result;
 
-use constants::*;
+use crate::constants::*;
 
 pub struct TimeTrackingsGetIterator<'a>(Entries<'a>, &'a Store);
 

@@ -19,7 +19,7 @@
 
 use chrono::naive::NaiveDate as ChronoNaiveDate;
 
-use parse::Parse;
+use crate::parse::Parse;
 
 pub struct Date {
     year: i32,
@@ -61,7 +61,7 @@ impl Parse for Date {
     fn parse(s: &str) -> Option<Date> {
         use std::str::FromStr;
         use regex::Regex;
-        use parse::time_parse_regex;
+        use crate::parse::time_parse_regex;
 
         lazy_static! {
             static ref R: Regex = Regex::new(time_parse_regex()).unwrap();
@@ -108,7 +108,7 @@ impl Parse for Date {
 #[cfg(test)]
 mod test {
     use super::Date;
-    use parse::Parse;
+    use crate::parse::Parse;
 
     #[test]
     fn test_valid() {

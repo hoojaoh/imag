@@ -27,10 +27,10 @@ macro_rules! mk_iterator_mod {
         fun       = $fun:expr
     } => {
         pub mod $modname {
-            use storeid::StoreId;
+            use crate::storeid::StoreId;
             #[allow(unused_imports)]
-            use store::FileLockEntry;
-            use store::Store;
+            use crate::store::FileLockEntry;
+            use crate::store::Store;
             use failure::Fallible as Result;
 
             pub struct $itername<'a>(Box<Iterator<Item = Result<StoreId>> + 'a>, &'a Store);
@@ -109,8 +109,8 @@ mod compile_test {
     // This module contains code to check whether this actually compiles the way we would like it to
     // compile
 
-    use store::Store;
-    use storeid::StoreId;
+    use crate::store::Store;
+    use crate::storeid::StoreId;
 
     fn store() -> Store {
         unimplemented!("Not implemented because in compile-test")
@@ -137,13 +137,13 @@ mod compile_test {
     }
 }
 
-use storeid::StoreId;
-use storeid::StoreIdIterator;
+use crate::storeid::StoreId;
+use crate::storeid::StoreIdIterator;
 use self::delete::StoreDeleteIterator;
 use self::get::StoreGetIterator;
 use self::retrieve::StoreRetrieveIterator;
-use file_abstraction::iter::PathIterator;
-use store::Store;
+use crate::file_abstraction::iter::PathIterator;
+use crate::store::Store;
 use failure::Fallible as Result;
 
 /// Iterator for iterating over all (or a subset of all) entries
@@ -186,8 +186,8 @@ impl<'a> Entries<'a> {
     /// Revisit whether this can be done in a cleaner way. See commit message for why this is
     /// needed.
     pub fn into_storeid_iter(self) -> StoreIdIterator {
-        use storeid::StoreIdWithBase;
-        use storeid::IntoStoreId;
+        use crate::storeid::StoreIdWithBase;
+        use crate::storeid::IntoStoreId;
 
         let storepath = self.1.path().to_path_buf();
 
@@ -243,9 +243,9 @@ mod tests {
         let _ = env_logger::try_init();
     }
 
-    use store::Store;
-    use storeid::StoreId;
-    use file_abstraction::inmemory::InMemoryFileAbstraction;
+    use crate::store::Store;
+    use crate::storeid::StoreId;
+    use crate::file_abstraction::inmemory::InMemoryFileAbstraction;
     use libimagutil::variants::generate_variants;
 
     pub fn get_store() -> Store {

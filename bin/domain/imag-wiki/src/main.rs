@@ -44,7 +44,7 @@ use libimagwiki::store::WikiStore;
 use libimagentryedit::edit::{Edit, EditHeader};
 
 mod ui;
-use ui::build_ui;
+use crate::ui::build_ui;
 
 fn main() {
     let version = make_imag_version!();

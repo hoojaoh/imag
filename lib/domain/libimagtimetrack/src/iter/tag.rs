@@ -22,8 +22,8 @@ use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;
 
-use tag::TimeTrackingTag as TTT;
-use iter::storeid::TagStoreIdIter;
+use crate::tag::TimeTrackingTag as TTT;
+use crate::iter::storeid::TagStoreIdIter;
 
 use libimagentrytag::tag::is_tag_str;
 

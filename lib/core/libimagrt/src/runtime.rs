@@ -37,9 +37,9 @@ use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;
 
-use configuration::{fetch_config, override_config, InternalConfiguration};
-use logger::ImagLogger;
-use io::OutputProxy;
+use crate::configuration::{fetch_config, override_config, InternalConfiguration};
+use crate::logger::ImagLogger;
+use crate::io::OutputProxy;
 
 use libimagerror::exit::ExitCode;
 use libimagerror::errors::ErrorMsg as EM;
@@ -48,7 +48,7 @@ use libimagerror::io::ToExitCode;
 use libimagstore::store::Store;
 use libimagstore::storeid::StoreId;
 use libimagutil::debug_result::DebugResult;
-use spec::CliSpec;
+use crate::spec::CliSpec;
 use atty;
 
 /// The Runtime object

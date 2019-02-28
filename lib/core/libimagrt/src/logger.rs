@@ -24,7 +24,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::ops::Deref;
 
-use runtime::Runtime;
+use crate::runtime::Runtime;
 
 use failure::ResultExt;
 use failure::Fallible as Result;

@@ -23,8 +23,8 @@ use libimagentryutil::isa::IsKindHeaderPathProvider;
 
 use failure::Fallible as Result;
 
-use diaryid::DiaryId;
-use diaryid::FromStoreId;
+use crate::diaryid::DiaryId;
+use crate::diaryid::FromStoreId;
 
 provide_kindflag_path!(pub IsDiaryEntry, "diary.is_diary_entry");
 

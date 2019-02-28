@@ -504,7 +504,7 @@ pub mod store_check {
         fn check_link_consistency(&self) -> Result<()> {
             use std::collections::HashMap;
 
-            use internal::InternalLinker;
+            use crate::internal::InternalLinker;
 
             use libimagstore::storeid::StoreId;
             use libimagutil::debug_result::DebugResult;

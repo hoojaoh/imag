@@ -46,7 +46,7 @@ extern crate libimaginteraction;
 extern crate libimagutil;
 
 mod ui;
-use ui::build_ui;
+use crate::ui::build_ui;
 
 use std::process::exit;
 use std::io::Write;
@@ -92,7 +92,7 @@ fn main() {
 fn deref(rt: &Runtime) {
     let cmd         = rt.cli().subcommand_matches("deref").unwrap();
     let basepath    = cmd.value_of("override-basepath");
-    let ids         = rt.ids::<::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let ids         = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
     let cfg         = get_ref_config(&rt, "imag-ref").map_err_trace_exit_unwrap();
     let out         = rt.stdout();
     let mut outlock = out.lock();
@@ -130,7 +130,7 @@ fn remove(rt: &Runtime) {
 
     let cmd = rt.cli().subcommand_matches("remove").unwrap();
     let yes = cmd.is_present("yes");
-    let ids = rt.ids::<::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let ids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
 
     let mut input = rt.stdin().unwrap_or_else(|| {
         error!("No input stream. Cannot ask for permission");
@@ -169,7 +169,7 @@ fn list_dead(rt: &Runtime) {
     let list_id    = cmd.is_present("list-dead-ids");
     let mut output = rt.stdout();
 
-    rt.ids::<::ui::PathProvider>()
+    rt.ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
         .into_iter()
         .for_each(|id| {
@@ -204,7 +204,7 @@ fn list_dead(rt: &Runtime) {
         });
 }
 
-fn create(rt: &Runtime) {
+fn create(_rt: &Runtime) {
     unimplemented!()
 }
 

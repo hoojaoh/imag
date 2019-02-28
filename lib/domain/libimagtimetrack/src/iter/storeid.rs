@@ -21,9 +21,9 @@ use chrono::naive::NaiveDateTime as NDT;
 use failure::Fallible as Result;
 use failure::Error;
 
-use constants::*;
-use iter::tag::TagIter;
-use iter::create::CreateTimeTrackIter;
+use crate::constants::*;
+use crate::iter::tag::TagIter;
+use crate::iter::create::CreateTimeTrackIter;
 
 use libimagstore::store::Store;
 use libimagstore::storeid::StoreId;
@@ -54,7 +54,7 @@ impl Iterator for TagStoreIdIter {
             .map(|res| res.and_then(|tag| {
                 let dt     = self.datetime.format(DATE_TIME_FORMAT).to_string();
                 let id_str = format!("{}-{}", dt, tag.as_str());
-                ::module_path::new_id(id_str)
+                crate::module_path::new_id(id_str)
                     .map_err(Error::from)
                     .map(|id| (id, self.datetime.clone()))
             }))

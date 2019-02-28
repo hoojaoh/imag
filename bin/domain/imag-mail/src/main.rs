@@ -71,7 +71,7 @@ use libimagstore::iter::get::StoreIdGetIteratorExtension;
 
 mod ui;
 
-use ui::build_ui;
+use crate::ui::build_ui;
 
 fn main() {
     let version = make_imag_version!();
@@ -215,7 +215,7 @@ fn list(rt: &Runtime) {
     }
 
     if rt.ids_from_stdin() {
-        let iter = rt.ids::<::ui::PathProvider>()
+        let iter = rt.ids::<crate::ui::PathProvider>()
             .map_err_trace_exit_unwrap()
             .into_iter()
             .map(Ok);

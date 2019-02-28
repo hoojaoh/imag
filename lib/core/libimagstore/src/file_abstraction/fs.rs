@@ -27,10 +27,10 @@ use libimagerror::errors::ErrorMsg as EM;
 use super::FileAbstraction;
 use super::FileAbstractionInstance;
 use super::Drain;
-use store::Entry;
-use storeid::StoreIdWithBase;
-use file_abstraction::iter::PathIterator;
-use file_abstraction::iter::PathIterBuilder;
+use crate::store::Entry;
+use crate::storeid::StoreIdWithBase;
+use crate::file_abstraction::iter::PathIterator;
+use crate::file_abstraction::iter::PathIterBuilder;
 
 use walkdir::WalkDir;
 use failure::ResultExt;

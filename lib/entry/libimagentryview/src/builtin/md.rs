@@ -26,7 +26,7 @@ use mdcat::{AnsiTerminal, ResourceAccess, TerminalSize};
 use pulldown_cmark::Parser;
 use syntect::parsing::SyntaxSet;
 
-use viewer::Viewer;
+use crate::viewer::Viewer;
 use failure::Fallible as Result;
 use failure::Error;
 

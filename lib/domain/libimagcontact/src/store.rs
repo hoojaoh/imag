@@ -35,9 +35,9 @@ use libimagstore::store::FileLockEntry;
 use libimagentryutil::isa::Is;
 use libimagentryref::reference::{MutRef, Config as RefConfig};
 
-use contact::IsContact;
-use deser::DeserVcard;
-use util;
+use crate::contact::IsContact;
+use crate::deser::DeserVcard;
+use crate::util;
 
 pub trait ContactStore<'a> {
 
@@ -164,7 +164,7 @@ fn prepare_fetching_from_store(buf: &str) -> Result<(StoreId, Value)> {
         toml_from_str::<Value>(&serialized)?
     };
 
-    let sid = ::module_path::new_id(uid.raw())?;
+    let sid = crate::module_path::new_id(uid.raw())?;
 
     Ok((sid, value))
 }

@@ -21,7 +21,7 @@ use std::io::Write;
 
 use libimagstore::store::Entry;
 
-use viewer::Viewer;
+use crate::viewer::Viewer;
 use failure::Fallible as Result;
 
 pub struct PlainViewer {

@@ -20,7 +20,7 @@
 use libimagstore::store::Entry;
 use toml_query::read::TomlValueReadExt;
 
-use builtin::header::field_path::FieldPath;
+use crate::builtin::header::field_path::FieldPath;
 use filters::failable::filter::FailableFilter;
 
 use failure::Fallible as Result;

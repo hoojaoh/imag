@@ -21,8 +21,8 @@ use chrono::NaiveDateTime;
 
 use libimagstore::store::FileLockEntry;
 
-use tag::TimeTrackingTag as TTT;
-use timetracking::TimeTracking;
+use crate::tag::TimeTrackingTag as TTT;
+use crate::timetracking::TimeTracking;
 
 
 pub fn has_start_time(entry: &FileLockEntry) -> bool {
@@ -57,8 +57,8 @@ mod types {
     use chrono::NaiveDateTime;
     use filters::filter::Filter;
 
-    use tag::TimeTrackingTag as TTT;
-    use timetracking::TimeTracking;
+    use crate::tag::TimeTrackingTag as TTT;
+    use crate::timetracking::TimeTracking;
 
     use libimagstore::store::FileLockEntry;
 

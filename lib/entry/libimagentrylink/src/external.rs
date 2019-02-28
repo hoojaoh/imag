@@ -48,7 +48,7 @@ use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::err_msg;
 
-use internal::InternalLinker;
+use crate::internal::InternalLinker;
 
 use self::iter::*;
 
@@ -132,8 +132,8 @@ pub mod iter {
     use libimagutil::debug_result::*;
     use libimagstore::store::Store;
 
-    use internal::Link;
-    use internal::iter::LinkIter;
+    use crate::internal::Link;
+    use crate::internal::iter::LinkIter;
     use failure::Fallible as Result;
 
     use url::Url;
@@ -262,7 +262,7 @@ pub mod iter {
         type Item = Result<Url>;
 
         fn next(&mut self) -> Option<Self::Item> {
-            use external::Link;
+            use crate::external::Link;
 
             loop {
                 let next = self.0
@@ -335,7 +335,7 @@ impl ExternalLinker for Entry {
         debug!("Iterating {} links = {:?}", links.len(), links);
         links.into_iter().map(|link| {
             let hash = hex::encode(Sha1::digest(&link.as_str().as_bytes()));
-            let file_id = ::module_path::new_id(format!("external/{}", hash))
+            let file_id = crate::module_path::new_id(format!("external/{}", hash))
                 .map_dbg_err(|_| {
                     format!("Failed to build StoreId for this hash '{:?}'", hash)
                 })?;

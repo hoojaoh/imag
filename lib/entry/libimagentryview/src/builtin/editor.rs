@@ -23,7 +23,7 @@ use libimagstore::store::Entry;
 use libimagrt::runtime::Runtime;
 use libimagentryedit::edit::edit_in_tmpfile;
 
-use viewer::Viewer;
+use crate::viewer::Viewer;
 use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::Error;

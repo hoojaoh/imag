@@ -19,9 +19,9 @@
 
 use failure::Fallible as Result;
 
-use habit::builder::HabitBuilder;
-use iter::HabitTemplateStoreIdIterator;
-use iter::HabitInstanceStoreIdIterator;
+use crate::habit::builder::HabitBuilder;
+use crate::iter::HabitTemplateStoreIdIterator;
+use crate::iter::HabitInstanceStoreIdIterator;
 
 use libimagstore::store::Store;
 

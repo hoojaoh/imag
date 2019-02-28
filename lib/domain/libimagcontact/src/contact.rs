@@ -28,7 +28,7 @@ use libimagentryutil::isa::Is;
 use libimagentryutil::isa::IsKindHeaderPathProvider;
 use libimagerror::errors::ErrorMsg as EM;
 
-use deser::DeserVcard;
+use crate::deser::DeserVcard;
 
 /// Trait to be implemented on ::libimagstore::store::Entry
 pub trait Contact {

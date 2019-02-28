@@ -24,7 +24,7 @@ use libimagstore::storeid::StoreIdIterator;
 use libimagstore::storeid::StoreIdIteratorWithStore;
 use libimagstore::storeid::StoreId;
 
-use util::IsHabitCheck;
+use crate::util::IsHabitCheck;
 
 pub struct HabitTemplateStoreIdIterator(StoreIdIterator);
 

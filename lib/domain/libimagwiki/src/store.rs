@@ -23,7 +23,7 @@ use libimagstore::storeid::StoreId;
 
 use failure::Fallible as Result;
 
-use wiki::Wiki;
+use crate::wiki::Wiki;
 
 pub trait WikiStore {
 
@@ -82,6 +82,6 @@ impl WikiStore for Store {
 }
 
 fn wiki_path(name: &str) -> Result<StoreId> {
-    ::module_path::new_id(name)
+    crate::module_path::new_id(name)
 }
 

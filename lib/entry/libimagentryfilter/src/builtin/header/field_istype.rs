@@ -19,9 +19,9 @@
 
 use libimagstore::store::Entry;
 
-use builtin::header::field_path::FieldPath;
-use builtin::header::field_predicate::FieldPredicate;
-use builtin::header::field_predicate::Predicate;
+use crate::builtin::header::field_path::FieldPath;
+use crate::builtin::header::field_predicate::FieldPredicate;
+use crate::builtin::header::field_predicate::Predicate;
 use filters::failable::filter::FailableFilter;
 
 use failure::Fallible as Result;

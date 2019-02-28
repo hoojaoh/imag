@@ -41,12 +41,12 @@ use failure::ResultExt;
 use failure::err_msg;
 use failure::Error;
 
-use storeid::{IntoStoreId, StoreId};
-use iter::Entries;
-use file_abstraction::FileAbstraction;
-use file_abstraction::FileAbstractionInstance;
-use file_abstraction::fs::FSFileAbstraction;
-use file_abstraction::inmemory::InMemoryFileAbstraction;
+use crate::storeid::{IntoStoreId, StoreId};
+use crate::iter::Entries;
+use crate::file_abstraction::FileAbstraction;
+use crate::file_abstraction::FileAbstractionInstance;
+use crate::file_abstraction::fs::FSFileAbstraction;
+use crate::file_abstraction::inmemory::InMemoryFileAbstraction;
 
 use libimagutil::debug_result::*;
 
@@ -188,7 +188,7 @@ impl Store {
     pub(crate) fn new_with_backend(location: PathBuf,
                         store_config: &Option<Value>,
                         backend: Arc<FileAbstraction>) -> Result<Store> {
-        use configuration::*;
+        use crate::configuration::*;
 
         debug!("Building new Store object");
         if !location.exists() {
@@ -813,7 +813,7 @@ impl Entry {
     /// - Header cannot be parsed into a TOML object
     ///
     pub fn from_str<S: IntoStoreId>(loc: S, s: &str) -> Result<Entry> {
-        use util::entry_buffer_to_header_content;
+        use crate::util::entry_buffer_to_header_content;
 
         let (header, content) = entry_buffer_to_header_content(s)?;
 
@@ -865,7 +865,7 @@ impl Entry {
     ///
     /// If an error is returned, the contents of neither the header nor the content are modified.
     pub fn replace_from_buffer(&mut self, buf: &str) -> Result<()> {
-        let (header, content) = ::util::entry_buffer_to_header_content(buf)?;
+        let (header, content) = crate::util::entry_buffer_to_header_content(buf)?;
         self.content          = content;
         self.header           = header;
         Ok(())
@@ -931,9 +931,9 @@ mod test {
     extern crate env_logger;
 
     use std::collections::BTreeMap;
-    use storeid::StoreId;
-    use store::has_main_section;
-    use store::has_imag_version_in_main_section;
+    use crate::storeid::StoreId;
+    use crate::store::has_main_section;
+    use crate::store::has_imag_version_in_main_section;
 
     use toml::Value;
 
@@ -1058,7 +1058,7 @@ mod store_tests {
     use super::Store;
 
     pub fn get_store() -> Store {
-        use file_abstraction::inmemory::InMemoryFileAbstraction;
+        use crate::file_abstraction::inmemory::InMemoryFileAbstraction;
         let backend = Arc::new(InMemoryFileAbstraction::default());
         Store::new_with_backend(PathBuf::from("/"), &None, backend).unwrap()
     }
@@ -1141,7 +1141,7 @@ mod store_tests {
 
     #[test]
     fn test_store_create_in_hm() {
-        use storeid::StoreId;
+        use crate::storeid::StoreId;
 
         let store = get_store();
 
@@ -1156,7 +1156,7 @@ mod store_tests {
 
     #[test]
     fn test_store_retrieve_in_hm() {
-        use storeid::StoreId;
+        use crate::storeid::StoreId;
 
         let store = get_store();
 
@@ -1195,7 +1195,7 @@ mod store_tests {
 
     #[test]
     fn test_store_move_moves_in_hm() {
-        use storeid::StoreId;
+        use crate::storeid::StoreId;
         setup_logging();
 
         let store = get_store();

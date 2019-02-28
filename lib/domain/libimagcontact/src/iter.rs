@@ -22,7 +22,7 @@ use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagerror::errors::ErrorMsg as EM;
 
-use contact::Contact;
+use crate::contact::Contact;
 use failure::Fallible as Result;
 use failure::Error;
 

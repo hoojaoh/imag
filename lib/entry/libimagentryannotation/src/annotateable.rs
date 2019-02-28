@@ -51,7 +51,7 @@ impl Annotateable for Entry {
         let ann_name = Uuid::new_v4().to_hyphenated().to_string();
         debug!("Creating annotation with name = {}", ann_name);
 
-        store.retrieve(::module_path::new_id(ann_name.clone())?)
+        store.retrieve(crate::module_path::new_id(ann_name.clone())?)
             .and_then(|mut anno| {
                 {
                     let _ = anno.set_isflag::<IsAnnotation>()?;
@@ -73,7 +73,7 @@ impl Annotateable for Entry {
     // Fails if there's no such annotation entry or if the link to that annotation entry does not
     // exist.
     fn denotate<'a>(&mut self, store: &'a Store, ann_name: &str) -> Result<Option<FileLockEntry<'a>>> {
-        if let Some(mut annotation) = store.get(::module_path::new_id(ann_name)?)? {
+        if let Some(mut annotation) = store.get(crate::module_path::new_id(ann_name)?)? {
             let _ = self.remove_internal_link(&mut annotation)?;
             Ok(Some(annotation))
         } else {

@@ -25,7 +25,7 @@ use filters::filter::Filter;
 use libimagstore::storeid::StoreIdIterator;
 use libimagstore::storeid::StoreId;
 
-use is_in_diary::IsInDiary;
+use crate::is_in_diary::IsInDiary;
 use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;

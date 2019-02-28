@@ -30,7 +30,7 @@ use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::Error;
 use failure::err_msg;
-use store::CategoryStore;
+use crate::store::CategoryStore;
 
 pub trait EntryCategory {
 

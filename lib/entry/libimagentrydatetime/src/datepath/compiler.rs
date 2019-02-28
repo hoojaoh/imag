@@ -25,8 +25,8 @@ use chrono::Timelike;
 
 use libimagstore::storeid::StoreId;
 
-use datepath::accuracy::Accuracy;
-use datepath::format::Format;
+use crate::datepath::accuracy::Accuracy;
+use crate::datepath::format::Format;
 use failure::Fallible as Result;
 
 pub struct DatePathCompiler {
@@ -127,8 +127,8 @@ impl DatePathCompiler {
 #[cfg(test)]
 mod test {
     use super::*;
-    use datepath::accuracy::Accuracy;
-    use datepath::format::Format;
+    use crate::datepath::accuracy::Accuracy;
+    use crate::datepath::format::Format;
 
     use chrono::naive::NaiveDate;
     use chrono::naive::NaiveDateTime;

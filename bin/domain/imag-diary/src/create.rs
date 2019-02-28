@@ -36,9 +36,9 @@ use libimagutil::debug_option::DebugOption;
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Store;
 
-use util::get_diary_name;
-use util::get_diary_timed_config;
-use util::Timed;
+use crate::util::get_diary_name;
+use crate::util::get_diary_timed_config;
+use crate::util::Timed;
 
 pub fn create(rt: &Runtime) {
     let diaryname = get_diary_name(rt)
@@ -61,7 +61,7 @@ pub fn create(rt: &Runtime) {
 }
 
 fn create_entry<'a>(diary: &'a Store, diaryname: &str, rt: &Runtime) -> FileLockEntry<'a> {
-    use util::parse_timed_string;
+    use crate::util::parse_timed_string;
 
     let create = rt.cli().subcommand_matches("create").unwrap();
 

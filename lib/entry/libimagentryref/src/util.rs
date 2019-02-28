@@ -21,7 +21,7 @@ use failure::Fallible as Result;
 
 use libimagrt::runtime::Runtime;
 
-use reference::Config as RefConfig;
+use crate::reference::Config as RefConfig;
 
 pub fn get_ref_config(rt: &Runtime, app_name: &'static str) -> Result<RefConfig> {
     use toml_query::read::TomlValueReadExt;

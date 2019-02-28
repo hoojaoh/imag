@@ -47,14 +47,14 @@ impl<'a, 'b> Wiki<'a, 'b> {
 
     pub(crate) fn create_index_page(&self) -> Result<FileLockEntry<'a>> {
         let path = PathBuf::from(format!("{}/index", self.1));
-        let sid  = ::module_path::new_id(path)?;
+        let sid  = crate::module_path::new_id(path)?;
 
         self.0.create(sid)
     }
 
     pub(crate) fn get_index_page(&self) -> Result<FileLockEntry<'a>> {
         let path = PathBuf::from(format!("{}/index", self.1));
-        let sid  = ::module_path::new_id(path)?;
+        let sid  = crate::module_path::new_id(path)?;
 
         self.0
             .get(sid)
@@ -64,13 +64,13 @@ impl<'a, 'b> Wiki<'a, 'b> {
 
     pub fn get_entry<EN: AsRef<str>>(&self, entry_name: EN) -> Result<Option<FileLockEntry<'a>>> {
         let path = PathBuf::from(format!("{}/{}", self.1, entry_name.as_ref()));
-        let sid  = ::module_path::new_id(path)?;
+        let sid  = crate::module_path::new_id(path)?;
         self.0.get(sid)
     }
 
     pub fn create_entry<EN: AsRef<str>>(&self, entry_name: EN) -> Result<FileLockEntry<'a>> {
         let path = PathBuf::from(format!("{}/{}", self.1, entry_name.as_ref()));
-        let sid  = ::module_path::new_id(path)?;
+        let sid  = crate::module_path::new_id(path)?;
         let mut index = self
             .get_entry("index")?
             .ok_or_else(|| err_msg("Missing index page"))?;
@@ -81,7 +81,7 @@ impl<'a, 'b> Wiki<'a, 'b> {
 
     pub fn retrieve_entry<EN: AsRef<str>>(&self, entry_name: EN) -> Result<FileLockEntry<'a>> {
         let path = PathBuf::from(format!("{}/{}", self.1, entry_name.as_ref()));
-        let sid  = ::module_path::new_id(path)?;
+        let sid  = crate::module_path::new_id(path)?;
         let mut index = self
             .get_entry("index")?
             .ok_or_else(|| err_msg("Missing index page"))?;
@@ -96,7 +96,7 @@ impl<'a, 'b> Wiki<'a, 'b> {
 
     pub fn delete_entry<EN: AsRef<str>>(&self, entry_name: EN) -> Result<()> {
         let path = PathBuf::from(format!("{}/{}", self.1, entry_name.as_ref()));
-        let sid  = ::module_path::new_id(path)?;
+        let sid  = crate::module_path::new_id(path)?;
         self.0.delete(sid)
     }
 }

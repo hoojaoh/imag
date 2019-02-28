@@ -124,7 +124,7 @@ fn add(rt: &Runtime) {
         Coordinates::new(long, lati)
     };
 
-    rt.ids::<::ui::PathProvider>()
+    rt.ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
         .into_iter()
         .for_each(|id| {
@@ -149,7 +149,7 @@ fn remove(rt: &Runtime) {
         .unwrap()
         .is_present("print-removed"); // safed by main()
 
-    rt.ids::<::ui::PathProvider>()
+    rt.ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
         .into_iter()
         .for_each(|id| {
@@ -179,7 +179,7 @@ fn remove(rt: &Runtime) {
 
 fn get(rt: &Runtime) {
     let mut stdout = rt.stdout();
-    rt.ids::<::ui::PathProvider>()
+    rt.ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
         .into_iter()
         .for_each(|id| {

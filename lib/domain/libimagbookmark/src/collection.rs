@@ -38,7 +38,7 @@ use libimagentrylink::external::iter::UrlIter;
 use libimagentrylink::internal::InternalLinker;
 use libimagentrylink::internal::Link as StoreLink;
 
-use link::Link;
+use crate::link::Link;
 
 use self::iter::LinksMatchingRegexIter;
 
@@ -51,19 +51,19 @@ pub trait BookmarkCollectionStore<'a> {
 impl<'a> BookmarkCollectionStore<'a> for Store {
 
     fn new(&'a self, name: &str) -> Result<FileLockEntry<'a>> {
-        ::module_path::new_id(name)
+        crate::module_path::new_id(name)
             .and_then(|id| self.create(id).map_err(Error::from))
             .map_err(Error::from)
     }
 
     fn get(&'a self, name: &str) -> Result<Option<FileLockEntry<'a>>> {
-        ::module_path::new_id(name)
+        crate::module_path::new_id(name)
             .and_then(|id| self.get(id).map_err(Error::from))
             .map_err(Error::from)
     }
 
     fn delete(&'a self, name: &str) -> Result<()> {
-        ::module_path::new_id(name)
+        crate::module_path::new_id(name)
             .and_then(|id| self.delete(id).map_err(Error::from))
             .map_err(Error::from)
     }
@@ -90,7 +90,7 @@ impl BookmarkCollection for Entry {
     }
 
     fn add_link(&mut self, store: &Store, l: Link) -> Result<Vec<StoreId>> {
-        use link::IntoUrl;
+        use crate::link::IntoUrl;
         l.into_url().and_then(|url| self.add_external_link(store, url))
     }
 
@@ -100,14 +100,14 @@ impl BookmarkCollection for Entry {
     }
 
     fn remove_link(&mut self, store: &Store, l: Link) -> Result<Vec<StoreId>> {
-        use link::IntoUrl;
+        use crate::link::IntoUrl;
         l.into_url().and_then(|url| self.remove_external_link(store, url))
     }
 
 }
 
 pub mod iter {
-    use link::Link;
+    use crate::link::Link;
     use failure::Fallible as Result;
     use failure::Error;
 
@@ -167,7 +167,7 @@ pub mod iter {
     }
 
     pub trait IntoLinksMatchingRegexIter<'a> {
-        fn matching_regex(self, Regex) -> LinksMatchingRegexIter<'a>;
+        fn matching_regex(self, _: Regex) -> LinksMatchingRegexIter<'a>;
     }
 
     impl<'a> IntoLinksMatchingRegexIter<'a> for UrlIter<'a> {

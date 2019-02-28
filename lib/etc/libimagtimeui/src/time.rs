@@ -19,7 +19,7 @@
 
 use chrono::naive::NaiveTime as ChronoNaiveTime;
 
-use parse::Parse;
+use crate::parse::Parse;
 
 pub struct Time {
     hour:   u32,
@@ -60,7 +60,7 @@ impl Parse for Time {
     fn parse(s: &str) -> Option<Time> {
         use std::str::FromStr;
         use regex::Regex;
-        use parse::time_parse_regex;
+        use crate::parse::time_parse_regex;
 
         lazy_static! {
             static ref R: Regex = Regex::new(time_parse_regex()).unwrap();
@@ -96,7 +96,7 @@ impl Parse for Time {
 #[cfg(test)]
 mod test {
     use super::Time;
-    use parse::Parse;
+    use crate::parse::Parse;
 
     #[test]
     fn test_valid() {

@@ -37,7 +37,7 @@ use failure::Error;
 use failure::err_msg;
 use failure::ResultExt;
 
-use hasher::Hasher;
+use crate::hasher::Hasher;
 
 /// A configuration of "basepath name" -> "basepath path" mappings
 ///
@@ -91,8 +91,8 @@ pub mod fassade {
     use failure::Fallible as Result;
     use failure::Error;
 
-    use hasher::sha1::Sha1Hasher;
-    use hasher::Hasher;
+    use crate::hasher::sha1::Sha1Hasher;
+    use crate::hasher::Hasher;
     use super::IsRef;
 
     pub trait RefFassade {
@@ -436,7 +436,7 @@ mod test {
     use libimagstore::store::Entry;
 
     use super::*;
-    use hasher::Hasher;
+    use crate::hasher::Hasher;
 
     fn setup_logging() {
         let _ = ::env_logger::try_init();

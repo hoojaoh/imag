@@ -21,7 +21,7 @@ use chrono::naive::NaiveDateTime;
 use failure::Fallible as Result;
 
 use libimagstore::storeid::StoreId;
-use datepath::compiler::DatePathCompiler;
+use crate::datepath::compiler::DatePathCompiler;
 
 //
 // Extension Trait for NaiveDateTime

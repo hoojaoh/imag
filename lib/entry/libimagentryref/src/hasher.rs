@@ -38,7 +38,7 @@ pub mod sha1 {
     use failure::Fallible as Result;
     use sha1::{Sha1, Digest};
 
-    use hasher::Hasher;
+    use crate::hasher::Hasher;
 
     pub struct Sha1Hasher;
 

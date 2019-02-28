@@ -29,8 +29,8 @@ use failure::Error;
 use failure::ResultExt;
 use failure::Fallible as Result;
 use failure::err_msg;
-use tag::{Tag, TagSlice};
-use tag::is_tag_str;
+use crate::tag::{Tag, TagSlice};
+use crate::tag::is_tag_str;
 
 use toml::Value;
 

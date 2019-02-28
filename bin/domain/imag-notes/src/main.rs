@@ -65,7 +65,7 @@ use libimagutil::warn_result::WarnResult;
 
 
 mod ui;
-use ui::build_ui;
+use crate::ui::build_ui;
 
 fn main() {
     let version = make_imag_version!();

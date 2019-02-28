@@ -21,8 +21,8 @@ use semver::Version;
 
 use libimagstore::store::Entry;
 
-use builtin::header::version::gt::VersionGt;
-use builtin::header::version::lt::VersionLt;
+use crate::builtin::header::version::gt::VersionGt;
+use crate::builtin::header::version::lt::VersionLt;
 use filters::filter::Filter;
 use filters::ops::and::And;
 use filters::ops::not::Not;

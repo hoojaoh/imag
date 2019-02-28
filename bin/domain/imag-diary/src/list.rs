@@ -33,7 +33,7 @@ use libimagstore::storeid::IntoStoreId;
 
 use failure::Fallible as Result;
 
-use util::get_diary_name;
+use crate::util::get_diary_name;
 
 pub fn list(rt: &Runtime) {
     let diaryname = get_diary_name(rt)

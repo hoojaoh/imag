@@ -25,7 +25,7 @@ use filters::failable::filter::FailableFilter;
 use failure::Fallible as Result;
 use failure::Error;
 
-use builtin::header::field_path::FieldPath;
+use crate::builtin::header::field_path::FieldPath;
 
 pub struct FieldExists {
     header_field_path: FieldPath,

@@ -92,7 +92,7 @@ fn main() {
 fn set(rt: &Runtime) {
     let scmd = rt.cli().subcommand_matches("set").unwrap(); // safed by main()
     let name = scmd.value_of("set-name").map(String::from).unwrap(); // safed by clap
-    let sids = rt.ids::<::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let sids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
 
     StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
         .into_get_iter(rt.store())
@@ -109,7 +109,7 @@ fn set(rt: &Runtime) {
 }
 
 fn get(rt: &Runtime) {
-    let sids        = rt.ids::<::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let sids        = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
     let out         = rt.stdout();
     let mut outlock = out.lock();
 

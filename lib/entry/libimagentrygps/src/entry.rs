@@ -17,7 +17,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use types::*;
+use crate::types::*;
 
 use libimagstore::store::Entry;
 
@@ -107,7 +107,7 @@ mod tests {
 
     use libimagstore::store::Store;
 
-    use entry::*;
+    use crate::entry::*;
 
     fn setup_logging() {
         let _ = ::env_logger::try_init;

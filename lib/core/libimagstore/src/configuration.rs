@@ -45,7 +45,7 @@ pub fn config_implicit_store_create_allowed(config: &Option<Value>) -> Result<bo
 #[cfg(test)]
 mod tests {
     use toml::de::from_str as toml_from_str;
-    use configuration::*;
+    use crate::configuration::*;
 
     #[test]
     fn test_implicit_store_create_allowed_no_toml() {

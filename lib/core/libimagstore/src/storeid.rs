@@ -31,12 +31,12 @@ use failure::Fallible as Result;
 use failure::err_msg;
 use failure::Error;
 
-use store::Store;
+use crate::store::Store;
 
-use iter::create::StoreCreateIterator;
-use iter::delete::StoreDeleteIterator;
-use iter::get::StoreGetIterator;
-use iter::retrieve::StoreRetrieveIterator;
+use crate::iter::create::StoreCreateIterator;
+use crate::iter::delete::StoreDeleteIterator;
+use crate::iter::get::StoreGetIterator;
+use crate::iter::retrieve::StoreRetrieveIterator;
 
 /// The Index into the Store
 ///
@@ -344,14 +344,14 @@ mod test {
 
     #[test]
     fn test_correct_path() {
-        let p = ::storeid::test::module_path::new_id("test");
+        let p = crate::storeid::test::module_path::new_id("test");
 
         assert_eq!(p.unwrap().to_str().unwrap(), "test/test");
     }
 
     #[test]
     fn storeid_in_collection() {
-        let p = ::storeid::test::module_path::new_id("1/2/3/4/5/6/7/8/9/0").unwrap();
+        let p = crate::storeid::test::module_path::new_id("1/2/3/4/5/6/7/8/9/0").unwrap();
 
         assert!(p.is_in_collection(&["test", "1"]));
         assert!(p.is_in_collection(&["test", "1", "2"]));

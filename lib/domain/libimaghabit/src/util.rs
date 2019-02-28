@@ -22,8 +22,8 @@ use std::ops::BitXor;
 use failure::Error;
 use failure::Fallible as Result;
 
-use habit::HabitTemplate;
-use instance::HabitInstance;
+use crate::habit::HabitTemplate;
+use crate::instance::HabitInstance;
 
 use libimagstore::storeid::StoreId;
 use libimagstore::store::Entry;

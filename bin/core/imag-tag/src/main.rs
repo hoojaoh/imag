@@ -75,7 +75,7 @@ use clap::ArgMatches;
 
 mod ui;
 
-use ui::build_ui;
+use crate::ui::build_ui;
 
 fn main() {
     let version = make_imag_version!();
@@ -84,7 +84,7 @@ fn main() {
                                     "Direct interface to the store. Use with great care!",
                                     build_ui);
 
-    let ids = rt.ids::<::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let ids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
 
     rt.cli()
         .subcommand_name()

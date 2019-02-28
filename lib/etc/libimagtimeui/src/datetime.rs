@@ -19,9 +19,9 @@
 
 use chrono::naive::NaiveDateTime as ChronoNaiveDateTime;
 
-use parse::Parse;
-use date::Date;
-use time::Time;
+use crate::parse::Parse;
+use crate::date::Date;
+use crate::time::Time;
 
 pub struct DateTime {
     date: Date,

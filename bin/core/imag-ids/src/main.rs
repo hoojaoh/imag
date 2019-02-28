@@ -65,8 +65,8 @@ use libimagerror::io::ToExitCode;
 mod id_filters;
 mod ui;
 
-use ui::build_ui;
-use id_filters::IsInCollectionsFilter;
+use crate::ui::build_ui;
+use crate::id_filters::IsInCollectionsFilter;
 
 fn main() {
     let version = make_imag_version!();
@@ -93,7 +93,7 @@ fn main() {
 
     let iterator = if rt.ids_from_stdin() {
         debug!("Fetching IDs from stdin...");
-        let ids = rt.ids::<::ui::PathProvider>().map_err_trace_exit_unwrap();
+        let ids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
         Box::new(ids.into_iter().map(Ok))
             as Box<Iterator<Item = Result<StoreId, _>>>
     } else {

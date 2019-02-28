@@ -19,7 +19,7 @@
 
 use std::io::ErrorKind;
 
-use exit::ExitCode;
+use crate::exit::ExitCode;
 
 pub enum Settings {
     Ignore(ErrorKind),
@@ -28,7 +28,7 @@ pub enum Settings {
 
 pub trait ToExitCode<T> {
     fn to_exit_code(self) -> Result<T, ExitCode>;
-    fn to_exit_code_with(self, Settings) -> Result<T, ExitCode>;
+    fn to_exit_code_with(self, _: Settings) -> Result<T, ExitCode>;
 }
 
 impl<T> ToExitCode<T> for Result<T, ::std::io::Error> {

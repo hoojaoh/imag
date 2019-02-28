@@ -22,14 +22,14 @@ use libimagstore::store::Entry;
 use toml_query::read::TomlValueReadExt;
 use toml::Value;
 
-use builtin::header::field_path::FieldPath;
+use crate::builtin::header::field_path::FieldPath;
 use filters::failable::filter::FailableFilter;
 
 use failure::Fallible as Result;
 use failure::Error;
 
 pub trait Predicate {
-    fn evaluate(&self, &Value) -> bool;
+    fn evaluate(&self, _: &Value) -> bool;
 }
 
 /// Check whether certain header field in a entry is equal to a value

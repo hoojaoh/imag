@@ -46,7 +46,7 @@ impl Hasher for MailHasher {
             .map(String::from)
             .ok_or_else(|| ErrorMsg::UTF8Error)?;
 
-        let message_id = ::util::get_message_id_for_mailfile(path)?;
+        let message_id = crate::util::get_message_id_for_mailfile(path)?;
 
         path_str.push_str(&message_id);
 

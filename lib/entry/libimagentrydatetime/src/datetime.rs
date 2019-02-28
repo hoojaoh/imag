@@ -30,7 +30,7 @@ use failure::Error;
 use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::err_msg;
-use range::DateTimeRange;
+use crate::range::DateTimeRange;
 
 pub trait EntryDate {
 

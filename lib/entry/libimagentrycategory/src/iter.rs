@@ -28,8 +28,8 @@ use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::Error;
 use failure::err_msg;
-use store::CATEGORY_REGISTER_NAME_FIELD_PATH;
-use entry::EntryCategory;
+use crate::store::CATEGORY_REGISTER_NAME_FIELD_PATH;
+use crate::entry::EntryCategory;
 
 /// Iterator for Category names
 ///

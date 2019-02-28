@@ -60,7 +60,7 @@ use libimagerror::io::ToExitCode;
 
 mod ui;
 
-use ui::build_ui;
+use crate::ui::build_ui;
 fn main() {
     let version = make_imag_version!();
     let rt = generate_runtime_setup("imag-todo",

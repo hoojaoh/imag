@@ -20,7 +20,7 @@
 use libimagstore::storeid::StoreId;
 use libimagstore::storeid::StoreIdIterator;
 
-use notestoreid::*;
+use crate::notestoreid::*;
 use failure::Fallible as Result;
 use failure::Error;
 

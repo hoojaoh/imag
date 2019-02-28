@@ -32,11 +32,11 @@ use chrono::Timelike;
 use failure::Fallible as Result;
 use failure::Error;
 
-use entry::IsDiaryEntry;
-use diaryid::DiaryId;
-use diaryid::FromStoreId;
-use iter::DiaryEntryIterator;
-use iter::DiaryNameIterator;
+use crate::entry::IsDiaryEntry;
+use crate::diaryid::DiaryId;
+use crate::diaryid::FromStoreId;
+use crate::iter::DiaryEntryIterator;
+use crate::iter::DiaryNameIterator;
 
 pub trait Diary {
 

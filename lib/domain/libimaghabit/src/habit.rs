@@ -27,10 +27,10 @@ use failure::Error;
 use failure::Fallible as Result;
 use failure::err_msg;
 
-use iter::HabitInstanceStoreIdIterator;
-use util::IsHabitCheck;
-use util::get_string_header_from_entry;
-use instance::IsHabitInstance;
+use crate::iter::HabitInstanceStoreIdIterator;
+use crate::util::IsHabitCheck;
+use crate::util::get_string_header_from_entry;
+use crate::instance::IsHabitInstance;
 
 use libimagentrylink::internal::InternalLinker;
 use libimagstore::store::Store;
@@ -161,7 +161,7 @@ impl HabitTemplate for Entry {
         debug!("Increment is {:?}", increment);
 
         let until = self.habit_until_date()?.map(|s| -> Result<_> {
-            try!(date_from_s(s))
+            r#try!(date_from_s(s))
                 .calculate()?
                 .get_moment()
                 .map(Clone::clone)
@@ -257,7 +257,7 @@ impl HabitTemplate for Entry {
 }
 
 fn instance_id_for_name_and_datestr(habit_name: &String, habit_date: &String) -> Result<StoreId> {
-    ::module_path::new_id(format!("instance/{}-{}", habit_name, habit_date)).map_err(Error::from)
+    crate::module_path::new_id(format!("instance/{}-{}", habit_name, habit_date)).map_err(Error::from)
 }
 
 pub mod builder {
@@ -276,7 +276,7 @@ pub mod builder {
     use failure::err_msg;
 
     use libimagutil::date::date_to_string;
-    use habit::IsHabitTemplate;
+    use crate::habit::IsHabitTemplate;
 
     #[derive(Debug)]
     pub struct HabitBuilder {
@@ -348,10 +348,10 @@ pub mod builder {
             debug!("Success: Date valid");
 
             let comment   = self.comment.unwrap_or_else(|| String::new());
-            let sid       = try!(build_habit_template_sid(&name));
+            let sid       = r#try!(build_habit_template_sid(&name));
 
             debug!("Creating entry in store for: {:?}", sid);
-            let mut entry = try!(store.create(sid));
+            let mut entry = r#try!(store.create(sid));
 
             let _ = entry.set_isflag::<IsHabitTemplate>()?;
             {
@@ -364,7 +364,7 @@ pub mod builder {
 
             if let Some(until) = self.untildate {
                 let until = date_to_string(&until);
-                try!(entry.get_header_mut().insert("habit.template.until", Value::String(until)));
+                r#try!(entry.get_header_mut().insert("habit.template.until", Value::String(until)));
             }
 
             debug!("Success: Created entry in store and set headers");
@@ -387,7 +387,7 @@ pub mod builder {
 
     /// Buld a StoreId for a Habit from a date object and a name of a habit
     fn build_habit_template_sid(name: &String) -> Result<StoreId> {
-        ::module_path::new_id(format!("template/{}", name)).map_err(From::from)
+        crate::module_path::new_id(format!("template/{}", name)).map_err(From::from)
     }
 
 }

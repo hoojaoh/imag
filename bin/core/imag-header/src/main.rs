@@ -79,7 +79,7 @@ fn main() {
     trace!("list_output_with_ids     = {:?}", list_output_with_ids );
     trace!("list_output_with_ids_fmt = {:?}", list_output_with_ids_fmt);
 
-    let sids = rt.ids::<::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let sids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
 
     let iter = StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
         .into_get_iter(rt.store())

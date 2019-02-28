@@ -30,7 +30,7 @@ use libimagstore::storeid::IntoStoreId;
 use libimagerror::trace::MapErrTrace;
 use libimagerror::exit::ExitUnwrap;
 
-use util::get_diary_name;
+use crate::util::get_diary_name;
 
 pub fn delete(rt: &Runtime) {
     use libimaginteraction::ask::ask_bool;

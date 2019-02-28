@@ -39,7 +39,7 @@ pub fn delete(rt: &Runtime) {
 
 #[cfg(test)]
 mod tests {
-    use create::create;
+    use crate::create::create;
     use super::delete;
 
     use std::path::PathBuf;

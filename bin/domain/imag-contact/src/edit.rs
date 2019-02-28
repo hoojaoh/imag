@@ -68,7 +68,7 @@ pub fn edit(rt: &Runtime) {
         exit(1)
     });
 
-    ::util::find_contact_by_hash(rt, hash)
+    crate::util::find_contact_by_hash(rt, hash)
         .for_each(|contact| {
             loop {
                 let res = edit_contact(&rt, &contact, &ref_config, collection_name, force_override);

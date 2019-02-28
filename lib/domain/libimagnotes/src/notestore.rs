@@ -25,7 +25,7 @@ use libimagstore::store::Store;
 use toml_query::insert::TomlValueInsertExt;
 use failure::Fallible as Result;
 
-use iter::*;
+use crate::iter::*;
 
 pub trait NoteStore<'a> {
     fn new_note(&'a self, name: String, text: String) -> Result<FileLockEntry<'a>>;
@@ -43,7 +43,7 @@ impl<'a> NoteStore<'a> for Store {
 
         debug!("Creating new Note: '{}'", name);
         let fle = {
-            let mut lockentry = ::module_path::new_id(name.clone()).and_then(|id| self.create(id))?;
+            let mut lockentry = crate::module_path::new_id(name.clone()).and_then(|id| self.create(id))?;
 
             {
                 let entry  = lockentry.deref_mut();
@@ -58,15 +58,15 @@ impl<'a> NoteStore<'a> for Store {
     }
 
     fn delete_note(&'a self, name: String) -> Result<()> {
-        ::module_path::new_id(name).and_then(|id| self.delete(id))
+        crate::module_path::new_id(name).and_then(|id| self.delete(id))
     }
 
     fn retrieve_note(&'a self, name: String) -> Result<FileLockEntry<'a>> {
-        ::module_path::new_id(name).and_then(|id| self.retrieve(id))
+        crate::module_path::new_id(name).and_then(|id| self.retrieve(id))
     }
 
     fn get_note(&'a self, name: String) -> Result<Option<FileLockEntry<'a>>> {
-        ::module_path::new_id(name).and_then(|id| self.get(id))
+        crate::module_path::new_id(name).and_then(|id| self.get(id))
     }
 
     fn all_notes(&'a self) -> Result<NoteIterator> {

@@ -24,8 +24,8 @@ use std::sync::Arc;
 
 use failure::Fallible as Result;
 
-use store::Entry;
-use storeid::StoreIdWithBase;
+use crate::store::Entry;
+use crate::storeid::StoreIdWithBase;
 
 pub mod fs;
 pub mod inmemory;
@@ -40,8 +40,8 @@ pub(crate) trait FileAbstraction : Debug {
     fn rename(&self, from: &PathBuf, to: &PathBuf) -> Result<()>;
     fn create_dir_all(&self, _: &PathBuf) -> Result<()>;
 
-    fn exists(&self, &PathBuf) -> Result<bool>;
-    fn is_file(&self, &PathBuf) -> Result<bool>;
+    fn exists(&self, _: &PathBuf) -> Result<bool>;
+    fn is_file(&self, _: &PathBuf) -> Result<bool>;
 
     fn new_instance(&self, p: PathBuf) -> Box<FileAbstractionInstance>;
 
@@ -97,8 +97,8 @@ mod test {
     use super::FileAbstractionInstance;
     use super::inmemory::InMemoryFileAbstraction;
     use super::inmemory::InMemoryFileAbstractionInstance;
-    use storeid::StoreIdWithBase;
-    use store::Entry;
+    use crate::storeid::StoreIdWithBase;
+    use crate::store::Entry;
 
     #[test]
     fn lazy_file() {

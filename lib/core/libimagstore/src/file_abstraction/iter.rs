@@ -23,8 +23,8 @@ use std::fmt::Debug;
 
 use failure::Fallible as Result;
 
-use storeid::StoreIdWithBase;
-use file_abstraction::FileAbstraction;
+use crate::storeid::StoreIdWithBase;
+use crate::file_abstraction::FileAbstraction;
 
 /// See documentation for PathIterator
 pub(crate) trait PathIterBuilder : Debug {

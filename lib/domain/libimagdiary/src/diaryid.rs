@@ -150,7 +150,7 @@ impl IntoStoreId for DiaryId {
     fn into_storeid(self) -> Result<StoreId> {
         use std::path::PathBuf;
         let s : String = self.into();
-        ::module_path::new_id(PathBuf::from(s))
+        crate::module_path::new_id(PathBuf::from(s))
     }
 
 }
@@ -184,7 +184,7 @@ impl Into<NaiveDateTime> for DiaryId {
 }
 
 pub trait FromStoreId : Sized {
-    fn from_storeid(&StoreId) -> Result<Self>;
+    fn from_storeid(_: &StoreId) -> Result<Self>;
 }
 
 use std::path::Component;

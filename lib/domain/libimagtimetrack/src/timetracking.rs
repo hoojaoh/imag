@@ -29,8 +29,8 @@ use chrono::naive::NaiveDateTime;
 use libimagstore::store::Entry;
 use libimagerror::errors::ErrorMsg as EM;
 
-use tag::TimeTrackingTag as TTT;
-use constants::*;
+use crate::tag::TimeTrackingTag as TTT;
+use crate::constants::*;
 
 use toml::Value;
 use toml_query::delete::TomlValueDeleteExt;

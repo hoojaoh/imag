@@ -65,13 +65,13 @@ mod util;
 
 use std::ops::Deref;
 
-use create::create;
-use delete::delete;
-use get::get;
-use retrieve::retrieve;
-use ui::build_ui;
-use update::update;
-use verify::verify;
+use crate::create::create;
+use crate::delete::delete;
+use crate::get::get;
+use crate::retrieve::retrieve;
+use crate::ui::build_ui;
+use crate::update::update;
+use crate::verify::verify;
 
 fn main() {
     let version = make_imag_version!();

@@ -34,7 +34,7 @@ use failure::err_msg;
 use libimagstore::store::{FileLockEntry, Store};
 use libimagerror::errors::ErrorMsg as EM;
 
-use iter::TaskIdIterator;
+use crate::iter::TaskIdIterator;
 
 /// Task struct containing a `FileLockEntry`
 pub trait TaskStore<'a> {
@@ -99,7 +99,7 @@ impl<'a> TaskStore<'a> for Store {
     ///
     /// If there is no task with this UUID, this returns `Ok(None)`.
     fn get_task_from_uuid(&'a self, uuid: Uuid) -> Result<Option<FileLockEntry<'a>>> {
-        ::module_path::new_id(format!("taskwarrior/{}", uuid)).and_then(|store_id| self.get(store_id))
+        crate::module_path::new_id(format!("taskwarrior/{}", uuid)).and_then(|store_id| self.get(store_id))
     }
 
     /// Same as Task::get_from_import() but uses Store::retrieve() rather than Store::get(), to
@@ -150,7 +150,7 @@ impl<'a> TaskStore<'a> for Store {
     }
 
     fn delete_task_by_uuid(&self, uuid: Uuid) -> Result<()> {
-        ::module_path::new_id(format!("taskwarrior/{}", uuid)).and_then(|id| self.delete(id))
+        crate::module_path::new_id(format!("taskwarrior/{}", uuid)).and_then(|id| self.delete(id))
     }
 
     fn all_tasks(&self) -> Result<TaskIdIterator> {
@@ -162,7 +162,7 @@ impl<'a> TaskStore<'a> for Store {
         use toml_query::set::TomlValueSetExt;
 
         let uuid     = task.uuid();
-        ::module_path::new_id(format!("taskwarrior/{}", uuid)).and_then(|id| {
+        crate::module_path::new_id(format!("taskwarrior/{}", uuid)).and_then(|id| {
             self.retrieve(id).and_then(|mut fle| {
                 {
                     let hdr = fle.get_header_mut();

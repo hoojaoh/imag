@@ -22,7 +22,7 @@ use std::collections::BTreeMap;
 use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::Error;
-use link::extract_links;
+use crate::link::extract_links;
 
 use libimagentrylink::external::ExternalLinker;
 use libimagentrylink::internal::InternalLinker;

@@ -31,8 +31,8 @@ use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::Error;
 use failure::err_msg;
-use iter::CategoryNameIter;
-use category::IsCategory;
+use crate::iter::CategoryNameIter;
+use crate::category::IsCategory;
 
 pub const CATEGORY_REGISTER_NAME_FIELD_PATH : &'static str = "category.register.name";
 
@@ -85,7 +85,7 @@ impl CategoryStore for Store {
     /// Automatically removes all category settings from entries which are linked to this category.
     fn delete_category(&self, name: &str) -> Result<()> {
         use libimagentrylink::internal::InternalLinker;
-        use category::Category;
+        use crate::category::Category;
 
         trace!("Deleting category: '{}'", name);
         let sid = mk_category_storeid(name)?;
@@ -208,7 +208,7 @@ mod tests {
 
 #[inline]
 fn mk_category_storeid(s: &str) -> Result<StoreId> {
-    ::module_path::new_id(s).context(err_msg("Store id handling error")).map_err(Error::from)
+    crate::module_path::new_id(s).context(err_msg("Store id handling error")).map_err(Error::from)
 }
 
 #[inline]

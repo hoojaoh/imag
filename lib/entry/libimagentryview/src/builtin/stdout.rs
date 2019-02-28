@@ -23,7 +23,7 @@ use libimagstore::store::Entry;
 
 use toml::ser::to_string;
 
-use viewer::Viewer;
+use crate::viewer::Viewer;
 use failure::Fallible as Result;
 
 pub struct StdoutViewer {

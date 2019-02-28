@@ -19,7 +19,7 @@
 
 use clap::App;
 
-use runtime::Runtime;
+use crate::runtime::Runtime;
 
 pub type Name          = &'static str;
 pub type Version<'a>   = &'a str;

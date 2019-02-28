@@ -71,7 +71,7 @@ use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagstore::store::FileLockEntry;
 
 mod ui;
-use ui::build_ui;
+use crate::ui::build_ui;
 
 use toml::Value;
 use itertools::Itertools;

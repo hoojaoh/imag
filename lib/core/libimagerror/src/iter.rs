@@ -62,7 +62,7 @@ impl<I, T> Iterator for UnwrapExit<I, T>
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        use trace::MapErrTrace;
+        use crate::trace::MapErrTrace;
         self.0.next().map(|e| e.map_err_trace_exit_unwrap())
     }
 }
@@ -71,7 +71,7 @@ impl<I, T> DoubleEndedIterator for UnwrapExit<I, T>
     where I: DoubleEndedIterator<Item = Result<T, Error>>,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        use trace::MapErrTrace;
+        use crate::trace::MapErrTrace;
         self.0.next_back().map(|e| e.map_err_trace_exit_unwrap())
     }
 }

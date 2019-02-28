@@ -48,7 +48,7 @@ impl Mail for Entry {
     /// Get a value of a single field of the mail file
     fn get_field(&self, refconfig: &RefConfig, field: &str) -> Result<Option<String>> {
         use std::fs::read_to_string;
-        use hasher::MailHasher;
+        use crate::hasher::MailHasher;
 
         debug!("Getting field in mail: {:?}", field);
         let mail_file_location = self.as_ref_with_hasher::<MailHasher>().get_path(refconfig)?;
@@ -107,7 +107,7 @@ impl Mail for Entry {
     /// Use `Mail::mail_header()` if you need to read more than one field.
     fn get_message_id(&self, refconfig: &RefConfig) -> Result<Option<String>> {
         self.get_field(refconfig, "Message-ID")
-            .map(|o| o.map(::util::strip_message_delimiters))
+            .map(|o| o.map(crate::util::strip_message_delimiters))
     }
 
     /// Get a value of the `In-Reply-To` field of the mail file

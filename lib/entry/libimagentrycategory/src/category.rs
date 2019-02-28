@@ -29,8 +29,8 @@ use toml_query::read::TomlValueReadTypeExt;
 use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;
-use store::CATEGORY_REGISTER_NAME_FIELD_PATH;
-use iter::CategoryEntryIterator;
+use crate::store::CATEGORY_REGISTER_NAME_FIELD_PATH;
+use crate::iter::CategoryEntryIterator;
 
 provide_kindflag_path!(pub IsCategory, "category.is_category");
 

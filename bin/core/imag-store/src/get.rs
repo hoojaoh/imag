@@ -24,7 +24,7 @@ use libimagerror::trace::MapErrTrace;
 use libimagerror::exit::ExitUnwrap;
 use libimagstore::storeid::StoreId;
 
-use retrieve::print_entry;
+use crate::retrieve::print_entry;
 
 pub fn get(rt: &Runtime) {
     let scmd = rt.cli().subcommand_matches("get").unwrap();

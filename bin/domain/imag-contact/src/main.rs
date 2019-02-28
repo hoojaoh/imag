@@ -82,10 +82,10 @@ mod util;
 mod create;
 mod edit;
 
-use ui::build_ui;
-use util::build_data_object_for_handlebars;
-use create::create;
-use edit::edit;
+use crate::ui::build_ui;
+use crate::util::build_data_object_for_handlebars;
+use crate::create::create;
+use crate::edit::edit;
 
 fn main() {
     let version = make_imag_version!();

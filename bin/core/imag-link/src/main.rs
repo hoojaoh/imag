@@ -79,7 +79,7 @@ use failure::Fallible as Result;
 
 mod ui;
 
-use ui::build_ui;
+use crate::ui::build_ui;
 
 fn main() {
     let version = make_imag_version!();
@@ -209,7 +209,7 @@ fn remove_linking(rt: &Runtime) {
         })
         .unwrap();
 
-    rt.ids::<::ui::PathProvider>()
+    rt.ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
         .into_iter()
         .for_each(|id| match rt.store().get(id.clone()) {
@@ -245,7 +245,7 @@ fn remove_linking(rt: &Runtime) {
 }
 
 fn unlink(rt: &Runtime) {
-    rt.ids::<::ui::PathProvider>().map_err_trace_exit_unwrap().into_iter().for_each(|id| {
+    rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap().into_iter().for_each(|id| {
         rt.store()
             .get(id.clone())
             .map_err_trace_exit_unwrap()
@@ -271,7 +271,7 @@ fn list_linkings(rt: &Runtime) {
     let mut tab = ::prettytable::Table::new();
     tab.set_titles(row!["#", "Link"]);
 
-    rt.ids::<::ui::PathProvider>().map_err_trace_exit_unwrap().into_iter().for_each(|id| {
+    rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap().into_iter().for_each(|id| {
         match rt.store().get(id.clone()) {
             Ok(Some(entry)) => {
                 for (i, link) in entry.get_internal_links().map_err_trace_exit_unwrap().enumerate() {

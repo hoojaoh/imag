@@ -35,10 +35,10 @@ use libimagentryref::reference::RefFassade;
 use libimagentryref::reference::Ref;
 use libimagentryref::reference::MutRef;
 
-use mid::MessageId;
-use mail::Mail;
-use hasher::MailHasher;
-use util::get_message_id_for_mailfile;
+use crate::mid::MessageId;
+use crate::mail::Mail;
+use crate::hasher::MailHasher;
+use crate::util::get_message_id_for_mailfile;
 
 pub trait MailStore<'a> {
     fn create_mail_from_path<P, CollName>(&'a self, p: P, collection_name: CollName, config: &Config)
@@ -67,7 +67,7 @@ impl<'a> MailStore<'a> for Store {
               CollName: AsRef<str> + Debug
     {
         let message_id = get_message_id_for_mailfile(p.as_ref())?;
-        let new_sid    = ::module_path::new_id(message_id.clone())?;
+        let new_sid    = crate::module_path::new_id(message_id.clone())?;
 
         let mut entry = self.create(new_sid)?;
         let _         = entry
@@ -88,7 +88,7 @@ impl<'a> MailStore<'a> for Store {
         where P: AsRef<Path> + Debug
     {
         let message_id = get_message_id_for_mailfile(p.as_ref())?;
-        let new_sid    = ::module_path::new_id(message_id.clone())?;
+        let new_sid    = crate::module_path::new_id(message_id.clone())?;
 
         match self.get(new_sid)? {
             Some(mut entry) => {
@@ -115,7 +115,7 @@ impl<'a> MailStore<'a> for Store {
               CollName: AsRef<str> + Debug
     {
         let message_id = get_message_id_for_mailfile(&p)?;
-        let new_sid    = ::module_path::new_id(message_id.clone())?;
+        let new_sid    = crate::module_path::new_id(message_id.clone())?;
         let mut entry  = self.retrieve(new_sid)?;
 
         let _ = entry

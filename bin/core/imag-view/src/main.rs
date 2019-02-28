@@ -71,7 +71,7 @@ use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagstore::store::FileLockEntry;
 
 mod ui;
-use ui::build_ui;
+use crate::ui::build_ui;
 
 fn main() {
     let version = make_imag_version!();
@@ -82,7 +82,7 @@ fn main() {
 
     let view_header  = rt.cli().is_present("view-header");
     let hide_content = rt.cli().is_present("not-view-content");
-    let entries      = rt.ids::<::ui::PathProvider>()
+    let entries      = rt.ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
         .into_iter()
         .map(Ok)

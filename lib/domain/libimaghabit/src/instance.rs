@@ -22,7 +22,7 @@ use toml::Value;
 use toml_query::set::TomlValueSetExt;
 use failure::Fallible as Result;
 
-use util::*;
+use crate::util::*;
 
 use libimagstore::store::Entry;
 use libimagentryutil::isa::Is;

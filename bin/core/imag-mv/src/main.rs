@@ -45,7 +45,7 @@ extern crate libimagentrylink;
 use std::process::exit;
 
 mod ui;
-use ui::build_ui;
+use crate::ui::build_ui;
 
 use std::path::PathBuf;
 

@@ -67,10 +67,10 @@ mod ui;
 mod util;
 mod view;
 
-use create::create;
-use delete::delete;
-use list::list;
-use view::view;
+use crate::create::create;
+use crate::delete::delete;
+use crate::list::list;
+use crate::view::view;
 
 fn main() {
     let version = make_imag_version!();
