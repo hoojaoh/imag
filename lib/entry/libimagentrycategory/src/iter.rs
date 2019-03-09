@@ -57,7 +57,6 @@ impl<'a> Iterator for CategoryNameIter<'a> {
     type Item = Result<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // TODO: Optimize me with lazy_static
         let query = CATEGORY_REGISTER_NAME_FIELD_PATH;
 
         while let Some(sid) = self.1.next() {
