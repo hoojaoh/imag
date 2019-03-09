@@ -73,7 +73,8 @@ impl<'a> Iterator for CategoryNameIter<'a> {
                                 .read_string(query)
                                 .map_err(Error::from)
                                 .context(EM::EntryHeaderReadError)?
-                                .ok_or_else(|| Error::from(err_msg("Store read error")))
+                                .ok_or_else(|| err_msg("Store read error"))
+                                .map_err(Error::from)
                         };
 
                     return Some(func(&self.0))
