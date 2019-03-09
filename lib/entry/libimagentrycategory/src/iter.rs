@@ -77,7 +77,7 @@ impl<'a> Iterator for CategoryNameIter<'a> {
                                 .map_err(Error::from)
                         };
 
-                    return Some(func(&self.0))
+                        return Some(func(&self.0))
                     }
                 },
             } // else continue
