@@ -68,7 +68,7 @@ impl<'a> Iterator for CategoryNameIter<'a> {
                         let func = |store: &Store| { // hack for returning Some(Result<_, _>)
                             store
                                 .get(sid)?
-                                .ok_or_else(|| Error::from(err_msg("Store read error")))?
+                                .ok_or_else(|| err_msg("Store read error"))?
                                 .get_header()
                                 .read_string(query)
                                 .map_err(Error::from)
