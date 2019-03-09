@@ -100,8 +100,6 @@ impl<'a> Runtime<'a> {
                 if let Err(e) = override_config(&mut config, get_override_specs(&matches)) {
                     error!("Could not apply config overrides");
                     trace_error(&e);
-
-                    // TODO: continue question (interactive)
                 }
 
                 Some(config)
