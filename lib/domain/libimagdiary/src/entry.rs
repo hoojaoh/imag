@@ -41,8 +41,6 @@ impl DiaryEntry for Entry {
     }
 
     /// Get the diary id for this entry.
-    ///
-    /// TODO: calls Option::unwrap() as it assumes that an existing Entry has an ID that is parsable
     fn diary_id(&self) -> Result<DiaryId> {
         DiaryId::from_storeid(&self.get_location().clone())
     }
