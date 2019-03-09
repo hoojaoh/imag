@@ -409,10 +409,11 @@ impl ExternalLinker for Entry {
         debug!("Getting links");
         self.get_external_links(store)
             .and_then(|links| {
-                // TODO: Do not ignore errors here
-                let mut links = links.filter_map(Result::ok).collect::<Vec<_>>();
+                let mut links = links.collect::<Result<Vec<_>>>()?;
+
                 debug!("Adding link = '{:?}' to links = {:?}", link, links);
                 links.push(link);
+
                 debug!("Setting {} links = {:?}", links.len(), links);
                 self.set_external_links(store, links)
             })
