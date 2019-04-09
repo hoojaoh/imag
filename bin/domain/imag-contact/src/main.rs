@@ -52,6 +52,7 @@ extern crate libimagerror;
 extern crate libimagutil;
 extern crate libimaginteraction;
 extern crate libimagentryedit;
+extern crate libimagentryref;
 
 use std::process::exit;
 use std::path::PathBuf;
@@ -79,10 +80,12 @@ use libimagcontact::deser::DeserVcard;
 mod ui;
 mod util;
 mod create;
+mod edit;
 
 use ui::build_ui;
 use util::build_data_object_for_handlebars;
 use create::create;
+use edit::edit;
 
 fn main() {
     let version = make_imag_version!();
@@ -100,6 +103,7 @@ fn main() {
                 "list"   => list(&rt),
                 "import" => import(&rt),
                 "show"   => show(&rt),
+                "edit"   => edit(&rt),
                 "find"   => find(&rt),
                 "create" => create(&rt),
                 other    => {

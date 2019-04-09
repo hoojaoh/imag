@@ -92,6 +92,18 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .help("Format to format the contact when printing it"))
                    )
 
+        .subcommand(SubCommand::with_name("edit")
+                   .about("Edit contacts")
+                   .version("0.1")
+                   .arg(Arg::with_name("hash")
+                        .index(1)
+                        .takes_value(true)
+                        .required(true)
+                        .multiple(true)
+                        .value_name("HASH")
+                        .help("Edit the contact pointed to by this reference hash(es)"))
+                   )
+
         .subcommand(SubCommand::with_name("find")
                    .about("Find contact by grepping for a string (no regex yet)")
                    .version("0.1")
