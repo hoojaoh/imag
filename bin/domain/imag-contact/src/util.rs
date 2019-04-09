@@ -18,8 +18,17 @@
 //
 
 use std::collections::BTreeMap;
+use std::process::exit;
 
 use libimagcontact::deser::DeserVcard;
+use libimagcontact::store::ContactStore;
+use libimagcontact::contact::Contact;
+use libimagerror::exit::ExitUnwrap;
+use libimagerror::iter::TraceIterator;
+use libimagerror::trace::MapErrTrace;
+use libimagrt::runtime::Runtime;
+use libimagstore::store::FileLockEntry;
+
 
 pub fn build_data_object_for_handlebars<'a>(i: usize, vcard: &DeserVcard) -> BTreeMap<&'static str, String> {
     let mut data = BTreeMap::new();
@@ -73,5 +82,36 @@ pub fn build_data_object_for_handlebars<'a>(i: usize, vcard: &DeserVcard) -> BTr
     }
 
     data
+}
+
+pub fn find_contact_by_hash<'a, H: AsRef<str>>(rt: &'a Runtime, hash: H)
+    -> impl Iterator<Item = FileLockEntry<'a>>
+{
+    rt.store()
+        .all_contacts()
+        .map_err_trace_exit_unwrap()
+        .into_get_iter()
+        .trace_unwrap_exit()
+        .map(|o| o.unwrap_or_else(|| {
+            error!("Failed to get entry");
+            exit(1)
+        }))
+        .filter_map(move |entry| {
+            let deser = entry.deser().map_err_trace_exit_unwrap();
+
+            if deser.uid()
+                .ok_or_else(|| {
+                    error!("Could not get StoreId from Store::all_contacts(). This is a BUG!");
+                    ::std::process::exit(1)
+                })
+                .unwrap() // exited above
+                .starts_with(hash.as_ref())
+            {
+                let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                Some(entry)
+            } else {
+                None
+            }
+        })
 }
 

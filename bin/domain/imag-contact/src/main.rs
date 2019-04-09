@@ -217,34 +217,10 @@ fn show(rt: &Runtime) {
     let out         = rt.stdout();
     let mut outlock = out.lock();
 
-    rt.store()
-        .all_contacts()
-        .map_err_trace_exit_unwrap()
-        .into_get_iter()
-        .trace_unwrap_exit()
-        .map(|o| o.unwrap_or_else(|| {
-            error!("Failed to get entry");
-            exit(1)
-        }))
-        .filter_map(|entry| {
-            let deser = entry.deser().map_err_trace_exit_unwrap();
-
-            if deser.uid()
-                .ok_or_else(|| {
-                    error!("Could not get StoreId from Store::all_contacts(). This is a BUG!");
-                    ::std::process::exit(1)
-                })
-                .unwrap() // exited above
-                .starts_with(&hash)
-            {
-                let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
-                Some(deser)
-            } else {
-                None
-            }
-        })
+    util::find_contact_by_hash(rt, hash)
         .enumerate()
         .for_each(|(i, elem)| {
+            let elem = elem.deser().map_err_trace_exit_unwrap();
             let data = build_data_object_for_handlebars(i, &elem);
 
             let s = show_format
