@@ -23,7 +23,6 @@ use uuid::Uuid;
 use libimagstore::store::Entry;
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Store;
-use libimagstore::storeid::IntoStoreId;
 use libimagstore::storeid::StoreIdIterator;
 use libimagentrylink::internal::InternalLinker;
 use libimagentryutil::isa::Is;
@@ -35,8 +34,6 @@ use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::Error;
 use failure::err_msg;
-
-use module_path::ModuleEntryPath;
 
 pub trait Annotateable {
     fn annotate<'a>(&mut self, store: &'a Store) -> Result<FileLockEntry<'a>>;
@@ -54,7 +51,7 @@ impl Annotateable for Entry {
         let ann_name = Uuid::new_v4().to_hyphenated().to_string();
         debug!("Creating annotation with name = {}", ann_name);
 
-        store.retrieve(ModuleEntryPath::new(ann_name.clone()).into_storeid()?)
+        store.retrieve(::module_path::new_id(ann_name.clone())?)
             .and_then(|mut anno| {
                 {
                     let _ = anno.set_isflag::<IsAnnotation>()?;
@@ -76,7 +73,7 @@ impl Annotateable for Entry {
     // Fails if there's no such annotation entry or if the link to that annotation entry does not
     // exist.
     fn denotate<'a>(&mut self, store: &'a Store, ann_name: &str) -> Result<Option<FileLockEntry<'a>>> {
-        if let Some(mut annotation) = store.get(ModuleEntryPath::new(ann_name).into_storeid()?)? {
+        if let Some(mut annotation) = store.get(::module_path::new_id(ann_name)?)? {
             let _ = self.remove_internal_link(&mut annotation)?;
             Ok(Some(annotation))
         } else {

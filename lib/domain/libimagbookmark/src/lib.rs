@@ -39,7 +39,7 @@
 
 extern crate url;
 extern crate regex;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 #[macro_use] extern crate libimagstore;
 extern crate libimagerror;

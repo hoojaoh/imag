@@ -44,8 +44,8 @@ extern crate toml_query;
 extern crate url;
 extern crate sha1;
 extern crate hex;
-#[macro_use] extern crate is_match;
 #[macro_use] extern crate failure;
+#[macro_use] extern crate is_match;
 
 #[cfg(test)]
 extern crate env_logger;

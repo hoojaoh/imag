@@ -27,7 +27,6 @@ use toml_query::insert::TomlValueInsertExt;
 
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Store;
-use libimagstore::storeid::IntoStoreId;
 use libimagstore::storeid::StoreId;
 use libimagstore::iter::Entries;
 use libimagentryref::hasher::default::DefaultHasher;
@@ -36,7 +35,6 @@ use libimagentryref::reference::RefFassade;
 use libimagentryref::reference::Ref;
 use libimagentryref::reference::MutRef;
 
-use module_path::ModuleEntryPath;
 use mid::MessageId;
 use mail::Mail;
 use hasher::MailHasher;
@@ -69,7 +67,7 @@ impl<'a> MailStore<'a> for Store {
               CollName: AsRef<str> + Debug
     {
         let message_id = get_message_id_for_mailfile(p.as_ref())?;
-        let new_sid    = ModuleEntryPath::new(message_id.clone()).into_storeid()?;
+        let new_sid    = ::module_path::new_id(message_id.clone())?;
 
         let mut entry = self.create(new_sid)?;
         let _         = entry
@@ -90,7 +88,7 @@ impl<'a> MailStore<'a> for Store {
         where P: AsRef<Path> + Debug
     {
         let message_id = get_message_id_for_mailfile(p.as_ref())?;
-        let new_sid    = ModuleEntryPath::new(message_id.clone()).into_storeid()?;
+        let new_sid    = ::module_path::new_id(message_id.clone())?;
 
         match self.get(new_sid)? {
             Some(mut entry) => {
@@ -117,7 +115,7 @@ impl<'a> MailStore<'a> for Store {
               CollName: AsRef<str> + Debug
     {
         let message_id = get_message_id_for_mailfile(&p)?;
-        let new_sid    = ModuleEntryPath::new(message_id.clone()).into_storeid()?;
+        let new_sid    = ::module_path::new_id(message_id.clone())?;
         let mut entry  = self.retrieve(new_sid)?;
 
         let _ = entry

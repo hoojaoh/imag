@@ -212,7 +212,7 @@ impl<'a> Display for StoreIdWithBase<'a> {
 #[macro_export]
 macro_rules! module_entry_path_mod {
     ($name:expr) => (
-        #[deny(missing_docs,
+        #[allow(missing_docs,
                 missing_copy_implementations,
                 trivial_casts, trivial_numeric_casts,
                 unstable_features,
@@ -223,34 +223,23 @@ macro_rules! module_entry_path_mod {
             use std::convert::AsRef;
             use std::path::Path;
             use std::path::PathBuf;
-
             use $crate::storeid::StoreId;
             use failure::Fallible as Result;
 
-            /// A Struct giving you the ability to choose store entries assigned
-            /// to it.
-            ///
-            /// It is created through a call to `new`.
-            pub struct ModuleEntryPath(PathBuf);
+            pub fn new_id<P: AsRef<Path>>(p: P) -> Result<StoreId> {
 
-            impl ModuleEntryPath {
-                /// Path has to be a valid UTF-8 string or this will panic!
-                pub fn new<P: AsRef<Path>>(pa: P) -> ModuleEntryPath {
-                    let mut path = PathBuf::new();
-                    path.push(format!("{}", $name));
-                    path.push(pa.as_ref().clone());
-                    let name = pa.as_ref().file_name().unwrap()
-                        .to_str().unwrap();
-                    path.set_file_name(name);
-                    ModuleEntryPath(path)
-                }
+                let path_str = p
+                    .as_ref()
+                    .to_str()
+                    .ok_or_else(|| {
+                        format_err!("File path is not valid UTF-8: {}", p.as_ref().display())
+                    })?;
+
+                let id = format!("{}/{}", $name, path_str);
+
+                StoreId::new(PathBuf::from(id))
             }
 
-            impl $crate::storeid::IntoStoreId for ModuleEntryPath {
-                fn into_storeid(self) -> Result<$crate::storeid::StoreId> {
-                    StoreId::new(self.0)
-                }
-            }
         }
     )
 }
@@ -351,20 +340,18 @@ impl<'a> StoreIdIteratorWithStore<'a> {
 
 #[cfg(test)]
 mod test {
-    use storeid::IntoStoreId;
-
     module_entry_path_mod!("test");
 
     #[test]
     fn test_correct_path() {
-        let p = module_path::ModuleEntryPath::new("test");
+        let p = ::storeid::test::module_path::new_id("test");
 
-        assert_eq!(p.into_storeid().unwrap().to_str().unwrap(), "test/test");
+        assert_eq!(p.unwrap().to_str().unwrap(), "test/test");
     }
 
     #[test]
     fn storeid_in_collection() {
-        let p = module_path::ModuleEntryPath::new("1/2/3/4/5/6/7/8/9/0").into_storeid().unwrap();
+        let p = ::storeid::test::module_path::new_id("1/2/3/4/5/6/7/8/9/0").unwrap();
 
         assert!(p.is_in_collection(&["test", "1"]));
         assert!(p.is_in_collection(&["test", "1", "2"]));

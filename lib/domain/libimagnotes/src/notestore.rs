@@ -19,14 +19,12 @@
 
 use toml::Value;
 
-use libimagstore::storeid::IntoStoreId;
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Store;
 
 use toml_query::insert::TomlValueInsertExt;
 use failure::Fallible as Result;
 
-use module_path::ModuleEntryPath;
 use iter::*;
 
 pub trait NoteStore<'a> {
@@ -45,9 +43,7 @@ impl<'a> NoteStore<'a> for Store {
 
         debug!("Creating new Note: '{}'", name);
         let fle = {
-            let mut lockentry = ModuleEntryPath::new(name.clone())
-                .into_storeid()
-                .and_then(|id| self.create(id))?;
+            let mut lockentry = ::module_path::new_id(name.clone()).and_then(|id| self.create(id))?;
 
             {
                 let entry  = lockentry.deref_mut();
@@ -62,15 +58,15 @@ impl<'a> NoteStore<'a> for Store {
     }
 
     fn delete_note(&'a self, name: String) -> Result<()> {
-        ModuleEntryPath::new(name).into_storeid().and_then(|id| self.delete(id))
+        ::module_path::new_id(name).and_then(|id| self.delete(id))
     }
 
     fn retrieve_note(&'a self, name: String) -> Result<FileLockEntry<'a>> {
-        ModuleEntryPath::new(name).into_storeid().and_then(|id| self.retrieve(id))
+        ::module_path::new_id(name).and_then(|id| self.retrieve(id))
     }
 
     fn get_note(&'a self, name: String) -> Result<Option<FileLockEntry<'a>>> {
-        ModuleEntryPath::new(name).into_storeid().and_then(|id| self.get(id))
+        ::module_path::new_id(name).and_then(|id| self.get(id))
     }
 
     fn all_notes(&'a self) -> Result<NoteIterator> {

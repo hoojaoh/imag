@@ -41,7 +41,7 @@ extern crate toml_query;
 extern crate toml;
 #[macro_use]
 extern crate log;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 extern crate libimagerror;
 #[macro_use] extern crate libimagstore;

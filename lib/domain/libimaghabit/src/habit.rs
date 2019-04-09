@@ -37,7 +37,6 @@ use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Entry;
 use libimagstore::storeid::StoreId;
-use libimagstore::storeid::IntoStoreId;
 use libimagstore::storeid::StoreIdIterator;
 use libimagentryutil::isa::Is;
 use libimagentryutil::isa::IsKindHeaderPathProvider;
@@ -258,11 +257,7 @@ impl HabitTemplate for Entry {
 }
 
 fn instance_id_for_name_and_datestr(habit_name: &String, habit_date: &String) -> Result<StoreId> {
-    use module_path::ModuleEntryPath;
-
-    ModuleEntryPath::new(format!("instance/{}-{}", habit_name, habit_date))
-        .into_storeid()
-        .map_err(Error::from)
+    ::module_path::new_id(format!("instance/{}-{}", habit_name, habit_date)).map_err(Error::from)
 }
 
 pub mod builder {
@@ -272,7 +267,6 @@ pub mod builder {
 
     use libimagstore::store::Store;
     use libimagstore::storeid::StoreId;
-    use libimagstore::storeid::IntoStoreId;
     use libimagstore::store::FileLockEntry;
     use libimagentryutil::isa::Is;
     use libimagutil::debug_result::DebugResult;
@@ -393,8 +387,7 @@ pub mod builder {
 
     /// Buld a StoreId for a Habit from a date object and a name of a habit
     fn build_habit_template_sid(name: &String) -> Result<StoreId> {
-        use module_path::ModuleEntryPath;
-        ModuleEntryPath::new(format!("template/{}", name)).into_storeid().map_err(From::from)
+        ::module_path::new_id(format!("template/{}", name)).map_err(From::from)
     }
 
 }

@@ -32,9 +32,7 @@ use failure::Error;
 use failure::err_msg;
 
 use libimagstore::store::{FileLockEntry, Store};
-use libimagstore::storeid::IntoStoreId;
 use libimagerror::errors::ErrorMsg as EM;
-use module_path::ModuleEntryPath;
 
 use iter::TaskIdIterator;
 
@@ -101,9 +99,7 @@ impl<'a> TaskStore<'a> for Store {
     ///
     /// If there is no task with this UUID, this returns `Ok(None)`.
     fn get_task_from_uuid(&'a self, uuid: Uuid) -> Result<Option<FileLockEntry<'a>>> {
-        ModuleEntryPath::new(format!("taskwarrior/{}", uuid))
-            .into_storeid()
-            .and_then(|store_id| self.get(store_id))
+        ::module_path::new_id(format!("taskwarrior/{}", uuid)).and_then(|store_id| self.get(store_id))
     }
 
     /// Same as Task::get_from_import() but uses Store::retrieve() rather than Store::get(), to
@@ -154,9 +150,7 @@ impl<'a> TaskStore<'a> for Store {
     }
 
     fn delete_task_by_uuid(&self, uuid: Uuid) -> Result<()> {
-        ModuleEntryPath::new(format!("taskwarrior/{}", uuid))
-            .into_storeid()
-            .and_then(|id| self.delete(id))
+        ::module_path::new_id(format!("taskwarrior/{}", uuid)).and_then(|id| self.delete(id))
     }
 
     fn all_tasks(&self) -> Result<TaskIdIterator> {
@@ -168,24 +162,21 @@ impl<'a> TaskStore<'a> for Store {
         use toml_query::set::TomlValueSetExt;
 
         let uuid     = task.uuid();
-        ModuleEntryPath::new(format!("taskwarrior/{}", uuid))
-            .into_storeid()
-            .and_then(|id| {
-                self.retrieve(id)
-                    .and_then(|mut fle| {
-                        {
-                            let hdr = fle.get_header_mut();
-                            if hdr.read("todo")?.is_none() {
-                                hdr.set("todo", Value::Table(BTreeMap::new()))?;
-                            }
+        ::module_path::new_id(format!("taskwarrior/{}", uuid)).and_then(|id| {
+            self.retrieve(id).and_then(|mut fle| {
+                {
+                    let hdr = fle.get_header_mut();
+                    if hdr.read("todo")?.is_none() {
+                        hdr.set("todo", Value::Table(BTreeMap::new()))?;
+                    }
 
-                            hdr.set("todo.uuid", Value::String(format!("{}",uuid)))?;
-                        }
+                    hdr.set("todo.uuid", Value::String(format!("{}",uuid)))?;
+                }
 
-                        // If none of the errors above have returned the function, everything is fine
-                        Ok(fle)
-                    })
+                // If none of the errors above have returned the function, everything is fine
+                Ok(fle)
             })
+        })
 
     }
 

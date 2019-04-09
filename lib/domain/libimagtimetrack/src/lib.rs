@@ -45,7 +45,7 @@ extern crate toml_query;
 extern crate lazy_static;
 #[macro_use]
 extern crate is_match;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 #[macro_use]
 extern crate libimagstore;
