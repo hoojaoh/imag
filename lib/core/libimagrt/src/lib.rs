@@ -39,8 +39,6 @@
 
 #[macro_use] extern crate log;
 extern crate itertools;
-#[cfg(unix)] extern crate xdg_basedir;
-extern crate env_logger;
 extern crate ansi_term;
 extern crate handlebars;
 #[macro_use] extern crate failure;

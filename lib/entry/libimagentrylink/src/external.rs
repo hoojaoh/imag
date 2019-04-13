@@ -452,7 +452,6 @@ mod tests {
     use libimagstore::store::Store;
 
     fn setup_logging() {
-        use env_logger;
         let _ = env_logger::try_init();
     }
 

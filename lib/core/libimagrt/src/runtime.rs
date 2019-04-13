@@ -77,8 +77,6 @@ impl<'a> Runtime<'a> {
     pub fn new<C>(cli_app: C) -> Result<Runtime<'a>>
         where C: Clone + CliSpec<'a> + InternalConfiguration
     {
-        use libimagerror::trace::trace_error;
-
         let matches = cli_app.clone().matches();
 
         let rtp = get_rtp_match(&matches);
@@ -354,7 +352,6 @@ impl<'a> Runtime<'a> {
         use log::set_max_level;
         use log::set_boxed_logger;
         use std::env::var as env_var;
-        use env_logger;
 
         if env_var("IMAG_LOG_ENV").is_ok() {
             let _ = env_logger::try_init();
@@ -643,8 +640,6 @@ pub trait IdPathProvider {
 
 /// Exported for the `imag` command, you probably do not want to use that.
 pub fn get_rtp_match<'a>(matches: &ArgMatches<'a>) -> PathBuf {
-    use std::env;
-
     matches.value_of(Runtime::arg_runtimepath_name())
         .map_or_else(|| {
             if let Ok(home) = env::var("IMAG_RTP") {

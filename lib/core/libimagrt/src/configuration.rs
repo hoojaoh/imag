@@ -40,7 +40,6 @@ pub fn fetch_config(searchpath: &PathBuf) -> Result<Option<Value>> {
     use std::io::Write;
     use std::io::stderr;
 
-    use xdg_basedir;
     use itertools::Itertools;
 
     use libimagutil::variants::generate_variants as gen_vars;

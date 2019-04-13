@@ -129,8 +129,6 @@ fn main() {
 }
 
 fn get_entry_by_name<'a>(rt: &'a Runtime, name: &str) -> Result<Option<FileLockEntry<'a>>> {
-    use libimagstore::storeid::StoreId;
-
     debug!("Getting: {:?}", name);
     let result = StoreId::new(PathBuf::from(name)).and_then(|id| rt.store().get(id));
 

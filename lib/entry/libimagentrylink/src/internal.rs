@@ -395,8 +395,6 @@ impl InternalLinker for Entry {
 
     /// Set the links in a header and return the old links, if any.
     fn set_internal_links(&mut self, links: Vec<&mut Entry>) -> Result<LinkIter> {
-        use internal::iter::IntoValues;
-
         debug!("Setting internal links");
 
         let self_location = self.get_location().clone();
