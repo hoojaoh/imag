@@ -212,12 +212,14 @@ impl FromStoreId for DiaryId {
         }
 
         let mut cmps   = s.components().rev();
+        trace!("Found components: {:?}", cmps);
 
         let (hour, minute, second) = next_component(&mut cmps).and_then(|time| {
             let mut time = time.split(":");
             let hour     = time.next().and_then(|s| FromStr::from_str(s).ok());
             let minute   = time.next().and_then(|s| FromStr::from_str(s).ok());
             let second   = time.next().and_then(|s| FromStr::from_str(s).ok());
+            trace!("Found time   = {:?}", time);
 
             debug!("Hour   = {:?}", hour);
             debug!("Minute = {:?}", minute);
