@@ -237,12 +237,6 @@ pub mod iter {
             GetIter(i, store)
         }
 
-        /// Turn this iterator into a LinkGcIter, which `Store::delete()`s entries that are not
-        /// linked to any other entry.
-        pub fn delete_unlinked(self) -> DeleteUnlinkedIter<'a> {
-            DeleteUnlinkedIter(self)
-        }
-
         /// Turn this iterator into a FilterLinksIter that removes all entries that are not linked
         /// to any other entry, by filtering them out the iterator.
         ///
@@ -320,48 +314,6 @@ pub mod iter {
                         };
                         if !(self.1)(&links) {
                             continue;
-                        } else {
-                            return Some(Ok(fle));
-                        }
-                    },
-                    Some(Err(e)) => return Some(Err(e)),
-                    None => break,
-                }
-            }
-            None
-        }
-
-    }
-
-    /// An iterator that removes all Items from the iterator that are not linked anymore by calling
-    /// `Store::delete()` on them.
-    ///
-    /// It yields only items which are somehow linked to another entry
-    ///
-    /// # Warning
-    ///
-    /// Deletes entries from the store.
-    ///
-    pub struct DeleteUnlinkedIter<'a>(GetIter<'a>);
-
-    impl<'a> Iterator for DeleteUnlinkedIter<'a> {
-        type Item = Result<FileLockEntry<'a>>;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            use internal::InternalLinker;
-
-            loop {
-                match self.0.next() {
-                    Some(Ok(fle)) => {
-                        let links = match fle.get_internal_links() {
-                            Err(e) => return Some(Err(e)),
-                            Ok(links) => links,
-                        };
-                        if links.count() == 0 {
-                            match self.0.store().delete(fle.get_location().clone()) {
-                                Ok(x)  => x,
-                                Err(e) => return Some(Err(e).map_err(From::from)),
-                            }
                         } else {
                             return Some(Ok(fle));
                         }
