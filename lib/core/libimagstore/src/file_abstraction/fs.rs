@@ -176,6 +176,10 @@ impl PathIterBuilder for WalkDirPathIterBuilder {
             .min_depth(1)
             .max_open(100)
             .into_iter()
+            .filter(|r| match r {
+                Err(_) => true,
+                Ok(path) => path.file_type().is_file(),
+            })
             .map(|r| {
                 trace!("Working in PathIterator with {:?}", r);
                 r.map(|e| PathBuf::from(e.path()))
