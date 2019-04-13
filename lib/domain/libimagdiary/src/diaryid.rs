@@ -34,8 +34,6 @@ use failure::err_msg;
 use libimagstore::storeid::StoreId;
 use libimagstore::storeid::IntoStoreId;
 
-use module_path::ModuleEntryPath;
-
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct DiaryId {
     name: String,
@@ -150,8 +148,9 @@ impl DiaryId {
 impl IntoStoreId for DiaryId {
 
     fn into_storeid(self) -> Result<StoreId> {
+        use std::path::PathBuf;
         let s : String = self.into();
-        ModuleEntryPath::new(s).into_storeid()
+        ::module_path::new_id(PathBuf::from(s))
     }
 
 }

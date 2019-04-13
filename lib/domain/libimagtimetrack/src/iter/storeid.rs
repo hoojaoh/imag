@@ -49,16 +49,12 @@ impl Iterator for TagStoreIdIter {
     type Item = Result<(StoreId, NDT)>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        use module_path::ModuleEntryPath;
-        use libimagstore::storeid::IntoStoreId;
-
         self.inner
             .next()
             .map(|res| res.and_then(|tag| {
                 let dt     = self.datetime.format(DATE_TIME_FORMAT).to_string();
                 let id_str = format!("{}-{}", dt, tag.as_str());
-                ModuleEntryPath::new(id_str)
-                    .into_storeid()
+                ::module_path::new_id(id_str)
                     .map_err(Error::from)
                     .map(|id| (id, self.datetime.clone()))
             }))

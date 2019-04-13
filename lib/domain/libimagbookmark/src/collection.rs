@@ -28,12 +28,10 @@ use regex::Regex;
 
 use failure::Fallible as Result;
 use failure::Error;
-use module_path::ModuleEntryPath;
 
 use libimagstore::store::Store;
 use libimagstore::store::Entry;
 use libimagstore::store::FileLockEntry;
-use libimagstore::storeid::IntoStoreId;
 use libimagstore::storeid::StoreId;
 use libimagentrylink::external::ExternalLinker;
 use libimagentrylink::external::iter::UrlIter;
@@ -53,22 +51,19 @@ pub trait BookmarkCollectionStore<'a> {
 impl<'a> BookmarkCollectionStore<'a> for Store {
 
     fn new(&'a self, name: &str) -> Result<FileLockEntry<'a>> {
-        ModuleEntryPath::new(name)
-            .into_storeid()
+        ::module_path::new_id(name)
             .and_then(|id| self.create(id).map_err(Error::from))
             .map_err(Error::from)
     }
 
     fn get(&'a self, name: &str) -> Result<Option<FileLockEntry<'a>>> {
-        ModuleEntryPath::new(name)
-            .into_storeid()
+        ::module_path::new_id(name)
             .and_then(|id| self.get(id).map_err(Error::from))
             .map_err(Error::from)
     }
 
     fn delete(&'a self, name: &str) -> Result<()> {
-        ModuleEntryPath::new(name)
-            .into_storeid()
+        ::module_path::new_id(name)
             .and_then(|id| self.delete(id).map_err(Error::from))
             .map_err(Error::from)
     }

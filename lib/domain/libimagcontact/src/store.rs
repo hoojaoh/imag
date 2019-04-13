@@ -27,7 +27,6 @@ use vobject::vcard::Vcard;
 use failure::Error;
 use failure::Fallible as Result;
 
-use libimagstore::storeid::IntoStoreId;
 use libimagstore::storeid::StoreId;
 use libimagstore::iter::Entries;
 use libimagstore::store::Store;
@@ -36,7 +35,6 @@ use libimagentryutil::isa::Is;
 
 use contact::IsContact;
 use deser::DeserVcard;
-use module_path::ModuleEntryPath;
 use util;
 
 pub trait ContactStore<'a> {
@@ -98,7 +96,7 @@ fn prepare_fetching_from_store(buf: &str) -> Result<(StoreId, Value)> {
         toml_from_str::<Value>(&serialized)?
     };
 
-    let sid = ModuleEntryPath::new(uid.raw()).into_storeid()?;
+    let sid = ::module_path::new_id(uid.raw())?;
 
     Ok((sid, value))
 }

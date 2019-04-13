@@ -37,7 +37,6 @@ use std::fmt::Debug;
 use libimagstore::store::Entry;
 use libimagstore::store::Store;
 use libimagstore::storeid::StoreId;
-use libimagstore::storeid::IntoStoreId;
 use libimagutil::debug_result::*;
 use libimagerror::errors::ErrorMsg as EM;
 
@@ -50,7 +49,6 @@ use failure::ResultExt;
 use failure::err_msg;
 
 use internal::InternalLinker;
-use module_path::ModuleEntryPath;
 
 use self::iter::*;
 
@@ -337,12 +335,10 @@ impl ExternalLinker for Entry {
         debug!("Iterating {} links = {:?}", links.len(), links);
         links.into_iter().map(|link| {
             let hash = hex::encode(Sha1::digest(&link.as_str().as_bytes()));
-            let file_id =
-                ModuleEntryPath::new(format!("external/{}", hash)).into_storeid()
-                    .map_dbg_err(|_| {
-                        format!("Failed to build StoreId for this hash '{:?}'", hash)
-                    })
-                ?;
+            let file_id = ::module_path::new_id(format!("external/{}", hash))
+                .map_dbg_err(|_| {
+                    format!("Failed to build StoreId for this hash '{:?}'", hash)
+                })?;
 
             debug!("Link    = '{:?}'", link);
             debug!("Hash    = '{:?}'", hash);

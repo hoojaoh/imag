@@ -17,8 +17,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use std::path::PathBuf;
-
 use toml_query::insert::TomlValueInsertExt;
 use toml_query::read::TomlValueReadTypeExt;
 use toml::Value;
@@ -60,7 +58,7 @@ impl CategoryStore for Store {
     /// Check whether a category exists
     fn category_exists(&self, name: &str) -> Result<bool> {
         trace!("Category exists? '{}'", name);
-        let sid = mk_category_storeid(self.path().clone(), name)?;
+        let sid = mk_category_storeid(name)?;
         represents_category(self, sid, name)
     }
 
@@ -69,7 +67,7 @@ impl CategoryStore for Store {
     /// Fails if the category already exists (returns false then)
     fn create_category<'a>(&'a self, name: &str) -> Result<FileLockEntry<'a>> {
         trace!("Creating category: '{}'", name);
-        let sid         = mk_category_storeid(self.path().clone(), name)?;
+        let sid         = mk_category_storeid(name)?;
         let mut entry   = self.create(sid)?;
 
         entry.set_isflag::<IsCategory>()?;
@@ -90,7 +88,7 @@ impl CategoryStore for Store {
         use category::Category;
 
         trace!("Deleting category: '{}'", name);
-        let sid = mk_category_storeid(self.path().clone(), name)?;
+        let sid = mk_category_storeid(name)?;
 
         {
             let mut category = self.get(sid.clone())?
@@ -118,7 +116,7 @@ impl CategoryStore for Store {
     /// like a normal file in the store (which is exactly what it is).
     fn get_category_by_name(&self, name: &str) -> Result<Option<FileLockEntry>> {
         trace!("Getting category by name: '{}'", name);
-        let sid = mk_category_storeid(self.path().clone(), name)?;
+        let sid = mk_category_storeid(name)?;
 
         self.get(sid)
             .context(err_msg("Store write error"))
@@ -209,12 +207,8 @@ mod tests {
 }
 
 #[inline]
-fn mk_category_storeid(base: PathBuf, s: &str) -> Result<StoreId> {
-    use libimagstore::storeid::IntoStoreId;
-    ::module_path::ModuleEntryPath::new(s)
-        .into_storeid()
-        .context(err_msg("Store id handling error"))
-        .map_err(Error::from)
+fn mk_category_storeid(s: &str) -> Result<StoreId> {
+    ::module_path::new_id(s).context(err_msg("Store id handling error")).map_err(Error::from)
 }
 
 #[inline]

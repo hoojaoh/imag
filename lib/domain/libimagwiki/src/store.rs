@@ -20,7 +20,6 @@
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Store;
 use libimagstore::storeid::StoreId;
-use libimagstore::storeid::IntoStoreId;
 
 use failure::Fallible as Result;
 
@@ -83,6 +82,6 @@ impl WikiStore for Store {
 }
 
 fn wiki_path(name: &str) -> Result<StoreId> {
-    ::module_path::ModuleEntryPath::new(name).into_storeid()
+    ::module_path::new_id(name)
 }
 

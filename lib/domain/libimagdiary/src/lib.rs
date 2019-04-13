@@ -42,7 +42,7 @@ extern crate chrono;
 extern crate toml;
 extern crate toml_query;
 extern crate itertools;
-extern crate failure;
+#[macro_use] extern crate failure;
 extern crate filters;
 
 #[macro_use] extern crate libimagstore;
