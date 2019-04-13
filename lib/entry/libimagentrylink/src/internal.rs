@@ -200,10 +200,6 @@ pub mod iter {
             LinkIter(v.into_iter())
         }
 
-        pub fn into_getter(self, store: &Store) -> GetIter {
-            GetIter(self.0, store)
-        }
-
     }
 
     impl Iterator for LinkIter {
@@ -227,32 +223,6 @@ pub mod iter {
                 .map(|link| link.to_value().context(EM::ConversionError).map_err(Error::from))
                 .collect()
         }
-    }
-
-    /// An Iterator that `Store::get()`s the Entries from the store while consumed
-    pub struct GetIter<'a>(IntoIter<Link>, &'a Store);
-
-    impl<'a> GetIter<'a> {
-        pub fn new(i: IntoIter<Link>, store: &'a Store) -> GetIter<'a> {
-            GetIter(i, store)
-        }
-
-        pub fn store(&self) -> &Store {
-            self.1
-        }
-    }
-
-    impl<'a> Iterator for GetIter<'a> {
-        type Item = Result<FileLockEntry<'a>>;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            self.0.next().and_then(|id| match self.1.get(id) {
-                Ok(None)    => None,
-                Ok(Some(x)) => Some(Ok(x)),
-                Err(e)      => Some(Err(e).map_err(From::from)),
-            })
-        }
-
     }
 
 }
