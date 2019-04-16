@@ -28,6 +28,7 @@ use libimagerror::errors::ErrorMsg as EM;
 
 use toml::Value;
 use toml_query::read::TomlValueReadExt;
+use toml_query::read::Partial;
 use toml_query::delete::TomlValueDeleteExt;
 use toml_query::insert::TomlValueInsertExt;
 use failure::Fallible as Result;
@@ -64,6 +65,11 @@ impl Deref for Config {
     fn deref(&self) -> &Self::Target {
         &self.0
     }
+}
+
+impl<'a> Partial<'a> for Config {
+    const LOCATION: &'static str = "ref.basepathes";
+    type Output = Self;
 }
 
 provide_kindflag_path!(pub IsRef, "ref.is_ref");
