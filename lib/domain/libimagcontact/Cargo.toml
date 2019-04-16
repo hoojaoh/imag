@@ -31,5 +31,6 @@ serde_derive = "1"
 
 libimagstore     = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
-libimagentryutil  = { version = "0.10.0", path = "../../../lib/entry/libimagentryutil/" }
+libimagentryutil = { version = "0.10.0", path = "../../../lib/entry/libimagentryutil/" }
+libimagentryref  = { version = "0.10.0", path = "../../../lib/entry/libimagentryref/" }
 

@@ -18,6 +18,7 @@
 //
 
 use std::path::PathBuf;
+use std::path::Path;
 
 use toml::Value;
 use toml::to_string as toml_to_string;
@@ -32,6 +33,7 @@ use libimagstore::iter::Entries;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagentryutil::isa::Is;
+use libimagentryref::reference::{MutRef, Config as RefConfig};
 
 use contact::IsContact;
 use deser::DeserVcard;
@@ -39,13 +41,23 @@ use util;
 
 pub trait ContactStore<'a> {
 
-    // creating
+    fn create_from_path<CN>(&'a self, p: &PathBuf, rc: &RefConfig, collection_name: CN)
+        -> Result<FileLockEntry<'a>>
+        where CN: AsRef<str>;
 
-    fn create_from_path(&'a self, p: &PathBuf)   -> Result<FileLockEntry<'a>>;
-    fn retrieve_from_path(&'a self, p: &PathBuf) -> Result<FileLockEntry<'a>>;
+    fn retrieve_from_path<CN>(&'a self, p: &PathBuf, rc: &RefConfig, collection_name: CN)
+        -> Result<FileLockEntry<'a>>
+        where CN: AsRef<str>;
 
-    fn create_from_buf(&'a self, buf: &str)      -> Result<FileLockEntry<'a>>;
-    fn retrieve_from_buf(&'a self, buf: &str)    -> Result<FileLockEntry<'a>>;
+    fn create_from_buf<CN, P>(&'a self, buf: &str, path: P, rc: &RefConfig, collection_name: CN)
+        -> Result<FileLockEntry<'a>>
+        where CN: AsRef<str>,
+              P: AsRef<Path>;
+
+    fn retrieve_from_buf<CN, P>(&'a self, buf: &str, path: P, rc: &RefConfig, collection_name: CN)
+        -> Result<FileLockEntry<'a>>
+        where CN: AsRef<str>,
+              P: AsRef<Path>;
 
     // getting
 
@@ -55,23 +67,58 @@ pub trait ContactStore<'a> {
 /// The extension for the Store to work with contacts
 impl<'a> ContactStore<'a> for Store {
 
-    fn create_from_path(&'a self, p: &PathBuf) -> Result<FileLockEntry<'a>> {
-        util::read_to_string(p).and_then(|buf| self.create_from_buf(&buf))
+    /// Create a contact from a filepath
+    ///
+    /// Uses the collection with `collection_name` from RefConfig to store the reference to the
+    /// file.
+    fn create_from_path<CN>(&'a self, p: &PathBuf, rc: &RefConfig, collection_name: CN)
+        -> Result<FileLockEntry<'a>>
+        where CN: AsRef<str>
+    {
+        util::read_to_string(p).and_then(|buf| self.create_from_buf(&buf, p, rc, collection_name))
     }
 
-    fn retrieve_from_path(&'a self, p: &PathBuf) -> Result<FileLockEntry<'a>> {
-        util::read_to_string(p).and_then(|buf| self.retrieve_from_buf(&buf))
+    /// Retrieve a contact from a filepath
+    ///
+    /// Uses the collection with `collection_name` from RefConfig to store the reference to the
+    /// file.
+    fn retrieve_from_path<CN>(&'a self, p: &PathBuf, rc: &RefConfig, collection_name: CN)
+        -> Result<FileLockEntry<'a>>
+        where CN: AsRef<str>
+    {
+        util::read_to_string(p).and_then(|buf| self.retrieve_from_buf(&buf, p, rc, collection_name))
     }
 
-    /// Create contact ref from buffer
-    fn create_from_buf(&'a self, buf: &str) -> Result<FileLockEntry<'a>> {
+    /// Create a contact from a buffer
+    ///
+    /// Uses the collection with `collection_name` from RefConfig to store the reference to the
+    /// file.
+    ///
+    /// Needs the `path` passed where the buffer was read from, because we want to create a
+    /// reference to it.
+    fn create_from_buf<CN, P>(&'a self, buf: &str, path: P, rc: &RefConfig, collection_name: CN)
+        -> Result<FileLockEntry<'a>>
+        where CN: AsRef<str>,
+              P: AsRef<Path>
+    {
         let (sid, value) = prepare_fetching_from_store(buf)?;
-        postprocess_fetched_entry(self.create(sid)?, value)
+        postprocess_fetched_entry(self.create(sid)?, value, path, rc, collection_name)
     }
 
-    fn retrieve_from_buf(&'a self, buf: &str) -> Result<FileLockEntry<'a>> {
+    /// Retrieve a contact from a buffer
+    ///
+    /// Uses the collection with `collection_name` from RefConfig to store the reference to the
+    /// file.
+    ///
+    /// Needs the `path` passed where the buffer was read from, because we want to create a
+    /// reference to it.
+    fn retrieve_from_buf<CN, P>(&'a self, buf: &str, path: P, rc: &RefConfig, collection_name: CN)
+        -> Result<FileLockEntry<'a>>
+        where CN: AsRef<str>,
+              P: AsRef<Path>
+    {
         let (sid, value) = prepare_fetching_from_store(buf)?;
-        postprocess_fetched_entry(self.retrieve(sid)?, value)
+        postprocess_fetched_entry(self.retrieve(sid)?, value, path, rc, collection_name)
     }
 
     fn all_contacts(&'a self) -> Result<Entries<'a>> {
@@ -101,10 +148,29 @@ fn prepare_fetching_from_store(buf: &str) -> Result<(StoreId, Value)> {
     Ok((sid, value))
 }
 
-/// Postprocess the entry just fetched from the store
-fn postprocess_fetched_entry<'a>(mut entry: FileLockEntry<'a>, value: Value) -> Result<FileLockEntry<'a>> {
+/// Postprocess the entry just fetched (created or retrieved) from the store
+///
+/// We need the path, the refconfig and the collection name passed here because we create a
+/// reference here.
+///
+/// This is marked as inline because what it does is trivial, but repetitve in this module.
+#[inline]
+fn postprocess_fetched_entry<'a, CN, P>(mut entry: FileLockEntry<'a>,
+                                        value: Value,
+                                        path: P,
+                                        rc: &RefConfig,
+                                        collection_name: CN)
+    -> Result<FileLockEntry<'a>>
+    where CN: AsRef<str>,
+           P: AsRef<Path>
+{
+    use libimagentryref::reference::RefFassade;
+    use libimagentryref::hasher::sha1::Sha1Hasher;
+
     entry.set_isflag::<IsContact>()?;
     entry.get_header_mut().insert("contact.data", value)?;
+    entry.as_ref_with_hasher_mut::<Sha1Hasher>().make_ref(path, collection_name, rc, false)?;
+
     Ok(entry)
 }
 
