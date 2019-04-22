@@ -65,6 +65,12 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .value_name("PATH")
                         .help("Import from this file/directory"))
 
+                   .arg(Arg::with_name("force-override")
+                        .long("force")
+                        .takes_value(false)
+                        .required(false)
+                        .multiple(false)
+                        .help("Force to override existing entries"))
                    )
 
         .subcommand(SubCommand::with_name("show")

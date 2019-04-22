@@ -157,8 +157,9 @@ fn list(rt: &Runtime) {
 }
 
 fn import(rt: &Runtime) {
-    let scmd = rt.cli().subcommand_matches("import").unwrap(); // secured by main
-    let path = scmd.value_of("path").map(PathBuf::from).unwrap(); // secured by clap
+    let scmd           = rt.cli().subcommand_matches("import").unwrap(); // secured by main
+    let force_override = scmd.is_present("force-override");
+    let path           = scmd.value_of("path").map(PathBuf::from).unwrap(); // secured by clap
 
     let collection_name = rt.cli().value_of("contact-ref-collection-name").unwrap(); // default by clap
     let ref_config = rt.config()
@@ -180,7 +181,7 @@ fn import(rt: &Runtime) {
     if path.is_file() {
         let entry = rt
             .store()
-            .retrieve_from_path(&path, &ref_config, &collection_name)
+            .retrieve_from_path(&path, &ref_config, &collection_name, force_override)
             .map_err_trace_exit_unwrap();
 
         let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
@@ -194,7 +195,7 @@ fn import(rt: &Runtime) {
                 let pb = PathBuf::from(entry.path());
                 let fle = rt
                     .store()
-                    .retrieve_from_path(&pb, &ref_config, &collection_name)
+                    .retrieve_from_path(&pb, &ref_config, &collection_name, force_override)
                     .map_err_trace_exit_unwrap();
 
                 let _ = rt.report_touched(fle.get_location()).unwrap_or_exit();
