@@ -45,7 +45,11 @@ pub trait ContactStore<'a> {
         -> Result<FileLockEntry<'a>>
         where CN: AsRef<str>;
 
-    fn retrieve_from_path<CN>(&'a self, p: &PathBuf, rc: &RefConfig, collection_name: CN)
+    fn retrieve_from_path<CN>(&'a self,
+                              p: &PathBuf,
+                              rc: &RefConfig,
+                              collection_name: CN,
+                              force: bool)
         -> Result<FileLockEntry<'a>>
         where CN: AsRef<str>;
 
@@ -54,7 +58,12 @@ pub trait ContactStore<'a> {
         where CN: AsRef<str>,
               P: AsRef<Path>;
 
-    fn retrieve_from_buf<CN, P>(&'a self, buf: &str, path: P, rc: &RefConfig, collection_name: CN)
+    fn retrieve_from_buf<CN, P>(&'a self,
+                                buf: &str,
+                                path: P,
+                                rc: &RefConfig,
+                                collection_name: CN,
+                                force: bool)
         -> Result<FileLockEntry<'a>>
         where CN: AsRef<str>,
               P: AsRef<Path>;
@@ -82,11 +91,12 @@ impl<'a> ContactStore<'a> for Store {
     ///
     /// Uses the collection with `collection_name` from RefConfig to store the reference to the
     /// file.
-    fn retrieve_from_path<CN>(&'a self, p: &PathBuf, rc: &RefConfig, collection_name: CN)
+    fn retrieve_from_path<CN>(&'a self, p: &PathBuf, rc: &RefConfig, collection_name: CN, force: bool)
         -> Result<FileLockEntry<'a>>
         where CN: AsRef<str>
     {
-        util::read_to_string(p).and_then(|buf| self.retrieve_from_buf(&buf, p, rc, collection_name))
+        util::read_to_string(p)
+            .and_then(|buf| self.retrieve_from_buf(&buf, p, rc, collection_name, force))
     }
 
     /// Create a contact from a buffer
@@ -96,13 +106,19 @@ impl<'a> ContactStore<'a> for Store {
     ///
     /// Needs the `path` passed where the buffer was read from, because we want to create a
     /// reference to it.
+    ///
+    /// # Note
+    ///
+    /// This does _never_ force-override existing reference data, thus the `force` parameter of
+    /// `postprocess_fetched_entry()` is hardcoded to `false`.
+    ///
     fn create_from_buf<CN, P>(&'a self, buf: &str, path: P, rc: &RefConfig, collection_name: CN)
         -> Result<FileLockEntry<'a>>
         where CN: AsRef<str>,
               P: AsRef<Path>
     {
         let (sid, value) = prepare_fetching_from_store(buf)?;
-        postprocess_fetched_entry(self.create(sid)?, value, path, rc, collection_name)
+        postprocess_fetched_entry(self.create(sid)?, value, path, rc, collection_name, false)
     }
 
     /// Retrieve a contact from a buffer
@@ -112,13 +128,18 @@ impl<'a> ContactStore<'a> for Store {
     ///
     /// Needs the `path` passed where the buffer was read from, because we want to create a
     /// reference to it.
-    fn retrieve_from_buf<CN, P>(&'a self, buf: &str, path: P, rc: &RefConfig, collection_name: CN)
+    fn retrieve_from_buf<CN, P>(&'a self,
+                                buf: &str,
+                                path: P,
+                                rc: &RefConfig,
+                                collection_name: CN,
+                                force: bool)
         -> Result<FileLockEntry<'a>>
         where CN: AsRef<str>,
               P: AsRef<Path>
     {
         let (sid, value) = prepare_fetching_from_store(buf)?;
-        postprocess_fetched_entry(self.retrieve(sid)?, value, path, rc, collection_name)
+        postprocess_fetched_entry(self.retrieve(sid)?, value, path, rc, collection_name, force)
     }
 
     fn all_contacts(&'a self) -> Result<Entries<'a>> {
@@ -159,7 +180,8 @@ fn postprocess_fetched_entry<'a, CN, P>(mut entry: FileLockEntry<'a>,
                                         value: Value,
                                         path: P,
                                         rc: &RefConfig,
-                                        collection_name: CN)
+                                        collection_name: CN,
+                                        force: bool)
     -> Result<FileLockEntry<'a>>
     where CN: AsRef<str>,
            P: AsRef<Path>
@@ -169,7 +191,7 @@ fn postprocess_fetched_entry<'a, CN, P>(mut entry: FileLockEntry<'a>,
 
     entry.set_isflag::<IsContact>()?;
     entry.get_header_mut().insert("contact.data", value)?;
-    entry.as_ref_with_hasher_mut::<Sha1Hasher>().make_ref(path, collection_name, rc, false)?;
+    entry.as_ref_with_hasher_mut::<Sha1Hasher>().make_ref(path, collection_name, rc, force)?;
 
     Ok(entry)
 }
