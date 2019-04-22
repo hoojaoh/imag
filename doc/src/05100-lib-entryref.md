@@ -41,9 +41,12 @@ libimagentryref does store the following data:
 
 ```toml
 [ref]
-filehash.sha1 = "<sha1 hash of the file>"
+basepath = "music"
+is_ref = true # marker that this entry is actually a "ref"
 relpath = "Psy_trance_2018_yearmix.mp3"
-collection = "music"
+
+[ref.hash]
+sha1 = "<sha1 hash of the file>"
 ```
 
 The filehash is stored so that libimagentryref can re-find the file whenever it
