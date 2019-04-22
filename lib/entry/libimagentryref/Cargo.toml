@@ -34,9 +34,11 @@ libimagrt        = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagentryutil = { version = "0.10.0", path = "../../../lib/entry/libimagentryutil" }
 
 [dependencies.toml-query]
-version = "0.8"
+#version          = "0.8"
 default-features = false
-features = ["typed"]
+features         = ["typed"]
+git              = "https://github.com/matthiasbeyer/toml-query"
+branch           = "master"
 
 [dev-dependencies]
 env_logger = "0.5"
