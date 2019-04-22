@@ -100,6 +100,35 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                      .multiple(false)
                      .help("Use force to override existing references"))
                 )
+
+        .subcommand(SubCommand::with_name("list-dead")
+                .about("List all dead references")
+                .version("0.1")
+                .arg(Arg::with_name("ID")
+                     .index(1)
+                     .takes_value(true)
+                     .required(false)
+                     .multiple(true)
+                     .help("Filter these IDs for dead ones")
+                     .value_name("ID"))
+
+                .arg(Arg::with_name("list-dead-pathes")
+                     .long("pathes")
+                     .takes_value(false)
+                     .required(false)
+                     .multiple(false)
+                     .conflicts_with("list-dead-ids")
+                     .help("List pathes which do not exist anymore but are referenced from imag entries"))
+
+                .arg(Arg::with_name("list-dead-ids")
+                     .long("ids")
+                     .takes_value(false)
+                     .required(false)
+                     .multiple(false)
+                     .conflicts_with("list-dead-pathes")
+                     .help("List ids of entries which refer to a path that does not exist"))
+                )
+
 }
 
 pub struct PathProvider;
@@ -121,6 +150,20 @@ impl IdPathProvider for PathProvider {
             },
 
             ("remove", Some(subm)) => {
+                subm.values_of("ID")
+                    .ok_or_else(|| {
+                        error!("No StoreId found");
+                        ::std::process::exit(1)
+                    })
+                    .unwrap()
+                    .into_iter()
+                    .map(PathBuf::from)
+                    .map(|pb| pb.into_storeid())
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err_trace_exit_unwrap()
+            },
+
+            ("list-dead", Some(subm)) => {
                 subm.values_of("ID")
                     .ok_or_else(|| {
                         error!("No StoreId found");
