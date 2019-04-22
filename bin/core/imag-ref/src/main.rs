@@ -36,6 +36,7 @@
 
 #[macro_use] extern crate log;
 extern crate clap;
+extern crate failure;
 
 extern crate libimagstore;
 #[macro_use] extern crate libimagrt;
@@ -49,6 +50,8 @@ use ui::build_ui;
 
 use std::process::exit;
 use std::io::Write;
+
+use failure::Error;
 
 use libimagerror::trace::MapErrTrace;
 use libimagerror::exit::ExitUnwrap;
@@ -106,12 +109,10 @@ fn deref(rt: &Runtime) {
                     }
                     .map_err_trace_exit_unwrap()
                     .to_str()
-                    .ok_or_else(|| {
-                        error!("Could not transform path into string!");
-                        exit(1)
-                    })
-                    .map(|s| writeln!(outlock, "{}", s))
-                    .ok(); // safe here because we exited already in the error case
+                    .ok_or_else(|| ::libimagerror::errors::ErrorMsg::UTF8Error)
+                    .map_err(Error::from)
+                    .and_then(|s| writeln!(outlock, "{}", s).map_err(Error::from))
+                    .map_err_trace_exit_unwrap();
 
                     let _ = rt.report_touched(&id).unwrap_or_exit();
                 },
