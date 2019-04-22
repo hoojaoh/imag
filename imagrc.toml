@@ -102,11 +102,6 @@ error = "[imag][{{red level}}]: {{red message}}"
 # not be wanted behaviour.
 #
 
-[imag.logging.modules.libimagnotification]
-destinations = []
-level = "debug"
-enabled = true
-
 [imag.logging.modules.libimagutil]
 destinations = []
 level = "debug"

@@ -13,7 +13,6 @@ CRATES=(
     ./lib/etc/libimagtimeui
     ./lib/core/libimagerror
     ./lib/core/libimagstore
-    ./lib/etc/libimagnotification
     ./lib/etc/libimaginteraction
     ./lib/core/libimagrt
     ./lib/entry/libimagentrylink
