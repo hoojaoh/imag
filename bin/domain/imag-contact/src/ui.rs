@@ -21,6 +21,14 @@ use clap::{Arg, App, SubCommand};
 
 pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
     app
+       .arg(Arg::with_name("contact-ref-collection-name")
+            .long("ref-collection")
+            .takes_value(true)
+            .required(false)
+            .multiple(false)
+            .default_value("contacts")
+            .help("Name (Key) of the basepath setting in the configuration file to use"))
+
         .subcommand(SubCommand::with_name("list")
                    .about("List contacts")
                    .version("0.1")
@@ -56,6 +64,7 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .multiple(false)
                         .value_name("PATH")
                         .help("Import from this file/directory"))
+
                    )
 
         .subcommand(SubCommand::with_name("show")

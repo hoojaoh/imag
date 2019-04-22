@@ -43,9 +43,11 @@ use vobject::vcard::Vcard;
 use vobject::vcard::VcardBuilder;
 use vobject::write_component;
 use toml_query::read::TomlValueReadExt;
+use toml_query::read::Partial;
 use toml::Value;
 use uuid::Uuid;
 use failure::Error;
+use failure::err_msg;
 
 use libimagcontact::store::ContactStore;
 use libimagrt::runtime::Runtime;
@@ -80,8 +82,20 @@ fn ask_continue(inputstream: &mut Read, outputstream: &mut Write) -> bool {
 }
 
 pub fn create(rt: &Runtime) {
-    let scmd         = rt.cli().subcommand_matches("create").unwrap();
-    let mut template = String::from(TEMPLATE);
+    let scmd            = rt.cli().subcommand_matches("create").unwrap();
+    let mut template    = String::from(TEMPLATE);
+    let collection_name = rt.cli().value_of("ref-collection-name").unwrap_or("contacts");
+    let collection_name = String::from(collection_name);
+    let ref_config      = rt // TODO: Re-Deserialize to libimagentryref::reference::Config
+        .config()
+        .ok_or_else(|| err_msg("Configuration missing, cannot continue!"))
+        .map_err_trace_exit_unwrap()
+        .read_partial::<libimagentryref::reference::Config>()
+        .map_err(Error::from)
+        .map_err_trace_exit_unwrap()
+        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))
+        .map_err_trace_exit_unwrap();
+    // TODO: Refactor the above to libimagutil or libimagrt?
 
     let (mut dest, location, uuid) : (Box<Write>, Option<PathBuf>, String) = {
         if let Some(mut fl) = scmd.value_of("file-location").map(PathBuf::from) {
@@ -202,7 +216,7 @@ pub fn create(rt: &Runtime) {
     if let Some(location) = location {
         if !scmd.is_present("dont-track") {
             let entry = rt.store()
-                .create_from_path(&location)
+                .create_from_path(&location, &ref_config, &collection_name)
                 .map_err_trace_exit_unwrap();
 
             let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();

@@ -24,7 +24,6 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 log = "0.4.0"
 toml = "0.4"
-toml-query = "0.8"
 vobject    = "0.7"
 handlebars = "1.0"
 walkdir = "2"
@@ -46,3 +45,9 @@ version = "^2.29"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
+[dependencies.toml-query]
+#version          = "0.8"
+default-features = false
+features         = ["typed"]
+git              = "https://github.com/matthiasbeyer/toml-query"
+branch           = "master"

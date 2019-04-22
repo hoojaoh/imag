@@ -43,7 +43,7 @@ extern crate handlebars;
 extern crate walkdir;
 extern crate uuid;
 extern crate serde_json;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 extern crate libimagcontact;
 extern crate libimagstore;
@@ -59,7 +59,9 @@ use std::io::Write;
 
 use handlebars::Handlebars;
 use clap::ArgMatches;
+use toml_query::read::TomlValueReadExt;
 use toml_query::read::TomlValueReadTypeExt;
+use toml_query::read::Partial;
 use walkdir::WalkDir;
 use failure::Error;
 use failure::err_msg;
@@ -158,6 +160,18 @@ fn import(rt: &Runtime) {
     let scmd = rt.cli().subcommand_matches("import").unwrap(); // secured by main
     let path = scmd.value_of("path").map(PathBuf::from).unwrap(); // secured by clap
 
+    let collection_name = rt.cli().value_of("contact-ref-collection-name").unwrap(); // default by clap
+    let ref_config = rt.config()
+        .ok_or_else(|| format_err!("No configuration, cannot continue!"))
+        .map_err_trace_exit_unwrap()
+        .read_partial::<libimagentryref::reference::Config>()
+        .map_err(Error::from)
+        .map_err_trace_exit_unwrap()
+        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))
+        .map_err_trace_exit_unwrap();
+    // TODO: Refactor the above to libimagutil or libimagrt?
+
+
     if !path.exists() {
         error!("Path does not exist");
         exit(1)
@@ -166,7 +180,7 @@ fn import(rt: &Runtime) {
     if path.is_file() {
         let entry = rt
             .store()
-            .retrieve_from_path(&path)
+            .retrieve_from_path(&path, &ref_config, &collection_name)
             .map_err_trace_exit_unwrap();
 
         let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
@@ -180,7 +194,7 @@ fn import(rt: &Runtime) {
                 let pb = PathBuf::from(entry.path());
                 let fle = rt
                     .store()
-                    .retrieve_from_path(&pb)
+                    .retrieve_from_path(&pb, &ref_config, &collection_name)
                     .map_err_trace_exit_unwrap();
 
                 let _ = rt.report_touched(fle.get_location()).unwrap_or_exit();
