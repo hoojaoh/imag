@@ -45,6 +45,14 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                          .required(false)
                          .multiple(false)
                          .help("Ignore store entries which are not refs and do not print error message"))
+
+                    .arg(Arg::with_name("override-basepath")
+                         .long("basepath-setting")
+                         .short("B")
+                         .takes_value(true)
+                         .required(false)
+                         .multiple(false)
+                         .help("Override the basepath key to look up in the configuration"))
                     )
 
         .subcommand(SubCommand::with_name("remove")
