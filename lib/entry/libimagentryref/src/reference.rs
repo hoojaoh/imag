@@ -28,6 +28,7 @@ use libimagerror::errors::ErrorMsg as EM;
 
 use toml::Value;
 use toml_query::read::TomlValueReadExt;
+use toml_query::read::TomlValueReadTypeExt;
 use toml_query::read::Partial;
 use toml_query::delete::TomlValueDeleteExt;
 use toml_query::insert::TomlValueInsertExt;
@@ -146,6 +147,9 @@ pub trait Ref {
 
     fn get_path(&self, config: &Config) -> Result<PathBuf>;
 
+    fn get_path_with_basepath_setting<B>(&self, config: &Config, base: B) -> Result<PathBuf>
+        where B: AsRef<str>;
+
     fn get_relative_path(&self) -> Result<PathBuf>;
 
     /// Get the stored hash.
@@ -180,20 +184,25 @@ impl<'a, H: Hasher> Ref for RefWithHasher<'a, H> {
 
     /// Get the path of the actual file
     fn get_path(&self, config: &Config) -> Result<PathBuf> {
-        use toml_query::read::TomlValueReadTypeExt;
+        let basepath_name = self.0
+            .get_header()
+            .read_string("ref.basepath")?
+            .ok_or_else(|| Error::from(EM::EntryHeaderFieldMissing("ref.basepath")))?;
 
+        self.get_path_with_basepath_setting(config, basepath_name)
+    }
+
+    fn get_path_with_basepath_setting<B>(&self, config: &Config, base: B)
+        -> Result<PathBuf>
+            where B: AsRef<str>
+    {
         let relpath = self.0
             .get_header()
             .read_string("ref.relpath")?
             .map(PathBuf::from)
             .ok_or_else(|| Error::from(EM::EntryHeaderFieldMissing("ref.relpath")))?;
 
-        let basepath_name = self.0
-            .get_header()
-            .read_string("ref.basepath")?
-            .ok_or_else(|| Error::from(EM::EntryHeaderFieldMissing("ref.basepath")))?;
-
-        get_file_path(config, &basepath_name, relpath)
+        get_file_path(config, base.as_ref(), relpath)
     }
 
     /// Get the relative path, relative to the configured basepath
