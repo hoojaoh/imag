@@ -134,6 +134,13 @@ fn get_commands(out: &mut Stdout) -> Vec<String> {
                        .and_then(|s| s.splitn(2, "-").nth(1).map(String::from))
                     )
             })
+            .filter(|path| if cfg!(debug_assertions) {
+                // if we compile in debug mode during development, ignore everything that ends with
+                // ".d", as developers might use the ./target/debug/ directory directly in `$PATH`.
+                !path.ends_with(".d")
+            } else {
+                true
+            })
             .collect::<Vec<String>>()
     };
 
