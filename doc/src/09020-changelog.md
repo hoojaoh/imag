@@ -14,6 +14,20 @@ the changelog (though updating of dependencies is).
 Please note that we do not have a "Breaking changes" section as we are in
 Version 0.y.z and thus we can break the API like we want and need to.
 
+## 0.9.1
+
+Bugfix release for fixing:
+
+* Fix off by one error in error tracing
+* Fix negation error in imag-habit filtering mechanism
+* Fix config override mechanism
+* "status" subcommand might not be present in imag-habit, but standard command
+  should work anyways
+* We go to the next month, not to the current one (off by one error)
+* 'start-time' cannot be None in imag-timetrack, clap ensures that
+* Do not use deprecated StoreId::exists() function in libimagentrycategory
+
+
 ## 0.9.0
 
 * [f912d3e7f3](https://git.imag-pim.org/imag/commit/?id=f912d3e7f362e524347cd061f316d3569dfb18a0)
