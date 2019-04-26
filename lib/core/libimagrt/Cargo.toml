@@ -29,6 +29,8 @@ toml-query = "0.9"
 atty = "0.2"
 failure        = "0.1"
 failure_derive = "0.1"
+serde_derive = "1"
+serde = "1"
 
 libimagstore       = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagerror       = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
