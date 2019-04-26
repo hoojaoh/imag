@@ -352,6 +352,16 @@ fn aggregate_module_settings(_matches: &ArgMatches, config: Option<&Value>)
     use toml_query::read::Partial;
     use std::convert::TryInto;
 
+    //
+    // We define helper types here for deserializing easily using typed toml-query functionality.
+    //
+    // We need the helper types because we cannot deserialize in the target types directly, because
+    // of the `File(Arc<Mutex<::std::fs::File>>)` variant in `LogDestination`, which would
+    // technically possible to deserialize the toml into the type, but it might be a bad idea.
+    //
+    // This code is idomatic enough for the conversions, so it is not a big painpoint.
+    //
+
     #[derive(Serialize, Deserialize, Debug)]
     struct LoggingModuleConfig {
         pub destinations: Option<Vec<String>>,
@@ -382,7 +392,7 @@ fn aggregate_module_settings(_matches: &ArgMatches, config: Option<&Value>)
                         Some(ds) => Some(ds
                             .iter()
                             .map(Deref::deref)
-                            .map(translate_destination)
+                            .map(translate_destination) // This is why we do this whole thing
                             .collect::<Result<Vec<LogDestination>>>()?)
                     },
                 });
