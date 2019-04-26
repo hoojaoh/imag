@@ -11,10 +11,8 @@ play around anyways.**
 
 Our (long-term) goal is to
 
-> Create a fast, reliable commandline personal
-> information management suite which covers all aspects of personal information
-> management, consists of reusable parts and integrates well with known
-> commandline tools.
+> Create a fast, scriptable, commandline first, plain-text-only
+> suite of tools to cover all aspects of personal information management.
 
 Yes, imag is a rather ambitious project as it tries to reimplement functionality
 for several "personal information management aspects". It is a hobby project,
