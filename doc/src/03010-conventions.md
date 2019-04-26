@@ -63,12 +63,8 @@ think hard whether this is really necessary.
 
 ### Library error types/kinds
 
-Libraries must use "error-chain" to create error types and kinds.
-Most likely, a library needs some kinds for wrapping the errors from underlying
-libraries, such as the store itself.
+Libraries must use "failure" to create error objects.
 
-A library must _never_ introduce multiple error types, but is free to introduce
-as many error kinds as required.
 
 ### Libraries with commandline frontends
 
