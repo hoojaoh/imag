@@ -355,38 +355,8 @@ fn aggregate_module_settings(_matches: &ArgMatches, config: Option<&Value>)
     #[derive(Serialize, Deserialize, Debug)]
     struct LoggingModuleConfig {
         pub destinations: Option<Vec<String>>,
-        pub level: Option<LogLevel>,
+        pub level: Option<Level>,
         pub enabled: bool,
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    enum LogLevel {
-        #[serde(rename = "trace")]
-        Trace,
-
-        #[serde(rename = "debug")]
-        Debug,
-
-        #[serde(rename = "info")]
-        Info,
-
-        #[serde(rename = "warn")]
-        Warn,
-
-        #[serde(rename = "error")]
-        Error,
-    }
-
-    impl Into<Level> for LogLevel {
-        fn into(self) -> Level {
-            match self {
-                LogLevel::Trace => Level::Trace,
-                LogLevel::Debug => Level::Debug,
-                LogLevel::Info  => Level::Info,
-                LogLevel::Warn  => Level::Warn,
-                LogLevel::Error => Level::Error,
-            }
-        }
     }
 
     #[derive(Serialize, Deserialize, Debug)]

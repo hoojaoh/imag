@@ -45,7 +45,7 @@ features = ["suggestions", "color", "wrap_help"]
 [dependencies.log]
 version = "0.4"
 default-features = false
-features = ["std"]
+features = ["std", "serde"]
 
 [dependencies.handlebars]
 version          = "^1.0.5"
