@@ -116,6 +116,7 @@ fn main() {
 fn list(rt: &Runtime) {
     let scmd        = rt.cli().subcommand_matches("list").unwrap();
     let list_format = get_contact_print_format("contact.list_format", rt, &scmd);
+    debug!("List format: {:?}", list_format);
 
     let iterator = rt
         .store()
@@ -134,6 +135,7 @@ fn list(rt: &Runtime) {
         .enumerate();
 
     if scmd.is_present("json") {
+        debug!("Listing as JSON");
         let v : Vec<DeserVcard> = iterator.map(|tpl| tpl.1).collect();
 
         match ::serde_json::to_string(&v) {
@@ -144,6 +146,7 @@ fn list(rt: &Runtime) {
             }
         }
     } else {
+        debug!("Not listing as JSON");
         let output     = rt.stdout();
         let mut output = output.lock();
         iterator
