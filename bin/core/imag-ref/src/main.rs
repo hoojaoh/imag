@@ -175,23 +175,24 @@ fn list_dead(rt: &Runtime) {
         .for_each(|id| {
             match rt.store().get(id.clone()).map_err_trace_exit_unwrap() {
                 Some(entry) => {
-                    let entry_path = entry
-                        .as_ref_with_hasher::<DefaultHasher>()
-                        .get_path(&cfg)
-                        .map_err_trace_exit_unwrap();
+                    let entry_ref = entry.as_ref_with_hasher::<DefaultHasher>();
 
-                    if !entry_path.exists() {
-                        if list_id {
-                            writeln!(output, "{}", entry.get_location().local().display())
-                        } else if list_path {
-                            writeln!(output, "{}", entry_path.display())
-                        } else {
-                            unimplemented!()
+                    if entry_ref.is_ref().map_err_trace_exit_unwrap() { // we only care if the entry is a ref
+                        let entry_path = entry_ref.get_path(&cfg).map_err_trace_exit_unwrap();
+
+                        if !entry_path.exists() {
+                            if list_id {
+                                writeln!(output, "{}", entry.get_location().local().display())
+                            } else if list_path {
+                                writeln!(output, "{}", entry_path.display())
+                            } else {
+                                unimplemented!()
+                            }
+                            .map_err(Error::from)
+                            .map_err_trace_exit_unwrap();
+
+                            let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
                         }
-                        .map_err(Error::from)
-                        .map_err_trace_exit_unwrap();
-
-                        let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
                     }
                 }
 
