@@ -70,6 +70,7 @@ progressticker_chars = "|/-\\-/-\\"
 #
 [imag.aliases]
 store = [ "s", "st" ]
+notes = [ "note" ] # imag-notes really should be imag-note
 
 [imag.logging]
 level = "debug"
