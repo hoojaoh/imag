@@ -74,9 +74,10 @@ fn main() {
         .map(|name| {
             debug!("Call: {}", name);
             match name {
-                "deref"  => deref(&rt),
-                "create" => create(&rt),
-                "remove" => remove(&rt),
+                "deref"     => deref(&rt),
+                "create"    => create(&rt),
+                "remove"    => remove(&rt),
+                "list-dead" => list_dead(&rt),
                 other => {
                     debug!("Unknown command");
                     let _ = rt.handle_unknown_subcommand("imag-ref", other, rt.cli())
@@ -157,6 +158,48 @@ fn remove(rt: &Runtime) {
                     error!("No entry for id '{}' found", id);
                     exit(1)
                 },
+            }
+        });
+}
+
+fn list_dead(rt: &Runtime) {
+    let cfg        = get_ref_config(&rt, "imag-ref").map_err_trace_exit_unwrap();
+    let cmd        = rt.cli().subcommand_matches("list-dead").unwrap(); // safe by main()
+    let list_path  = cmd.is_present("list-dead-pathes");
+    let list_id    = cmd.is_present("list-dead-ids");
+    let mut output = rt.stdout();
+
+    rt.ids::<::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .into_iter()
+        .for_each(|id| {
+            match rt.store().get(id.clone()).map_err_trace_exit_unwrap() {
+                Some(entry) => {
+                    let entry_ref = entry.as_ref_with_hasher::<DefaultHasher>();
+
+                    if entry_ref.is_ref().map_err_trace_exit_unwrap() { // we only care if the entry is a ref
+                        let entry_path = entry_ref.get_path(&cfg).map_err_trace_exit_unwrap();
+
+                        if !entry_path.exists() {
+                            if list_id {
+                                writeln!(output, "{}", entry.get_location().local().display())
+                            } else if list_path {
+                                writeln!(output, "{}", entry_path.display())
+                            } else {
+                                unimplemented!()
+                            }
+                            .map_err(Error::from)
+                            .map_err_trace_exit_unwrap();
+
+                            let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                        }
+                    }
+                }
+
+                None => {
+                    error!("Does not exist: {}", id.local().display());
+                    exit(1)
+                }
             }
         });
 }
