@@ -102,6 +102,12 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .multiple(true)
                         .value_name("HASH")
                         .help("Edit the contact pointed to by this reference hash(es)"))
+                   .arg(Arg::with_name("fail-on-parse-error")
+                        .long("no-retry")
+                        .takes_value(false)
+                        .required(false)
+                        .multiple(false)
+                        .help("Fail immediately if vcard cannot be parsed after editing."))
                    )
 
         .subcommand(SubCommand::with_name("find")
