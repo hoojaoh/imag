@@ -37,17 +37,17 @@
     while_true,
 )]
 
-#[macro_use] extern crate log;
+extern crate log;
 extern crate itertools;
 extern crate ansi_term;
 extern crate handlebars;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate failure;
+#[macro_use] extern crate toml_query;
 
 extern crate clap;
 extern crate toml;
-extern crate toml_query;
 extern crate atty;
 
 extern crate libimagstore;

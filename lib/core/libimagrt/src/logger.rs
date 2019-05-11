@@ -349,7 +349,6 @@ mod log_lvl_aggregate {
 fn aggregate_module_settings(_matches: &ArgMatches, config: Option<&Value>)
     -> Result<BTreeMap<ModuleName, ModuleSettings>>
 {
-    use toml_query::read::Partial;
     use std::convert::TryInto;
 
     //
@@ -369,13 +368,9 @@ fn aggregate_module_settings(_matches: &ArgMatches, config: Option<&Value>)
         pub enabled: bool,
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Partial, Serialize, Deserialize, Debug)]
+    #[location = "imag.logging.modules"]
     struct LoggingModuleConfigMap(BTreeMap<String, LoggingModuleConfig>);
-
-    impl<'a> Partial<'a> for LoggingModuleConfigMap {
-        const LOCATION: &'static str = "imag.logging.modules";
-        type Output                  = Self;
-    }
 
     impl TryInto<BTreeMap<String, ModuleSettings>> for LoggingModuleConfigMap {
         type Error = Error;
