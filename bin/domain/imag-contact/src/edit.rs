@@ -44,8 +44,6 @@ use libimagentryref::reference::fassade::RefFassade;
 use libimagentryref::hasher::default::DefaultHasher;
 use libimagentryref::reference::Ref;
 
-const TEMPLATE : &'static str = include_str!("../static/new-contact-template.toml");
-
 pub fn edit(rt: &Runtime) {
     let scmd            = rt.cli().subcommand_matches("edit").unwrap();
     let collection_name = rt.cli().value_of("contact-ref-collection-name").unwrap(); // default by clap
