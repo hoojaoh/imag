@@ -1,0 +1,38 @@
+[package]
+name = "imag-markdown"
+version = "0.10.0"
+authors = ["Matthias Beyer <mail@beyermatthias.de>"]
+edition = "2018"
+
+description = "Part of the imag core distribution: imag-markdown command"
+
+keywords    = ["imag", "PIM", "personal", "information", "management"]
+readme      = "../../../README.md"
+license     = "LGPL-2.1"
+
+documentation = "https://imag-pim.org/doc/"
+repository    = "https://github.com/matthiasbeyer/imag"
+homepage      = "http://imag-pim.org"
+
+build = "../../../build.rs"
+
+[badges]
+travis-ci                         = { repository = "matthiasbeyer/imag" }
+is-it-maintained-issue-resolution = { repository = "matthiasbeyer/imag" }
+is-it-maintained-open-issues      = { repository = "matthiasbeyer/imag" }
+maintenance                       = { status     = "actively-developed" }
+
+[dependencies]
+log        = "0.4"
+failure    = "0.1"
+
+libimagstore         = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
+libimagrt            = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
+libimagerror         = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
+libimagentrymarkdown = { version = "0.10.0", path = "../../../lib/entry/libimagentrymarkdown" }
+
+[dependencies.clap]
+version          = "^2.29"
+default-features = false
+features         = ["color", "suggestions", "wrap_help"]
+
