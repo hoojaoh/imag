@@ -30,6 +30,7 @@ use itertools::Itertools;
 use chrono::naive::NaiveDateTime;
 use chrono::Timelike;
 use failure::Fallible as Result;
+use failure::ResultExt;
 use failure::Error;
 
 use crate::entry::IsDiaryEntry;
@@ -141,6 +142,7 @@ impl Diary for Store {
     fn diary_names(&self) -> Result<DiaryNameIterator> {
         self.entries()
             .map(|it| DiaryNameIterator::new(it.into_storeid_iter()))
+            .context("Failed building DiaryNameIteator from entries iterator")
             .map_err(Error::from)
     }
 
