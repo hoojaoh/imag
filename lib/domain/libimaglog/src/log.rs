@@ -19,12 +19,14 @@
 
 use libimagdiary::entry::DiaryEntry;
 use libimagstore::store::Entry;
+use libimagentryutil::isa::Is;
+use libimagentryutil::isa::IsKindHeaderPathProvider;
 
 use failure::Fallible as Result;
 use failure::Error;
 
+
 use toml::Value;
-use toml_query::read::TomlValueReadTypeExt;
 use toml_query::insert::TomlValueInsertExt;
 
 pub trait Log : DiaryEntry {
@@ -32,9 +34,11 @@ pub trait Log : DiaryEntry {
     fn make_log_entry(&mut self) -> Result<()>;
 }
 
+provide_kindflag_path!(pub IsLog, "log.is_log");
+
 impl Log for Entry {
     fn is_log(&self) -> Result<bool> {
-        self.get_header().read_bool("log.is_log").map(|v| v.unwrap_or(false)).map_err(Error::from)
+        self.is::<IsLog>().map_err(From::from)
     }
 
     fn make_log_entry(&mut self) -> Result<()> {

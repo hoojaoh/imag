@@ -24,6 +24,7 @@ toml       = "0.4"
 toml-query = "0.8"
 failure    = "0.1"
 
-libimagstore = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
-libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
-libimagdiary = { version = "0.10.0", path = "../../../lib/domain/libimagdiary" }
+libimagstore     = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
+libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
+libimagdiary     = { version = "0.10.0", path = "../../../lib/domain/libimagdiary" }
+libimagentryutil = { version = "0.10.0", path = "../../../lib/entry/libimagentryutil" }

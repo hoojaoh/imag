@@ -41,6 +41,7 @@ extern crate toml_query;
 
 extern crate libimagdiary;
 extern crate libimagstore;
+#[macro_use] extern crate libimagentryutil;
 
 pub mod log;
 
