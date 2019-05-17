@@ -18,6 +18,7 @@
 //
 
 use failure::Fallible as Result;
+use failure::ResultExt;
 use failure::Error;
 
 use toml::Value;
@@ -79,7 +80,12 @@ impl Is for ::libimagstore::store::Entry {
     fn is<T: IsKindHeaderPathProvider>(&self) -> Result<bool> {
         let field = T::kindflag_header_location();
 
-        match self.get_header().read_bool(field).map_err(Error::from)? {
+        match self
+            .get_header()
+            .read_bool(field)
+            .context(format_err!("Failed reading header '{}' in '{}'", field, self.get_location()))
+            .map_err(Error::from)?
+        {
             Some(b) => Ok(b),
             None    => Ok(false),
         }
@@ -88,6 +94,7 @@ impl Is for ::libimagstore::store::Entry {
     fn set_isflag<T: IsKindHeaderPathProvider>(&mut self) -> Result<()> {
         self.get_header_mut()
             .insert(T::kindflag_header_location(), Value::Boolean(true))
+            .context(format_err!("Failed inserting header '{}' in '{}'", T::kindflag_header_location(), self.get_location()))
             .map_err(Error::from)
             .map(|_| ())
     }
@@ -96,6 +103,7 @@ impl Is for ::libimagstore::store::Entry {
         trace!("Trying to remove: {}", T::kindflag_header_location());
         self.get_header_mut()
             .delete(T::kindflag_header_location())
+            .context(format_err!("Failed deleting header '{}' in '{}'", T::kindflag_header_location(), self.get_location()))
             .map_err(Error::from)
             .map(|_| ())
     }
