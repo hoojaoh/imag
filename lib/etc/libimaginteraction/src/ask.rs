@@ -180,7 +180,7 @@ pub fn ask_question(question: &str, nl: bool, output: &mut Write) -> Result<()> 
     if nl {
         writeln!(output, "[imag]: {}?", Yellow.paint(question)).map_err(Error::from)
     } else {
-        writeln!(output, "[imag]: {}?", Yellow.paint(question)).map_err(Error::from)
+        write!(output, "[imag]: {}?", Yellow.paint(question)).map_err(Error::from)
     }
 }
 
