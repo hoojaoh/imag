@@ -25,6 +25,7 @@ use chrono::Local;
 use chrono::NaiveDate;
 use failure::Error;
 use failure::Fallible as Result;
+use failure::ResultExt;
 use failure::err_msg;
 
 use crate::iter::HabitInstanceStoreIdIterator;
@@ -257,7 +258,9 @@ impl HabitTemplate for Entry {
 }
 
 fn instance_id_for_name_and_datestr(habit_name: &String, habit_date: &String) -> Result<StoreId> {
-    crate::module_path::new_id(format!("instance/{}-{}", habit_name, habit_date)).map_err(Error::from)
+    crate::module_path::new_id(format!("instance/{}-{}", habit_name, habit_date))
+        .context(format_err!("Failed building ID for instance: habit name = {}, habit date = {}", habit_name, habit_date))
+        .map_err(Error::from)
 }
 
 pub mod builder {

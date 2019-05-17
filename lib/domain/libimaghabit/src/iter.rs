@@ -19,6 +19,7 @@
 
 use failure::Error;
 use failure::Fallible as Result;
+use failure::ResultExt;
 
 use libimagstore::storeid::StoreIdIterator;
 use libimagstore::storeid::StoreIdIteratorWithStore;
@@ -33,11 +34,11 @@ impl Iterator for HabitTemplateStoreIdIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(n) = self.0.next() {
-            match n {
+            match n.context("Error while iterating").map_err(Error::from) {
                 Ok(n) => if n.is_habit_template() {
                     return Some(Ok(n))
                 },
-                Err(e) => return Some(Err(e).map_err(Error::from)),
+                Err(e) => return Some(Err(e)),
             }
         }
         None

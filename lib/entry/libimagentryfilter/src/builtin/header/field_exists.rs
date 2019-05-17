@@ -23,6 +23,7 @@ use toml_query::read::TomlValueReadExt;
 use filters::failable::filter::FailableFilter;
 
 use failure::Fallible as Result;
+use failure::ResultExt;
 use failure::Error;
 
 use crate::builtin::header::field_path::FieldPath;
@@ -47,6 +48,9 @@ impl FailableFilter<Entry> for FieldExists {
     fn filter(&self, e: &Entry) -> Result<bool> {
         e.get_header()
             .read(&self.header_field_path[..])
+            .context(format_err!("Failed reading header '{}' in '{}'",
+                                 self.header_field_path,
+                                 e.get_location()))
             .map_err(Error::from)
             .map(|o| o.is_some())
     }

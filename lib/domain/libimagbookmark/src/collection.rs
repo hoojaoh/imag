@@ -27,6 +27,7 @@
 use regex::Regex;
 
 use failure::Fallible as Result;
+use failure::ResultExt;
 use failure::Error;
 
 use libimagstore::store::Store;
@@ -52,19 +53,28 @@ impl<'a> BookmarkCollectionStore<'a> for Store {
 
     fn new(&'a self, name: &str) -> Result<FileLockEntry<'a>> {
         crate::module_path::new_id(name)
-            .and_then(|id| self.create(id).map_err(Error::from))
+            .and_then(|id| self.create(id)
+                      .context("Failed to create FileLockEntry")
+                      .map_err(Error::from))
+            .context("Failed to create Id for new Bookmark Collection")
             .map_err(Error::from)
     }
 
     fn get(&'a self, name: &str) -> Result<Option<FileLockEntry<'a>>> {
         crate::module_path::new_id(name)
-            .and_then(|id| self.get(id).map_err(Error::from))
+            .and_then(|id| self.get(id)
+                      .context("Failed to get FileLockEntry")
+                      .map_err(Error::from))
+            .context("Failed to get Bookmark Collection")
             .map_err(Error::from)
     }
 
     fn delete(&'a self, name: &str) -> Result<()> {
         crate::module_path::new_id(name)
-            .and_then(|id| self.delete(id).map_err(Error::from))
+            .and_then(|id| self.delete(id)
+                      .context("Failed to delete FileLockEntry")
+                      .map_err(Error::from))
+            .context("Failed to delete Bookmark Collection")
             .map_err(Error::from)
     }
 

@@ -34,6 +34,7 @@ pub fn config_implicit_store_create_allowed(config: &Option<Value>) -> Result<bo
 
     if let Some(ref t) = *config {
         t.read_bool(key)
+            .context(format_err!("Error reading header '{}' in configuration", key))
             .map_err(Error::from)
             .context(EM::TomlQueryError)?
             .ok_or_else(|| format_err!("Config key missing: {}", key))

@@ -234,6 +234,7 @@ impl FromStoreId for DiaryId {
         let day: Result<u32> = next_component(&mut cmps)
             .and_then(|s| {
                 s.parse::<u32>()
+                    .context("Failed to parse day from u32")
                     .map_err(Error::from)
                     .context(err_msg("ID parse error"))
                     .map_err(Error::from)
@@ -242,6 +243,7 @@ impl FromStoreId for DiaryId {
         let month: Result<u32> = next_component(&mut cmps)
             .and_then(|s| {
                 s.parse::<u32>()
+                    .context("Failed to parse month from u32")
                     .map_err(Error::from)
                     .context(err_msg("ID Parse error"))
                     .map_err(Error::from)
@@ -250,6 +252,7 @@ impl FromStoreId for DiaryId {
         let year: Result<i32> = next_component(&mut cmps)
             .and_then(|s| {
                 s.parse::<i32>()
+                    .context("Failed to parse year from i32")
                     .map_err(Error::from)
                     .context(err_msg("ID Parse error"))
                     .map_err(Error::from)

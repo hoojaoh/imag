@@ -408,6 +408,7 @@ impl<'a> Runtime<'a> {
 
             let mut buf = String::new();
             lock.read_to_string(&mut buf)
+                .context("Failed to read stdin to buffer")
                 .map_err(Error::from)
                 .and_then(|_| {
                     trace!("Got IDs = {}", buf);

@@ -60,11 +60,16 @@ impl GPSEntry for Entry {
         self.get_header_mut()
             .insert("gps.coordinates", c.into())
             .map(|_| ())
+            .context(format_err!("Error while inserting header 'gps.coordinates' in '{}'", self.get_location()))
             .map_err(Error::from)
     }
 
     fn get_coordinates(&self) -> Result<Option<Coordinates>> {
-        match self.get_header().read("gps.coordinates").map_err(Error::from)?  {
+        match self
+            .get_header()
+            .read("gps.coordinates")
+            .context(format_err!("Error while reading header 'gps.coordinates' in '{}'", self.get_location()))?
+        {
             Some(hdr) => Coordinates::from_value(hdr).map(Some),
             None      => Ok(None),
         }
@@ -89,7 +94,7 @@ impl GPSEntry for Entry {
         let hdr = self.get_header_mut();
         for pattern in patterns.iter() {
             let _ = hdr.delete(pattern)
-                .map_err(Error::from)
+                .context(format_err!("Error while deleting header '{}'", pattern))
                 .context("Error writing header")?;
         }
 

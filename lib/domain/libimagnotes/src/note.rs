@@ -27,6 +27,7 @@ use toml_query::set::TomlValueSetExt;
 
 use failure::Fallible as Result;
 use failure::Error;
+use failure::ResultExt;
 
 pub trait Note {
     fn set_name(&mut self, n: String) -> Result<()>;
@@ -40,6 +41,7 @@ impl Note for Entry {
     fn set_name(&mut self, n: String) -> Result<()> {
         self.get_header_mut()
             .set("note.name", Value::String(n))
+            .context(format_err!("Cannot set 'note.name' in header of {}", self.get_location()))
             .map_err(Error::from)
             .map(|_| ())
     }

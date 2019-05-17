@@ -39,8 +39,7 @@ pub(crate) fn get_message_header_at_key<P: AsRef<Path>, K: AsRef<str>>(p: P, k: 
         .context(format_err!("Cannot parse Email {}", p.as_ref().display()))?
         .headers
         .into_iter()
-        .filter_map(|hdr| match hdr.get_key() {
-            Err(e) => Some(Err(e).map_err(Error::from)),
+        .filter_map(|hdr| match hdr.get_key().context("Cannot get key from mail header").map_err(Error::from) {
             Ok(key) => {
                 let lower_key = key.to_lowercase();
                 trace!("Test: {} == {}", lower_key, k.as_ref());
@@ -49,11 +48,12 @@ pub(crate) fn get_message_header_at_key<P: AsRef<Path>, K: AsRef<str>>(p: P, k: 
                 } else {
                     None
                 }
-            }
+            },
+            Err(e) => Some(Err(e))
         })
         .next()
         .ok_or_else(|| format_err!("'{}' not found in {}", k.as_ref(), p.as_ref().display()))?
-        .and_then(|hdr| hdr.get_value().map_err(Error::from))
+        .and_then(|hdr| hdr.get_value().context("Cannot get value from mail header").map_err(Error::from))
 }
 
 pub(crate) fn get_message_id_for_mailfile<P: AsRef<Path>>(p: P) -> Result<String> {
@@ -77,6 +77,7 @@ pub fn get_mail_text_content<P: AsRef<Path>>(p: P) -> Result<String> {
     ::mailparse::parse_mail(::std::fs::read_to_string(p.as_ref())?.as_bytes())
         .context(format_err!("Cannot parse Email {}", p.as_ref().display()))?
         .get_body()
+        .context("Cannot get body of mail")
         .map_err(Error::from)
 }
 

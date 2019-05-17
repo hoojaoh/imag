@@ -27,7 +27,6 @@ use crate::viewer::Viewer;
 use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::Error;
-use failure::err_msg;
 
 pub struct EditorView<'a>(&'a Runtime<'a>);
 
@@ -43,7 +42,7 @@ impl<'a> Viewer for EditorView<'a> {
     {
         let mut entry = e.to_str()?.clone().to_string();
         edit_in_tmpfile(self.0, &mut entry)
-            .context(err_msg("Error while viewing"))
+            .context("Error while viewing")
             .map_err(Error::from)
     }
 }

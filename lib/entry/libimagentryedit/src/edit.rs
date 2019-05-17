@@ -66,7 +66,9 @@ impl EditHeader for Entry {
     fn edit_header_and_content(&mut self, rt: &Runtime) -> Result<()> {
         let mut header_and_content = self.to_str()?;
         let _                      = edit_in_tmpfile(rt, &mut header_and_content)?;
-        self.replace_from_buffer(&header_and_content).map_err(Error::from)
+        self.replace_from_buffer(&header_and_content)
+            .context("Failed to replace header and content from buffer")
+            .map_err(Error::from)
     }
 
 }

@@ -26,6 +26,7 @@ use chrono::NaiveDateTime as NDT;
 use toml::Value;
 use toml_query::insert::TomlValueInsertExt;
 use failure::Fallible as Result;
+use failure::ResultExt;
 use failure::Error;
 
 use libimagstore::store::Store;
@@ -70,6 +71,8 @@ impl<'a> TimeTrackStore<'a> for Store {
         use std::path::PathBuf;
 
         COMPILER.compile(CRATE_NAME, start)
+            .context(format_err!("Failed to compile DatePath for crate '{}' with start = '{}'",
+                                 CRATE_NAME, start))
             .map_err(Error::from)
             .map(|mut id| {
                 id.local_push(PathBuf::from(ts.as_str()));

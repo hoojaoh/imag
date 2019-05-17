@@ -57,12 +57,17 @@ impl Mail for Entry {
             .context(format_err!("Cannot parse Email {}", mail_file_location.display()))?
             .headers
             .into_iter()
-            .filter_map(|hdr| match hdr.get_key() {
-                Err(e) => Some(Err(e).map_err(Error::from)),
-                Ok(k) => if k == field {
-                    Some(Ok(hdr))
-                } else {
-                    None
+            .filter_map(|hdr| {
+                match hdr.get_key()
+                    .context(format_err!("Cannot fetch key '{}' from Email {}", field, mail_file_location.display()))
+                    .map_err(Error::from)
+                {
+                    Ok(k) => if k == field {
+                        Some(Ok(hdr))
+                    } else {
+                        None
+                    },
+                    Err(e) => Some(Err(e)),
                 }
             })
             .next()
@@ -135,12 +140,17 @@ impl<'a> MailHeader<'a> {
     pub fn get_field(&self, field: &str) -> Result<Option<String>> {
         match self.0
             .iter()
-            .filter_map(|hdr| match hdr.get_key() {
-                Err(e) => Some(Err(e).map_err(Error::from)),
-                Ok(key) => if key == field {
-                    Some(Ok(hdr))
-                } else {
-                    None
+            .filter_map(|hdr| {
+                match hdr.get_key()
+                    .context(format_err!("Cannot get field {}", field))
+                    .map_err(Error::from)
+                {
+                    Ok(key) => if key == field {
+                        Some(Ok(hdr))
+                    } else {
+                        None
+                    },
+                    Err(e) => Some(Err(e))
                 }
             })
             .next()

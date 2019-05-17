@@ -23,6 +23,7 @@ use libimagstore::storeid::StoreIdIterator;
 use crate::notestoreid::*;
 use failure::Fallible as Result;
 use failure::Error;
+use failure::ResultExt;
 
 #[derive(Debug)]
 pub struct NoteIterator(StoreIdIterator);
@@ -40,11 +41,11 @@ impl Iterator for NoteIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(n) = self.0.next() {
-            match n {
+            match n.context("Error while iterating").map_err(Error::from) {
                 Ok(n) => if n.is_note_id() {
                     return Some(Ok(n));
                 },
-                Err(e) => return Some(Err(e).map_err(Error::from)),
+                Err(e) => return Some(Err(e)),
             }
         }
 

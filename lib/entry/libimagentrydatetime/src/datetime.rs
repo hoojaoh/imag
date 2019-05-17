@@ -92,6 +92,9 @@ impl EntryDate for Entry {
 
         self.get_header_mut()
             .insert(&DATE_HEADER_LOCATION, Value::String(date))
+            .context(format_err!("Failed to insert header '{}' in '{}'",
+                                 *DATE_HEADER_LOCATION,
+                                 self.get_location()))
             .map_err(Error::from)
             .map(|opt| opt.map(|stri| {
                 stri.as_str()

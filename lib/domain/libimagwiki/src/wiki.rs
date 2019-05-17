@@ -27,6 +27,7 @@ use libimagentrylink::internal::InternalLinker;
 use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;
+use failure::ResultExt;
 
 pub struct Wiki<'a, 'b>(&'a Store, &'b str);
 
@@ -58,6 +59,7 @@ impl<'a, 'b> Wiki<'a, 'b> {
 
         self.0
             .get(sid)
+            .context("Cannot get ID from store")
             .map_err(Error::from)?
             .ok_or_else(|| Error::from(err_msg("Missing index")))
     }

@@ -27,6 +27,7 @@ use libimagentrylink::internal::InternalLinker;
 use toml_query::read::TomlValueReadTypeExt;
 
 use failure::Fallible as Result;
+use failure::ResultExt;
 use failure::Error;
 use failure::err_msg;
 use crate::store::CATEGORY_REGISTER_NAME_FIELD_PATH;
@@ -49,6 +50,7 @@ impl Category for Entry {
         trace!("Getting category name of '{:?}'", self.get_location());
         self.get_header()
             .read_string(CATEGORY_REGISTER_NAME_FIELD_PATH)
+            .context(format_err!("Failed to read header at '{}'", CATEGORY_REGISTER_NAME_FIELD_PATH))
             .map_err(Error::from)?
             .ok_or_else(|| Error::from(err_msg("Category name missing")))
     }

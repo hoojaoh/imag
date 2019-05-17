@@ -37,6 +37,7 @@ use toml_query::delete::TomlValueDeleteExt;
 use toml_query::insert::TomlValueInsertExt;
 use toml_query::read::TomlValueReadTypeExt;
 use failure::Fallible as Result;
+use failure::ResultExt;
 use failure::Error;
 
 pub trait TimeTracking {
@@ -64,6 +65,8 @@ impl TimeTracking for Entry {
     fn get_timetrack_tag(&self) -> Result<TTT> {
         self.get_header()
             .read_string(DATE_TIME_TAG_HEADER_PATH)
+            .context(format_err!("Failed to read header '{}' of {}", DATE_TIME_TAG_HEADER_PATH,
+                                 self.get_location()))
             .map_err(Error::from)?
             .ok_or_else(|| Error::from(EM::EntryHeaderReadError))
             .map(Into::into)
@@ -74,6 +77,8 @@ impl TimeTracking for Entry {
 
         self.get_header_mut()
             .insert(DATE_TIME_START_HEADER_PATH, Value::String(s))
+            .context(format_err!("Failed get header '{}' of {}", DATE_TIME_START_HEADER_PATH,
+                                 self.get_location()))
             .map_err(Error::from)
             .map(|_| ())
     }
@@ -81,6 +86,8 @@ impl TimeTracking for Entry {
     fn get_start_datetime(&self) -> Result<Option<NaiveDateTime>> {
         self.get_header()
             .read_string(DATE_TIME_START_HEADER_PATH)
+            .context(format_err!("Failed read header '{}' of {}", DATE_TIME_START_HEADER_PATH,
+                                 self.get_location()))
             .map_err(Error::from)
             .and_then(header_value_to_dt)
     }
@@ -88,6 +95,8 @@ impl TimeTracking for Entry {
     fn delete_start_datetime(&mut self) -> Result<()> {
         self.get_header_mut()
             .delete(DATE_TIME_START_HEADER_PATH)
+            .context(format_err!("Failed delete header '{}' of {}", DATE_TIME_START_HEADER_PATH,
+                                 self.get_location()))
             .map_err(Error::from)
             .map(|_| ())
     }
@@ -97,6 +106,8 @@ impl TimeTracking for Entry {
 
         self.get_header_mut()
             .insert(DATE_TIME_END_HEADER_PATH, Value::String(s))
+            .context(format_err!("Failed insert header '{}' in {}", DATE_TIME_END_HEADER_PATH,
+                                 self.get_location()))
             .map_err(Error::from)
             .map(|_| ())
     }
@@ -104,6 +115,8 @@ impl TimeTracking for Entry {
     fn get_end_datetime(&self) -> Result<Option<NaiveDateTime>> {
         self.get_header()
             .read_string(DATE_TIME_END_HEADER_PATH)
+            .context(format_err!("Failed read header '{}' of {}", DATE_TIME_END_HEADER_PATH,
+                                 self.get_location()))
             .map_err(Error::from)
             .and_then(header_value_to_dt)
     }
@@ -111,6 +124,8 @@ impl TimeTracking for Entry {
     fn delete_end_datetime(&mut self) -> Result<()> {
         self.get_header_mut()
             .delete(DATE_TIME_END_HEADER_PATH)
+            .context(format_err!("Failed delete header '{}' of {}", DATE_TIME_END_HEADER_PATH,
+                                 self.get_location()))
             .map_err(Error::from)
             .map(|_| ())
     }
@@ -135,7 +150,10 @@ impl TimeTracking for Entry {
 
 fn header_value_to_dt(val: Option<String>) -> Result<Option<NaiveDateTime>> {
     match val {
-        Some(ref s) => NaiveDateTime::parse_from_str(s, DATE_TIME_FORMAT).map_err(Error::from).map(Some),
+        Some(ref s) => NaiveDateTime::parse_from_str(s, DATE_TIME_FORMAT)
+            .context(format_err!("Failed to parse '{}' datetime with format '{}'",
+                                 s, DATE_TIME_FORMAT))
+            .map_err(Error::from).map(Some),
         None => Ok(None),
     }
 }
