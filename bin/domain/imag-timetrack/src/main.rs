@@ -107,7 +107,7 @@ fn main() {
     } else {
         let start = ::chrono::offset::Local::today().naive_local().and_hms(0, 0, 0);
         let end   = ::chrono::offset::Local::today().naive_local().and_hms(23, 59, 59);
-        list_impl(&rt, Some(start), Some(end), false)
+        list_impl(&rt, Some(start), Some(end), false, false)
     };
 
     ::std::process::exit(retval);

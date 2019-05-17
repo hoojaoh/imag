@@ -46,6 +46,14 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .multiple(false)
                         .required(false)
                         .help("List not yet ended timetrackings even if after 'end-time'"))
+
+                   .arg(Arg::with_name("show-duration")
+                        .short("d")
+                        .long("show-duration")
+                        .takes_value(false)
+                        .multiple(false)
+                        .required(false)
+                        .help("Show durations of ended timetrackings"))
                    )
 
        .subcommand(SubCommand::with_name("start")
