@@ -370,6 +370,7 @@ fn aggregate_module_settings(_matches: &ArgMatches, config: Option<&Value>)
                 for (module_name, v) in t {
                     let destinations = inner_try! {
                         v.read("destinations")
+                            .context("Failed reading header 'destinations'")
                             .map_err(Error::from)
                             .context(EM::TomlQueryError)?
                             .map(|val| {
@@ -384,6 +385,7 @@ fn aggregate_module_settings(_matches: &ArgMatches, config: Option<&Value>)
 
                     let level = inner_try! {
                         v.read_string("level")
+                            .context("Failed reading header 'level'")
                             .map_err(Error::from)
                             .context(EM::TomlQueryError)?
                             .map(|s| match_log_level_str(&s))
