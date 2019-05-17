@@ -52,7 +52,7 @@ impl EntryCategory for Entry {
         trace!("Setting category '{}' UNCHECKED", s);
         self.get_header_mut()
             .insert(&String::from("category.value"), Value::String(s.to_string()))
-            .map_err(Error::from)
+            .context(format_err!("Failed to insert header at 'category.value' of '{}'", self.get_location()))
             .context(EM::EntryHeaderWriteError)
             .map_err(Error::from)
             .map(|_| ())
@@ -84,7 +84,7 @@ impl EntryCategory for Entry {
         trace!("Has category? '{}'", self.get_location());
         self.get_header()
             .read("category.value")
-            .map_err(Error::from)
+            .context(format_err!("Failed to read header at 'category.value' of '{}'", self.get_location()))
             .context(EM::EntryHeaderReadError)
             .map_err(Error::from)
             .map(|x| x.is_some())
@@ -101,7 +101,7 @@ impl EntryCategory for Entry {
 
         self.get_header_mut()
             .delete("category.value")
-            .map_err(Error::from)
+            .context(format_err!("Failed to delete header at 'category.value' of '{}'", self.get_location()))
             .context(EM::EntryHeaderWriteError)
             .map_err(Error::from)
             .map(|_| ())

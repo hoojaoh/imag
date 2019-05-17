@@ -20,7 +20,6 @@
 use libimagstore::storeid::StoreIdIterator;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
-use libimagerror::errors::ErrorMsg as EM;
 
 use toml_query::read::TomlValueReadTypeExt;
 
@@ -60,8 +59,8 @@ impl<'a> Iterator for CategoryNameIter<'a> {
         let query = CATEGORY_REGISTER_NAME_FIELD_PATH;
 
         while let Some(sid) = self.1.next() {
-            match sid {
-                Err(e) => return Some(Err(e).map_err(Error::from)),
+            match sid.context("Error while iterating over category names").map_err(Error::from) {
+                Err(e) => return Some(Err(e)),
                 Ok(sid) => {
                     if sid.is_in_collection(&["category"]) {
                         let func = |store: &Store| { // hack for returning Some(Result<_, _>)
@@ -70,8 +69,7 @@ impl<'a> Iterator for CategoryNameIter<'a> {
                                 .ok_or_else(|| err_msg("Store read error"))?
                                 .get_header()
                                 .read_string(query)
-                                .map_err(Error::from)
-                                .context(EM::EntryHeaderReadError)?
+                                .context(format_err!("Failed to read header at '{}'", query))?
                                 .ok_or_else(|| err_msg("Store read error"))
                                 .map_err(Error::from)
                         };
@@ -99,8 +97,8 @@ impl<'a> Iterator for CategoryEntryIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(next) = self.1.next() {
-            match next {
-                Err(e) => return Some(Err(e).map_err(Error::from)),
+            match next.context("Error while iterating over category entries").map_err(Error::from) {
+                Err(e) => return Some(Err(e)),
                 Ok(next) => {
                     let getter = |next| -> Result<(String, FileLockEntry<'a>)> {
                         let entry = self.0
