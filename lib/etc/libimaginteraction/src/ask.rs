@@ -178,10 +178,12 @@ pub fn ask_select_from_list(list: &[&str]) -> Result<String> {
 /// The `nl` parameter can be used to configure whether a newline character should be printed
 pub fn ask_question(question: &str, nl: bool, output: &mut Write) -> Result<()> {
     if nl {
-        writeln!(output, "[imag]: {}?", Yellow.paint(question)).map_err(Error::from)
+        writeln!(output, "[imag]: {}?", Yellow.paint(question))
     } else {
-        write!(output, "[imag]: {}?", Yellow.paint(question)).map_err(Error::from)
+        write!(output, "[imag]: {}?", Yellow.paint(question))
     }
+    .context("Failed to write question to output")
+    .map_err(Error::from)
 }
 
 #[cfg(test)]
