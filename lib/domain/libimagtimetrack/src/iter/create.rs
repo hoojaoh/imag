@@ -21,6 +21,7 @@ use toml::Value;
 use toml_query::insert::TomlValueInsertExt;
 use chrono::naive::NaiveDateTime as NDT;
 use failure::Fallible as Result;
+use failure::ResultExt;
 use failure::Error;
 
 use crate::constants::*;
@@ -60,6 +61,7 @@ impl<'a> Iterator for CreateTimeTrackIter<'a>
                 res.and_then(|(id, starttime)| {
                     self.store
                         .create(id)
+                        .context("Failed to create entry")
                         .map_err(Error::from)
                         .and_then(|mut entry| {
                             let v = Value::String(starttime.format(DATE_TIME_FORMAT).to_string());
