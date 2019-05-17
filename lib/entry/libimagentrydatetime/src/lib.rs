@@ -38,10 +38,10 @@
 )]
 
 #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate failure;
 extern crate chrono;
 extern crate toml_query;
 extern crate toml;
-extern crate failure;
 
 extern crate libimagerror;
 extern crate libimagstore;
