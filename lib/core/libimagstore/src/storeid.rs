@@ -184,6 +184,9 @@ impl<'a> StoreIdWithBase<'a> {
                store_part.display());
         let p = full_path
             .strip_prefix(store_part)
+            .context(format_err!("Cannot strip prefix '{}' from path: '{}'",
+                                 store_part.display(),
+                                 full_path.display()))
             .map_err(Error::from)
             .context(err_msg("Error building Store Id from full path"))?;
         Ok(StoreIdWithBase(store_part, PathBuf::from(p)))
