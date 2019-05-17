@@ -78,14 +78,16 @@ pub fn list(rt: &Runtime) -> i32 {
     let end   = gettime(&cmd, "end-time");
 
     let list_not_ended = cmd.is_present("list-not-ended");
+    let show_duration  = cmd.is_present("show-duration");
 
-    list_impl(rt, start, end, list_not_ended)
+    list_impl(rt, start, end, list_not_ended, show_duration)
 }
 
 pub fn list_impl(rt: &Runtime,
                  start: Option<NaiveDateTime>,
                  end: Option<NaiveDateTime>,
-                 list_not_ended: bool)
+                 list_not_ended: bool,
+                 show_duration: bool)
     -> i32
 {
 
@@ -119,7 +121,12 @@ pub fn list_impl(rt: &Runtime,
     let filter = start_time_filter.and(end_time_filter);
 
     let mut table = Table::new();
-    table.set_titles(Row::new(["Tag", "Start", "End"].into_iter().map(|s| Cell::new(s)).collect()));
+    let title_row = if !show_duration {
+        Row::new(["Tag", "Start", "End"].iter().map(|s| Cell::new(s)).collect())
+    } else {
+        Row::new(["Tag", "Start", "End", "Duration"].iter().map(|s| Cell::new(s)).collect())
+    };
+    table.set_titles(title_row);
 
     let mut table_empty = true;
 
@@ -142,20 +149,45 @@ pub fn list_impl(rt: &Runtime,
                 debug!(" -> end = {:?}", end);
 
                 let v = match (start, end) {
-                    (None, _)          => vec![String::from(tag.as_str()), String::from(""), String::from("")],
+                    (None, _)          => {
+                        let mut v = vec![String::from(tag.as_str()), String::from(""), String::from("")];
+                        if show_duration {
+                            v.push(String::from(""));
+                        }
+                        v
+                    },
                     (Some(s), None)    => {
-                        vec![
+                        let mut v = vec![
                             String::from(tag.as_str()),
                             format!("{}", s),
                             String::from(""),
-                        ]
+                        ];
+
+                        if show_duration {
+                            v.push(String::from(""));
+                        }
+
+                        v
                     },
                     (Some(s), Some(e)) => {
-                        vec![
+                        let mut v = vec![
                             String::from(tag.as_str()),
                             format!("{}", s),
                             format!("{}", e),
-                        ]
+                        ];
+
+                        if show_duration {
+                            let duration = e - s;
+                            let dur = format!("{days} Days, {hours} Hours, {minutes} Minutes, {seconds} Seconds",
+                                    days    = duration.num_days(),
+                                    hours   = duration.num_hours(),
+                                    minutes = duration.num_minutes(),
+                                    seconds = duration.num_seconds());
+
+                            v.push(dur);
+                        }
+
+                        v
                     },
                 };
 
