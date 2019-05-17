@@ -25,6 +25,7 @@ use libimagerror::errors::ErrorMsg as EM;
 use crate::contact::Contact;
 use failure::Fallible as Result;
 use failure::Error;
+use failure::ResultExt;
 
 pub struct ContactIter<'a>(StoreIdIterator, &'a Store);
 
@@ -44,12 +45,21 @@ impl<'a> Iterator for ContactIter<'a> {
         loop {
             match self.0.next() {
                 None          => return None,
-                Some(Err(e))  => return Some(Err(e).map_err(Error::from)),
+                Some(Err(e))  => {
+                    let e = Err(e)
+                        .context("Found error while iterating over contacts")
+                        .map_err(Error::from);
+
+                    return Some(e)
+                },
                 Some(Ok(sid)) => match self.1.get(sid.clone()).map_err(From::from) {
                     Err(e)          => return Some(Err(e)),
                     Ok(None)        => return
                         Some(Err(Error::from(EM::EntryNotFound(sid.local_display_string())))),
-                    Ok(Some(entry)) => match entry.is_contact().map_err(Error::from) {
+                    Ok(Some(entry)) => match entry.is_contact()
+                        .context("Cannot check whether entry is a contact")
+                        .map_err(Error::from)
+                    {
                         Ok(true)    => return Some(Ok(entry)),
                         Ok(false)   => continue,
                         Err(e)      => return Some(Err(e)),

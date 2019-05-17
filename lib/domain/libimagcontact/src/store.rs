@@ -27,6 +27,7 @@ use toml_query::insert::TomlValueInsertExt;
 use vobject::vcard::Vcard;
 use failure::Error;
 use failure::Fallible as Result;
+use failure::ResultExt;
 
 use libimagstore::storeid::StoreId;
 use libimagstore::iter::Entries;
@@ -152,7 +153,7 @@ impl<'a> ContactStore<'a> for Store {
 ///
 /// That means calculating the StoreId and the Value from the vcard data
 fn prepare_fetching_from_store(buf: &str) -> Result<(StoreId, Value)> {
-    let vcard = Vcard::build(&buf).map_err(Error::from)?;
+    let vcard = Vcard::build(&buf).context("Cannot parse Vcard").map_err(Error::from)?;
     debug!("Parsed: {:?}", vcard);
 
     let uid = vcard.uid()
