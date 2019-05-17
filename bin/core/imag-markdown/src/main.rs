@@ -61,10 +61,11 @@ fn main() {
                                     "Print one or more imag entries after processing them with a markdown parser",
                                     ui::build_ui);
 
+    let only_links = rt.cli().is_present("links");
     let out = rt.stdout();
     let mut outlock = out.lock();
 
-    rt.ids::<crate::ui::PathProvider>()
+    let iter = rt.ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
         .into_iter()
         .map(Ok)
@@ -73,11 +74,24 @@ fn main() {
         .map(|ofle| ofle.ok_or_else(|| {
             err_msg("Entry does not exist but is in store. This is a BUG, please report!")
         }))
-        .trace_unwrap_exit()
-        .map(|fle| libimagentrymarkdown::html::to_html(fle.get_content()))
-        .trace_unwrap_exit()
-        .for_each(|html| {
-            writeln!(outlock, "{}", html).map_err(Error::from).map_err_trace_exit_unwrap();
-        })
+        .trace_unwrap_exit();
+
+    if only_links {
+        iter.map(|fle| libimagentrymarkdown::link::extract_links(fle.get_content()))
+            .for_each(|links| {
+                links.iter().for_each(|link| {
+                    writeln!(outlock, "{title}: {link}", title = link.title, link = link.link)
+                        .map_err(Error::from)
+                        .map_err_trace_exit_unwrap();
+                })
+            })
+
+    } else {
+        iter.map(|fle| libimagentrymarkdown::html::to_html(fle.get_content()))
+            .trace_unwrap_exit()
+            .for_each(|html| {
+                writeln!(outlock, "{}", html).map_err(Error::from).map_err_trace_exit_unwrap();
+            })
+    }
 }
 

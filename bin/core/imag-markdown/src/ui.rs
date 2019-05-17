@@ -28,6 +28,14 @@ use libimagerror::trace::MapErrTrace;
 
 pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
     app
+        .arg(Arg::with_name("links")
+             .long("links")
+             .short("l")
+             .takes_value(false)
+             .required(false)
+             .multiple(false)
+             .help("Print only the links that can be found in the markdown"))
+
         .arg(Arg::with_name("entry")
              .index(1)
              .takes_value(true)
