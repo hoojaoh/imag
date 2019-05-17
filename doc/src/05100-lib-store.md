@@ -9,7 +9,3 @@ The store itself does not offer functionality, but has a commandline interface
 "imag-store" which can do basic things with the store.
 
 
-### Long-term TODO
-
-- [ ] Merge with `libimagrt`
-
