@@ -89,6 +89,7 @@ pub mod fassade {
     use libimagentryutil::isa::Is;
 
     use failure::Fallible as Result;
+    use failure::ResultExt;
     use failure::Error;
 
     use crate::hasher::sha1::Sha1Hasher;
@@ -104,7 +105,7 @@ pub mod fassade {
     impl RefFassade for Entry {
         /// Check whether the underlying object is actually a ref
         fn is_ref(&self) -> Result<bool> {
-            self.is::<IsRef>().map_err(Error::from)
+            self.is::<IsRef>().context("Failed to check is-ref flag").map_err(Error::from)
         }
 
         fn as_ref_with_hasher<H: Hasher>(&self)     -> RefWithHasher<H> {
@@ -163,7 +164,7 @@ impl<'a, H: Hasher> Ref for RefWithHasher<'a, H> {
 
     /// Check whether the underlying object is actually a ref
     fn is_ref(&self) -> Result<bool> {
-        self.0.is::<IsRef>().map_err(Error::from)
+        self.0.is::<IsRef>().context("Failed to check is-ref flag").map_err(Error::from)
     }
 
     fn get_hash(&self) -> Result<&str> {
@@ -171,6 +172,7 @@ impl<'a, H: Hasher> Ref for RefWithHasher<'a, H> {
         self.0
             .get_header()
             .read(&header_path)
+            .context(format_err!("Failed to read header at '{}'", header_path))
             .map_err(Error::from)?
             .ok_or_else(|| {
                 Error::from(EM::EntryHeaderFieldMissing("ref.hash.<hash>"))
@@ -210,7 +212,7 @@ impl<'a, H: Hasher> Ref for RefWithHasher<'a, H> {
         self.0
             .get_header()
             .read("ref.relpath")
-            .map_err(Error::from)?
+            .context("Failed to read header at 'ref.relpath'")?
             .ok_or_else(|| Error::from(EM::EntryHeaderFieldMissing("ref.relpath")))
             .and_then(|v| {
                 v.as_str()
@@ -223,19 +225,20 @@ impl<'a, H: Hasher> Ref for RefWithHasher<'a, H> {
     fn hash_valid(&self, config: &Config) -> Result<bool> {
         let ref_header = self.0
             .get_header()
-            .read("ref")?
+            .read("ref")
+            .context("Failed to read header at 'ref'")?
             .ok_or_else(|| err_msg("Header missing at 'ref'"))?;
 
         let basepath_name = ref_header
             .read("basepath")
-            .map_err(Error::from)?
+            .context("Failed to read header at 'ref.basepath'")?
             .ok_or_else(|| err_msg("Header missing at 'ref.basepath'"))?
             .as_str()
             .ok_or_else(|| Error::from(EM::EntryHeaderTypeError2("ref.hash.<hash>", "string")))?;
 
         let path = ref_header
             .read("relpath")
-            .map_err(Error::from)?
+            .context("Failed to read header at 'ref.relpath'")?
             .ok_or_else(|| err_msg("Header missing at 'ref.relpath'"))?
             .as_str()
             .map(PathBuf::from)
@@ -246,7 +249,7 @@ impl<'a, H: Hasher> Ref for RefWithHasher<'a, H> {
 
         ref_header
             .read(H::NAME)
-            .map_err(Error::from)?
+            .context(format_err!("Failed to read header at 'ref.{}'", H::NAME))?
             .ok_or_else(|| format_err!("Header missing at 'ref.{}'", H::NAME))
             .and_then(|v| {
                 v.as_str().ok_or_else(|| {
@@ -352,7 +355,9 @@ impl<'a, H> MutRef for MutRefWithHasher<'a, H>
                 trace!("Using relpath = {} to make header section", relpath.display());
                 make_header_section(hash, H::NAME, relpath, basepath_name)
             })
-            .and_then(|h| self.0.get_header_mut().insert("ref", h).map_err(Error::from))
+            .and_then(|h| self.0.get_header_mut().insert("ref", h)
+                      .context("Failed to insert 'ref' in header")
+                      .map_err(Error::from))
             .and_then(|_| self.0.set_isflag::<IsRef>())
             .context("Making ref out of entry")?;
 
