@@ -40,7 +40,7 @@ extern crate regex;
 extern crate semver;
 extern crate toml;
 extern crate toml_query;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 extern crate libimagstore;
 extern crate libimagentrytag;
