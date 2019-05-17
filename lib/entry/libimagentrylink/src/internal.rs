@@ -265,7 +265,7 @@ impl InternalLinker for Entry {
         let res = self
             .get_header()
             .read("links.internal")
-            .map_err(Error::from)
+            .context(format_err!("Failed to read header 'links.internal' of '{}'", self.get_location()))
             .context(EM::EntryHeaderReadError)
             .context(EM::EntryHeaderError)
             .map_err(Error::from)
@@ -299,7 +299,7 @@ impl InternalLinker for Entry {
         let res = self
             .get_header_mut()
             .insert("links.internal", Value::Array(new_links))
-            .map_err(Error::from)
+            .context(format_err!("Failed to insert header 'links.internal' of '{}'", self.get_location()))
             .context(EM::EntryHeaderReadError)
             .map_err(Error::from);
         process_rw_result(res)
@@ -336,7 +336,7 @@ impl InternalLinker for Entry {
 
     fn unlink(&mut self, store: &Store) -> Result<()> {
         for id in self.get_internal_links()?.map(|l| l.get_store_id().clone()) {
-            match store.get(id).map_err(Error::from)? {
+            match store.get(id).context("Failed to get entry")? {
                 Some(mut entry) => self.remove_internal_link(&mut entry)?,
                 None            => return Err(err_msg("Link target does not exist")),
             }
@@ -382,7 +382,7 @@ fn rewrite_links<I: Iterator<Item = Link>>(header: &mut Value, links: I) -> Resu
     debug!("Setting new link array: {:?}", links);
     let process = header
         .insert("links.internal", Value::Array(links))
-        .map_err(Error::from)
+        .context(format_err!("Failed to insert header 'links.internal'"))
         .context(EM::EntryHeaderReadError)
         .map_err(Error::from);
     process_rw_result(process).map(|_| ())
@@ -409,7 +409,7 @@ fn add_foreign_link(target: &mut Entry, from: StoreId) -> Result<()> {
             let res = target
                 .get_header_mut()
                 .insert("links.internal", Value::Array(links))
-                .map_err(Error::from)
+                .context(format_err!("Failed to insert header 'links.internal'"))
                 .context(EM::EntryHeaderReadError)
                 .map_err(Error::from);
 
