@@ -12,6 +12,7 @@ members = [
     "bin/core/imag-ids",
     "bin/core/imag-init",
     "bin/core/imag-link",
+    "bin/core/imag-markdown",
     "bin/core/imag-mv",
     "bin/core/imag-ref",
     "bin/core/imag-store",
