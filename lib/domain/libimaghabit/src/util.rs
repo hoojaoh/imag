@@ -21,6 +21,7 @@ use std::ops::BitXor;
 
 use failure::Error;
 use failure::Fallible as Result;
+use failure::ResultExt;
 
 use crate::habit::HabitTemplate;
 use crate::instance::HabitInstance;
@@ -88,6 +89,7 @@ pub fn get_string_header_from_entry(e: &Entry, path: &'static str) -> Result<Str
     e.get_header()
         .read_string(path)?
         .ok_or_else(|| EM::EntryHeaderFieldMissing(path))
+        .context(format_err!("Error while reading header '{}' from '{}'", path, e.get_location()))
         .map_err(Error::from)
 }
 
