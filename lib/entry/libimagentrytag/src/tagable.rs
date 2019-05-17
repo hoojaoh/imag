@@ -51,6 +51,7 @@ impl Tagable for Value {
 
     fn get_tags(&self) -> Result<Vec<Tag>> {
         self.read("tag.values")
+            .context(format_err!("Failed to read header at 'tag.values'"))
             .map_err(Error::from)
             .context(EM::EntryHeaderReadError)?
             .map(|val| {
