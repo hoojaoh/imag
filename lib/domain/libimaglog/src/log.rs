@@ -24,6 +24,7 @@ use libimagentryutil::isa::IsKindHeaderPathProvider;
 
 use failure::Fallible as Result;
 use failure::Error;
+use failure::ResultExt;
 
 
 use toml::Value;
@@ -38,12 +39,13 @@ provide_kindflag_path!(pub IsLog, "log.is_log");
 
 impl Log for Entry {
     fn is_log(&self) -> Result<bool> {
-        self.is::<IsLog>().map_err(From::from)
+        self.is::<IsLog>().context("Cannot check whether Entry is a Log").map_err(From::from)
     }
 
     fn make_log_entry(&mut self) -> Result<()> {
         self.get_header_mut()
             .insert("log.is_log", Value::Boolean(true))
+            .context("Cannot insert 'log.is_log' into header of entry")
             .map_err(Error::from)
             .map(|_| ())
     }
