@@ -22,6 +22,7 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 log = "0.4.0"
 toml = "0.4"
+failure = "0.1"
 
 libimagstore    = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagrt       = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
@@ -37,7 +38,6 @@ features = ["color", "suggestions", "wrap_help"]
 [dev-dependencies]
 toml-query = "0.8"
 env_logger = "0.5"
-failure = "0.1"
 
 [dev-dependencies.libimagutil]
 version          = "0.10.0"

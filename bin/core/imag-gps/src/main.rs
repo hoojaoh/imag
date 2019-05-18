@@ -35,9 +35,8 @@
 )]
 
 extern crate clap;
-#[macro_use]
-extern crate log;
-extern crate failure;
+#[macro_use] extern crate log;
+#[macro_use] extern crate failure;
 
 extern crate libimagentrygps;
 #[macro_use] extern crate libimagrt;
@@ -52,6 +51,7 @@ use std::str::FromStr;
 use failure::Error;
 use failure::err_msg;
 
+use libimagstore::storeid::StoreId;
 use libimagentrygps::types::*;
 use libimagentrygps::entry::*;
 use libimagrt::setup::generate_runtime_setup;
@@ -69,8 +69,7 @@ fn main() {
                                     "Add GPS coordinates to entries",
                                     ui::build_ui);
 
-    rt.cli()
-        .subcommand_name()
+    rt.cli().subcommand_name()
         .map(|name| {
             match name {
                 "add"    => add(&rt),
@@ -85,6 +84,16 @@ fn main() {
                 }
             }
         });
+}
+
+fn rt_get_ids(rt: &Runtime) -> Vec<StoreId> {
+    rt
+        .ids::<crate::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
 }
 
 fn add(rt: &Runtime) {
@@ -124,8 +133,7 @@ fn add(rt: &Runtime) {
         Coordinates::new(long, lati)
     };
 
-    rt.ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
+    rt_get_ids(&rt)
         .into_iter()
         .for_each(|id| {
             rt.store()
@@ -149,8 +157,7 @@ fn remove(rt: &Runtime) {
         .unwrap()
         .is_present("print-removed"); // safed by main()
 
-    rt.ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
+    rt_get_ids(&rt)
         .into_iter()
         .for_each(|id| {
             let removed_value = rt
@@ -179,8 +186,8 @@ fn remove(rt: &Runtime) {
 
 fn get(rt: &Runtime) {
     let mut stdout = rt.stdout();
-    rt.ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
+
+    rt_get_ids(&rt)
         .into_iter()
         .for_each(|id| {
             let value = rt

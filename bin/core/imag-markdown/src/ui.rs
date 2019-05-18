@@ -20,11 +20,11 @@
 use std::path::PathBuf;
 
 use clap::{Arg, ArgMatches, App};
+use failure::Fallible as Result;
 
 use libimagstore::storeid::StoreId;
 use libimagstore::storeid::IntoStoreId;
 use libimagrt::runtime::IdPathProvider;
-use libimagerror::trace::MapErrTrace;
 
 pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
     app
@@ -47,18 +47,15 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
 
 pub struct PathProvider;
 impl IdPathProvider for PathProvider {
-    fn get_ids(matches: &ArgMatches) -> Vec<StoreId> {
+    fn get_ids(matches: &ArgMatches) -> Result<Option<Vec<StoreId>>> {
         matches.values_of("entry")
-            .ok_or_else(|| {
-                error!("No StoreId found");
-                ::std::process::exit(1)
-            })
-            .unwrap()
-            .into_iter()
-            .map(PathBuf::from)
-            .map(|pb| pb.into_storeid())
-            .collect::<Result<Vec<_>, _>>()
-            .map_err_trace_exit_unwrap()
+            .map(|v| v
+                 .into_iter()
+                 .map(PathBuf::from)
+                 .map(|pb| pb.into_storeid())
+                 .collect::<Result<Vec<_>>>()
+            )
+            .transpose()
     }
 }
 

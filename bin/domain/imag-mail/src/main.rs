@@ -131,7 +131,7 @@ fn list(rt: &Runtime) {
     let print_content   = scmd.is_present("list-read");
 
     if print_content {
-        /// TODO: Check whether workaround with "{}" is still necessary when updating "indoc"
+        // TODO: Check whether workaround with "{}" is still necessary when updating "indoc"
         warn!("{}", indoc!(r#"You requested to print the content of the mail as well.
         We use the 'mailparse' crate underneath, but its implementation is nonoptimal.
         Thus, the content might be printed as empty (no text in the email)
@@ -215,8 +215,13 @@ fn list(rt: &Runtime) {
     }
 
     if rt.ids_from_stdin() {
-        let iter = rt.ids::<crate::ui::PathProvider>()
+        let iter = rt
+            .ids::<crate::ui::PathProvider>()
             .map_err_trace_exit_unwrap()
+            .unwrap_or_else(|| {
+                error!("No ids supplied");
+                ::std::process::exit(1);
+            })
             .into_iter()
             .map(Ok);
 

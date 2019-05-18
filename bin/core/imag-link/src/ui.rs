@@ -20,11 +20,11 @@
 use std::path::PathBuf;
 
 use clap::{Arg, ArgMatches, App, SubCommand};
+use failure::Fallible as Result;
 
 use libimagstore::storeid::StoreId;
 use libimagstore::storeid::IntoStoreId;
 use libimagrt::runtime::IdPathProvider;
-use libimagerror::trace::MapErrTrace;
 
 pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
     app
@@ -117,65 +117,25 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
 /// It has to be fetched by main() by hand.
 pub struct PathProvider;
 impl IdPathProvider for PathProvider {
-    fn get_ids(matches: &ArgMatches) -> Vec<StoreId> {
+    fn get_ids(matches: &ArgMatches) -> Result<Option<Vec<StoreId>>> {
+        fn get_id_paths(field: &str, subm: &ArgMatches) -> Result<Option<Vec<StoreId>>> {
+            subm.values_of(field)
+                .map(|v| v
+                     .into_iter()
+                     .map(PathBuf::from)
+                     .map(|pb| pb.into_storeid())
+                     .collect::<Result<Vec<_>>>()
+                )
+                .transpose()
+        }
         let ids = match matches.subcommand() {
-            ("remove", Some(subm)) => {
-                let to = subm.values_of("to")
-                    .ok_or_else(|| {
-                        error!("No StoreId found");
-                        ::std::process::exit(1)
-                    })
-                    .unwrap()
-                    .into_iter()
-                    .map(PathBuf::from)
-                    .map(|pb| pb.into_storeid())
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err_trace_exit_unwrap();
-                Some(to)
-            },
-
-            ("unlink", Some(subm)) => {
-                let ids = subm
-                    .values_of("from")
-                    .ok_or_else(|| {
-                        error!("No StoreId found");
-                        ::std::process::exit(1)
-                    })
-                    .unwrap()
-                    .into_iter()
-                    .map(PathBuf::from)
-                    .map(|pb| pb.into_storeid())
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err_trace_exit_unwrap();
-
-                Some(ids)
-            },
-
-            ("list", Some(subm)) => {
-                let ids = subm
-                    .values_of("entries")
-                    .ok_or_else(|| {
-                        error!("No StoreId found");
-                        ::std::process::exit(1)
-                    })
-                    .unwrap()
-                    .into_iter()
-                    .map(PathBuf::from)
-                    .map(|pb| pb.into_storeid())
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err_trace_exit_unwrap();
-
-                Some(ids)
-            },
-
+            ("remove", Some(subm)) => Some(get_id_paths("to", subm)),
+            ("unlink", Some(subm)) => Some(get_id_paths("from", subm)),
+            ("list", Some(subm)) => Some(get_id_paths("entries", subm)),
             _ => None,
         };
 
-        ids.unwrap_or_else(|| {
-            matches.values_of("to")
-                .unwrap()
-                .map(|s| PathBuf::from(s).into_storeid().map_err_trace_exit_unwrap())
-                .collect()
-        })
+        ids
+            .unwrap_or_else(|| get_id_paths("to", matches))
     }
 }

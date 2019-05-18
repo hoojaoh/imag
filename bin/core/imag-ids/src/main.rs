@@ -41,7 +41,7 @@ extern crate filters;
 #[macro_use] extern crate is_match;
 extern crate toml;
 extern crate toml_query;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 #[cfg(test)]
 extern crate env_logger;
@@ -93,7 +93,13 @@ fn main() {
 
     let iterator = if rt.ids_from_stdin() {
         debug!("Fetching IDs from stdin...");
-        let ids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
+        let ids = rt
+            .ids::<crate::ui::PathProvider>()
+            .map_err_trace_exit_unwrap()
+            .unwrap_or_else(|| {
+                error!("No ids supplied");
+                ::std::process::exit(1);
+            });
         Box::new(ids.into_iter().map(Ok))
             as Box<Iterator<Item = Result<StoreId, _>>>
     } else {

@@ -96,8 +96,15 @@ fn main() {
 }
 
 fn add(rt: &Runtime) {
-    let scmd    = rt.cli().subcommand_matches("add").unwrap(); // safed by main()
-    let mut ids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap().into_iter();
+    let scmd = rt.cli().subcommand_matches("add").unwrap(); // safed by main()
+    let mut ids = rt
+        .ids::<crate::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No StoreId supplied");
+            ::std::process::exit(1);
+        })
+        .into_iter();
 
     if let Some(first) = ids.next() {
         let mut annotation = rt.store()
@@ -141,10 +148,17 @@ fn add(rt: &Runtime) {
 }
 
 fn remove(rt: &Runtime) {
-    let scmd            = rt.cli().subcommand_matches("remove").unwrap(); // safed by main()
+    let scmd = rt.cli().subcommand_matches("remove").unwrap(); // safed by main()
     let annotation_name = scmd.value_of("annotation_name").unwrap(); // safed by clap
-    let delete          = scmd.is_present("delete-annotation");
-    let ids       = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let delete = scmd.is_present("delete-annotation");
+    let ids = rt
+        .ids::<crate::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
+        .into_iter();
 
     ids.into_iter().for_each(|id| {
         let mut entry = rt.store()
@@ -179,9 +193,16 @@ fn remove(rt: &Runtime) {
 }
 
 fn list(rt: &Runtime) {
-    let scmd      = rt.cli().subcommand_matches("list").unwrap(); // safed by clap
+    let scmd = rt.cli().subcommand_matches("list").unwrap(); // safed by clap
     let with_text = scmd.is_present("list-with-text");
-    let ids       = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let ids = rt
+        .ids::<crate::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
+        .into_iter();
 
     if ids.len() != 0 {
         let _ = ids

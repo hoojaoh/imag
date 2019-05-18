@@ -36,6 +36,7 @@
 
 extern crate clap;
 #[macro_use] extern crate log;
+extern crate failure;
 
 extern crate libimagentryedit;
 extern crate libimagerror;
@@ -63,7 +64,14 @@ fn main() {
     let edit_header = rt.cli().is_present("edit-header");
     let edit_header_only = rt.cli().is_present("edit-header-only");
 
-    let sids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let sids = rt
+        .ids::<crate::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
+        .into_iter();
 
     StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
         .into_get_iter(rt.store())

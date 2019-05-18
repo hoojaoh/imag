@@ -209,8 +209,13 @@ fn remove_linking(rt: &Runtime) {
         })
         .unwrap();
 
-    rt.ids::<crate::ui::PathProvider>()
+    rt
+        .ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
         .into_iter()
         .for_each(|id| match rt.store().get(id.clone()) {
             Err(e) => trace_error(&e),
@@ -245,19 +250,27 @@ fn remove_linking(rt: &Runtime) {
 }
 
 fn unlink(rt: &Runtime) {
-    rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap().into_iter().for_each(|id| {
-        rt.store()
-            .get(id.clone())
-            .map_err_trace_exit_unwrap()
-            .unwrap_or_else(|| {
-                warn!("No entry for {}", id);
-                ::std::process::exit(1)
-            })
-            .unlink(rt.store())
-            .map_err_trace_exit_unwrap();
+    rt
+        .ids::<crate::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
+        .into_iter()
+        .for_each(|id| {
+            rt.store()
+                .get(id.clone())
+                .map_err_trace_exit_unwrap()
+                .unwrap_or_else(|| {
+                    warn!("No entry for {}", id);
+                    ::std::process::exit(1)
+                })
+                .unlink(rt.store())
+                .map_err_trace_exit_unwrap();
 
-        let _ = rt.report_touched(&id).unwrap_or_exit();
-    });
+            let _ = rt.report_touched(&id).unwrap_or_exit();
+        });
 }
 
 fn list_linkings(rt: &Runtime) {
@@ -271,35 +284,24 @@ fn list_linkings(rt: &Runtime) {
     let mut tab = ::prettytable::Table::new();
     tab.set_titles(row!["#", "Link"]);
 
-    rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap().into_iter().for_each(|id| {
-        match rt.store().get(id.clone()) {
-            Ok(Some(entry)) => {
-                for (i, link) in entry.get_internal_links().map_err_trace_exit_unwrap().enumerate() {
-                    let link = link
-                        .to_str()
-                        .map_warn_err(|e| format!("Failed to convert StoreId to string: {:?}", e))
-                        .ok();
+    rt
+        .ids::<crate::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
+        .into_iter()
+        .for_each(|id| {
+            match rt.store().get(id.clone()) {
+                Ok(Some(entry)) => {
+                    for (i, link) in entry.get_internal_links().map_err_trace_exit_unwrap().enumerate() {
+                        let link = link
+                            .to_str()
+                            .map_warn_err(|e| format!("Failed to convert StoreId to string: {:?}", e))
+                            .ok();
 
-                    if let Some(link) = link {
-                        if list_plain {
-                            let _ = writeln!(rt.stdout(), "{: <3}: {}", i, link)
-                                .to_exit_code()
-                                .unwrap_or_exit();
-                        } else {
-                            tab.add_row(row![i, link]);
-                        }
-                    }
-                }
-
-                if list_externals {
-                    entry.get_external_links(rt.store())
-                        .map_err_trace_exit_unwrap()
-                        .enumerate()
-                        .for_each(|(i, link)| {
-                            let link = link
-                                .map_err_trace_exit_unwrap()
-                                .into_string();
-
+                        if let Some(link) = link {
                             if list_plain {
                                 let _ = writeln!(rt.stdout(), "{: <3}: {}", i, link)
                                     .to_exit_code()
@@ -307,18 +309,37 @@ fn list_linkings(rt: &Runtime) {
                             } else {
                                 tab.add_row(row![i, link]);
                             }
-                        })
-                }
+                        }
+                    }
 
-                let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                    if list_externals {
+                        entry.get_external_links(rt.store())
+                            .map_err_trace_exit_unwrap()
+                            .enumerate()
+                            .for_each(|(i, link)| {
+                                let link = link
+                                    .map_err_trace_exit_unwrap()
+                                    .into_string();
 
-            },
-            Ok(None)        => warn!("Not found: {}", id),
-            Err(e)          => trace_error(&e),
-        }
+                                if list_plain {
+                                    let _ = writeln!(rt.stdout(), "{: <3}: {}", i, link)
+                                        .to_exit_code()
+                                        .unwrap_or_exit();
+                                } else {
+                                    tab.add_row(row![i, link]);
+                                }
+                            })
+                    }
 
-        let _ = rt.report_touched(&id).unwrap_or_exit();
-    });
+                    let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+
+                },
+                Ok(None)        => warn!("Not found: {}", id),
+                Err(e)          => trace_error(&e),
+            }
+
+            let _ = rt.report_touched(&id).unwrap_or_exit();
+        });
 
     if !list_plain {
         let out      = rt.stdout();

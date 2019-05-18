@@ -398,7 +398,7 @@ impl<'a> Runtime<'a> {
         self.has_input_pipe
     }
 
-    pub fn ids<T: IdPathProvider>(&self) -> Result<Vec<StoreId>> {
+    pub fn ids<T: IdPathProvider>(&self) -> Result<Option<Vec<StoreId>>> {
         use std::io::Read;
 
         if self.has_input_pipe {
@@ -417,8 +417,9 @@ impl<'a> Runtime<'a> {
                         .map(|id| StoreId::new(id).map_err(Error::from))
                         .collect()
                 })
+                .map(Some)
         } else {
-            Ok(T::get_ids(self.cli()))
+            Ok(T::get_ids(self.cli())?)
         }
     }
 
@@ -607,12 +608,11 @@ impl<'a> Runtime<'a> {
     }
 }
 
-/// A trait for the path provider functionality
+/// A trait for providing ids from clap argument matches
 ///
 /// This trait can be implement on a type so that it can provide IDs when given a ArgMatches
 /// object.
-///
-/// It can be used with Runtime::ids() and libimagrt handles "stdin-provides-ids" cases
+/// It can be used with Runtime::ids(), and libimagrt handles "stdin-provides-ids" cases
 /// automatically:
 ///
 /// ```ignore
@@ -630,13 +630,12 @@ impl<'a> Runtime<'a> {
 ///
 /// # Returns
 ///
-/// In case of error, the IdPathProvider::get_ids() function should exit the application
-/// with the appropriate error message(s).
-///
+/// In case no store ids could be matched, the function should return `Ok(None)` instance.
 /// On success, the StoreId objects to operate on are returned from the ArgMatches.
+/// Otherwise, an appropriate error may be returned.
 ///
 pub trait IdPathProvider {
-    fn get_ids(matches: &ArgMatches) -> Vec<StoreId>;
+    fn get_ids(matches: &ArgMatches) -> Result<Option<Vec<StoreId>>>;
 }
 
 /// Exported for the `imag` command, you probably do not want to use that.

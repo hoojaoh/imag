@@ -82,8 +82,13 @@ fn main() {
 
     let view_header  = rt.cli().is_present("view-header");
     let hide_content = rt.cli().is_present("not-view-content");
-    let entries      = rt.ids::<crate::ui::PathProvider>()
+    let entries      = rt
+        .ids::<::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
         .into_iter()
         .map(Ok)
         .into_get_iter(rt.store())

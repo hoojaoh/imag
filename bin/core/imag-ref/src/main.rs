@@ -36,7 +36,7 @@
 
 #[macro_use] extern crate log;
 extern crate clap;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 extern crate libimagstore;
 #[macro_use] extern crate libimagrt;
@@ -92,12 +92,18 @@ fn main() {
 fn deref(rt: &Runtime) {
     let cmd         = rt.cli().subcommand_matches("deref").unwrap();
     let basepath    = cmd.value_of("override-basepath");
-    let ids         = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
     let cfg         = get_ref_config(&rt, "imag-ref").map_err_trace_exit_unwrap();
     let out         = rt.stdout();
     let mut outlock = out.lock();
 
-    ids.into_iter()
+    rt
+        .ids::<::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
+        .into_iter()
         .for_each(|id| {
             match rt.store().get(id.clone()).map_err_trace_exit_unwrap() {
                 Some(entry) => {
@@ -130,7 +136,6 @@ fn remove(rt: &Runtime) {
 
     let cmd = rt.cli().subcommand_matches("remove").unwrap();
     let yes = cmd.is_present("yes");
-    let ids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
 
     let mut input = rt.stdin().unwrap_or_else(|| {
         error!("No input stream. Cannot ask for permission");
@@ -139,7 +144,14 @@ fn remove(rt: &Runtime) {
 
     let mut output = rt.stdout();
 
-    ids.into_iter()
+    rt
+        .ids::<::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
+        .into_iter()
         .for_each(|id| {
             match rt.store().get(id.clone()).map_err_trace_exit_unwrap() {
                 Some(mut entry) => {
@@ -169,8 +181,13 @@ fn list_dead(rt: &Runtime) {
     let list_id    = cmd.is_present("list-dead-ids");
     let mut output = rt.stdout();
 
-    rt.ids::<crate::ui::PathProvider>()
+    rt
+        .ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
         .into_iter()
         .for_each(|id| {
             match rt.store().get(id.clone()).map_err_trace_exit_unwrap() {

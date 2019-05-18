@@ -20,11 +20,11 @@
 use std::path::PathBuf;
 
 use clap::{Arg, ArgMatches, App, SubCommand};
+use failure::Fallible as Result;
 
 use libimagstore::storeid::StoreId;
 use libimagstore::storeid::IntoStoreId;
 use libimagrt::runtime::IdPathProvider;
-use libimagerror::trace::MapErrTrace;
 
 pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
     app
@@ -103,60 +103,30 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
 
 pub struct PathProvider;
 impl IdPathProvider for PathProvider {
-    fn get_ids(matches: &ArgMatches) -> Vec<StoreId> {
+    fn get_ids(matches: &ArgMatches) -> Result<Option<Vec<StoreId>>> {
+        fn no_ids_error() -> Result<Option<Vec<StoreId>>> {
+            Err(format_err!("Command does not get IDs as input"))
+        }
+
+        fn get_id_paths(field: &str, subm: &ArgMatches) -> Result<Option<Vec<StoreId>>> {
+            subm.values_of(field)
+                .map(|v| v
+                     .into_iter()
+                     .map(PathBuf::from)
+                     .map(|pb| pb.into_storeid())
+                     .collect::<Result<Vec<_>>>()
+                )
+                .transpose()
+        }
+
         match matches.subcommand() {
-            ("create-category", _) => {
-                error!("Command does not get IDs as input");
-                ::std::process::exit(1)
-            },
-
-            ("delete-category", _) => {
-                error!("Command does not get IDs as input");
-                ::std::process::exit(1)
-            },
-
-            ("list-categories", _) => {
-                error!("Command does not get IDs as input");
-                ::std::process::exit(1)
-            },
-
-            ("list-category", _) => {
-                error!("Command does not get IDs as input");
-                ::std::process::exit(1)
-            },
-
-            ("set", Some(subm)) => {
-                subm.values_of("set-ids")
-                    .ok_or_else(|| {
-                        error!("No StoreId found");
-                        ::std::process::exit(1)
-                    })
-                    .unwrap()
-                    .into_iter()
-                    .map(PathBuf::from)
-                    .map(|pb| pb.into_storeid())
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err_trace_exit_unwrap()
-            },
-
-            ("get", Some(subm)) => {
-                subm.values_of("get-ids")
-                    .ok_or_else(|| {
-                        error!("No StoreId found");
-                        ::std::process::exit(1)
-                    })
-                    .unwrap()
-                    .into_iter()
-                    .map(PathBuf::from)
-                    .map(|pb| pb.into_storeid())
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err_trace_exit_unwrap()
-            },
-
-            (other, _) => {
-                    error!("Not a known command: {}", other);
-                    ::std::process::exit(1)
-            }
+            ("create-category", _) => no_ids_error(),
+            ("delete-category", _) => no_ids_error(),
+            ("list-categories", _) => no_ids_error(),
+            ("list-category", _) => no_ids_error(),
+            ("set", Some(subm)) => get_id_paths("set-ids", subm),
+            ("get", Some(subm)) => get_id_paths("get-ids", subm),
+            (other, _) => Err(format_err!("Not a known command: {}", other)),
         }
     }
 }

@@ -18,6 +18,7 @@
 //
 
 use clap::{Arg, ArgMatches, App, SubCommand};
+use failure::Fallible as Result;
 
 use libimagstore::storeid::StoreId;
 use libimagrt::runtime::IdPathProvider;
@@ -54,8 +55,7 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
 
 pub struct PathProvider;
 impl IdPathProvider for PathProvider {
-    fn get_ids(_matches: &ArgMatches) -> Vec<StoreId> {
-        error!("imag-ids does not get IDs via CLI, only via stdin if applying a filter!");
-        ::std::process::exit(1)
+    fn get_ids(_matches: &ArgMatches) -> Result<Option<Vec<StoreId>>> {
+        Err(format_err!("imag-ids does not get IDs via CLI, only via stdin if applying a filter!"))
     }
 }

@@ -38,7 +38,7 @@ extern crate clap;
 #[macro_use] extern crate log;
 
 #[cfg(test)] extern crate toml;
-#[cfg(test)] extern crate failure;
+extern crate failure;
 
 extern crate libimagstore;
 #[macro_use] extern crate libimagrt;
@@ -84,7 +84,14 @@ fn main() {
                                     "Direct interface to the store. Use with great care!",
                                     build_ui);
 
-    let ids = rt.ids::<crate::ui::PathProvider>().map_err_trace_exit_unwrap();
+    let ids = rt
+        .ids::<crate::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
+        .into_iter();
 
     rt.cli()
         .subcommand_name()

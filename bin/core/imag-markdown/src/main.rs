@@ -65,8 +65,13 @@ fn main() {
     let out = rt.stdout();
     let mut outlock = out.lock();
 
-    let iter = rt.ids::<crate::ui::PathProvider>()
+    let iter = rt
+        .ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
         .into_iter()
         .map(Ok)
         .into_get_iter(rt.store())
