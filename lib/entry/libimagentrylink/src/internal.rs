@@ -162,9 +162,6 @@ pub trait InternalLinker {
     /// Get the internal links from the implementor object
     fn get_internal_links(&self) -> Result<LinkIter>;
 
-    /// Set the internal links for the implementor object
-    fn set_internal_links(&mut self, links: Vec<&mut Entry>) -> Result<LinkIter>;
-
     /// Add an internal link to the implementor object
     fn add_internal_link(&mut self, link: &mut Entry) -> Result<()>;
 
@@ -270,38 +267,6 @@ impl InternalLinker for Entry {
             .context(EM::EntryHeaderError)
             .map_err(Error::from)
             .map(|r| r.cloned());
-        process_rw_result(res)
-    }
-
-    /// Set the links in a header and return the old links, if any.
-    fn set_internal_links(&mut self, links: Vec<&mut Entry>) -> Result<LinkIter> {
-        debug!("Setting internal links");
-
-        let self_location = self.get_location().clone();
-        let mut new_links = vec![];
-
-        for link in links {
-            if let Err(e) = add_foreign_link(link, self_location.clone()) {
-                return Err(e);
-            }
-            new_links.push(link.get_location().clone().into());
-        }
-
-        let new_links = LinkIter::new(new_links)
-                             .into_values()
-                             .into_iter()
-                             .fold(Ok(vec![]), |acc: Result<Vec<_>>, elem| {
-                                acc.and_then(move |mut v| {
-                                    v.push(elem.context(EM::ConversionError)?);
-                                    Ok(v)
-                                })
-                            })?;
-        let res = self
-            .get_header_mut()
-            .insert("links.internal", Value::Array(new_links))
-            .context(format_err!("Failed to insert header 'links.internal' of '{}'", self.get_location()))
-            .context(EM::EntryHeaderReadError)
-            .map_err(Error::from);
         process_rw_result(res)
     }
 
