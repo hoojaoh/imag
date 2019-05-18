@@ -161,7 +161,7 @@ use failure::Fallible as Result;
 /// ```ignore
 ///     store
 ///         .entries()?
-///         .in_collection("foo")
+///         .in_collection("foo")?
 ///         .chain(store.entries()?.in_collection("bar"))
 /// ```
 ///
@@ -175,8 +175,8 @@ impl<'a> Entries<'a> {
         Entries(pi, store)
     }
 
-    pub fn in_collection(self, c: &str) -> Self {
-        Entries(self.0.in_collection(c), self.1)
+    pub fn in_collection(self, c: &str) -> Result<Self> {
+        Ok(Entries(self.0.in_collection(c)?, self.1))
     }
 
     /// Turn `Entries` iterator into generic `StoreIdIterator`
@@ -275,6 +275,7 @@ mod tests {
         let succeeded = store.entries()
             .unwrap()
             .in_collection("coll_3")
+            .unwrap()
             .map(|id| { debug!("Processing id = {:?}", id); id })
             .all(|id| id.unwrap().is_in_collection(&["coll_3"]));
 

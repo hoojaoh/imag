@@ -143,7 +143,7 @@ impl<'a> MailStore<'a> for Store {
     }
 
     fn all_mails(&'a self) -> Result<Entries<'a>> {
-        self.entries().map(|ent| ent.in_collection("mail"))
+        self.entries()?.in_collection("mail")
     }
 }
 

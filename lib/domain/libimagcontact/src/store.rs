@@ -144,7 +144,7 @@ impl<'a> ContactStore<'a> for Store {
     }
 
     fn all_contacts(&'a self) -> Result<Entries<'a>> {
-        self.entries().map(|ent| ent.in_collection("contact"))
+        self.entries()?.in_collection("contact")
     }
 
 }

@@ -188,10 +188,16 @@ impl PathIterBuilder for WalkDirPathIterBuilder {
             }))
     }
 
-    fn in_collection(&mut self, c: &str) {
+    fn in_collection(&mut self, c: &str) -> Result<()> {
         debug!("Altering PathIterBuilder path with: {:?}", c);
         self.basepath.push(c);
         debug!(" -> path : {:?}", self.basepath);
+
+        if !self.basepath.exists() {
+            Err(format_err!("Does not exist: {}", self.basepath.display()))
+        } else {
+            Ok(())
+        }
     }
 }
 

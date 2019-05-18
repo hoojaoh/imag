@@ -211,10 +211,11 @@ impl PathIterBuilder for InMemPathIterBuilder {
         Box::new(self.0.clone().into_iter().map(Ok))
     }
 
-    fn in_collection(&mut self, c: &str) {
+    fn in_collection(&mut self, c: &str) -> Result<()> {
         debug!("Altering PathIterBuilder path with: {:?}", c);
         self.0.retain(|p| p.starts_with(c));
         debug!(" -> path : {:?}", self.0);
+        Ok(())
     }
 }
 

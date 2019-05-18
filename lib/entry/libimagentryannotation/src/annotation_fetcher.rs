@@ -28,7 +28,7 @@ pub trait AnnotationFetcher<'a> {
 
 impl<'a> AnnotationFetcher<'a> for Store {
     fn all_annotations(&'a self) -> Result<Entries<'a>> {
-        self.entries().map(|iter| iter.in_collection("annotation"))
+        self.entries()?.in_collection("annotation")
     }
 }
 

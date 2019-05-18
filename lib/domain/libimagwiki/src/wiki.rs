@@ -93,7 +93,7 @@ impl<'a, 'b> Wiki<'a, 'b> {
     }
 
     pub fn all_ids(&self) -> Result<Entries<'a>> {
-        self.0.entries().map(|iter| iter.in_collection("wiki"))
+        self.0.entries()?.in_collection("wiki")
     }
 
     pub fn delete_entry<EN: AsRef<str>>(&self, entry_name: EN) -> Result<()> {
