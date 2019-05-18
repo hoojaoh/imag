@@ -44,6 +44,7 @@ extern crate libimagbookmark;
 #[macro_use] extern crate libimagrt;
 extern crate libimagerror;
 extern crate libimagutil;
+extern crate libimagentrylink;
 
 use std::io::Write;
 use std::process::exit;
@@ -60,6 +61,8 @@ use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::io::ToExitCode;
 use libimagerror::exit::ExitUnwrap;
 use libimagutil::debug_result::DebugResult;
+use libimagentrylink::internal::InternalLinker;
+
 
 mod ui;
 
@@ -130,6 +133,16 @@ fn collection(rt: &Runtime) {
 
     if scmd.is_present("remove") { // remove a collection
         let name = scmd.value_of("remove").unwrap();
+
+        { // remove all links
+            let _ = BookmarkCollectionStore::get(rt.store(), &name)
+                .map_err_trace_exit_unwrap()
+                .ok_or_else(|| format_err!("Collection does not exist: {}", name))
+                .map_err_trace_exit_unwrap()
+                .unlink(rt.store())
+                .map_err_trace_exit_unwrap();
+        }
+
         if let Ok(_) = BookmarkCollectionStore::delete(rt.store(), &name) {
             info!("Deleted: {}", name);
         } else {
