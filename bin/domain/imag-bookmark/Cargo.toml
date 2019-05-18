@@ -30,6 +30,7 @@ failure = "0.1"
 libimagrt        = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
 libimagbookmark  = { version = "0.10.0", path = "../../../lib/domain/libimagbookmark" }
+libimagentrylink = { version = "0.10.0", path = "../../../lib/entry/libimagentrylink" }
 libimagutil      = { version = "0.10.0", path = "../../../lib/etc/libimagutil" }
 
 [dependencies.clap]
