@@ -14,6 +14,17 @@ the changelog (though updating of dependencies is).
 Please note that we do not have a "Breaking changes" section as we are in
 Version 0.y.z and thus we can break the API like we want and need to.
 
+## 0.9.2
+
+Bugfix release for fixing:
+
+* Fix a function that checks a flag. If the flag is not there, it should be "not
+  set".
+* Fix to not ignore errors when collecting links in libimagentrylink
+* Remove buildscripts because imag was not installable from crates.io with
+  buildscripts.
+
+
 ## 0.9.1
 
 Bugfix release for fixing:
