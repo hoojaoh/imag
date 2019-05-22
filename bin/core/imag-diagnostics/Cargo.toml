@@ -13,8 +13,6 @@ documentation = "https://imag-pim.org/doc/"
 repository    = "https://github.com/matthiasbeyer/imag"
 homepage      = "http://imag-pim.org"
 
-build = "../../../build.rs"
-
 [dependencies]
 log  = "0.4"
 toml = "0.4"

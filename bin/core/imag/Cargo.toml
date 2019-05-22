@@ -13,8 +13,6 @@ documentation = "https://imag-pim.org/doc/"
 repository    = "https://github.com/matthiasbeyer/imag"
 homepage      = "http://imag-pim.org"
 
-build = "build.rs"
-
 [build-dependencies]
 clap = ">=2.16.1"
 libimagrt       = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
