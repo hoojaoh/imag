@@ -230,7 +230,7 @@ fn get_diary_name(rt: &Runtime) -> String {
         .ok_or_else(|| Error::from(err_msg("Configuration 'log.logs' is not an Array")))
         .map_err_trace_exit_unwrap()
         .iter()
-        .map(|e| if is_match!(e, &Value::String(_)) {
+        .map(|e| if !is_match!(e, &Value::String(_)) {
             error!("Configuration 'log.logs' is not an Array<String>!");
             ::std::process::exit(1)
         } else {
