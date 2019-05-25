@@ -37,7 +37,6 @@
     while_true,
 )]
 
-#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate failure;
 extern crate chrono;
 extern crate toml_query;

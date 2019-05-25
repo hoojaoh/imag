@@ -47,6 +47,7 @@ CRATES=(
     ./bin/domain/imag-todo
     ./bin/domain/imag-log
     ./bin/domain/imag-wiki
+    ./bin/core/imag-markdown
     ./bin/core/imag-ref
     ./bin/core/imag-gps
     ./bin/core/imag-diagnostics

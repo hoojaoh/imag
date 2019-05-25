@@ -44,12 +44,10 @@ pub trait EntryDate {
 
 }
 
-lazy_static! {
-    static ref DATE_HEADER_LOCATION : &'static str              = "datetime.value";
-    static ref DATE_RANGE_START_HEADER_LOCATION : &'static str  = "datetime.range.start";
-    static ref DATE_RANGE_END_HEADER_LOCATION : &'static str    = "datetime.range.end";
-    static ref DATE_FMT : &'static str                          = "%Y-%m-%dT%H:%M:%S";
-}
+const DATE_HEADER_LOCATION : &'static str              = "datetime.value";
+const DATE_RANGE_START_HEADER_LOCATION : &'static str  = "datetime.range.start";
+const DATE_RANGE_END_HEADER_LOCATION : &'static str    = "datetime.range.end";
+const DATE_FMT : &'static str                          = "%Y-%m-%dT%H:%M:%S";
 
 impl EntryDate for Entry {
 
@@ -93,7 +91,7 @@ impl EntryDate for Entry {
         self.get_header_mut()
             .insert(&DATE_HEADER_LOCATION, Value::String(date))
             .context(format_err!("Failed to insert header '{}' in '{}'",
-                                 *DATE_HEADER_LOCATION,
+                                 DATE_HEADER_LOCATION,
                                  self.get_location()))
             .map_err(Error::from)
             .map(|opt| opt.map(|stri| {
