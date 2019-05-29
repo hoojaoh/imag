@@ -17,44 +17,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-#![forbid(unsafe_code)]
+use std::fmt::Debug;
 
-#![recursion_limit="256"]
+use libimagstore::storeid::StoreId;
 
-#![deny(
-    dead_code,
-    non_camel_case_types,
-    non_snake_case,
-    path_statements,
-    trivial_numeric_casts,
-    unstable_features,
-    unused_allocation,
-    unused_import_braces,
-    unused_imports,
-    unused_must_use,
-    unused_mut,
-    unused_qualifications,
-    while_true,
-)]
-
-extern crate itertools;
-#[macro_use] extern crate log;
-extern crate toml;
-extern crate toml_query;
-extern crate url;
-extern crate sha1;
-extern crate hex;
-#[macro_use] extern crate failure;
-#[macro_use] extern crate is_match;
-
-#[cfg(test)]
-extern crate env_logger;
-
-#[macro_use] extern crate libimagstore;
-extern crate libimagerror;
-extern crate libimagutil;
-
-module_entry_path_mod!("links");
-
-pub mod internal;
-
+/// Check whether the StoreId starts with `/link/external/`
+pub fn is_external_link_storeid<A: AsRef<StoreId> + Debug>(id: A) -> bool {
+    debug!("Checking whether this is a 'url/external/': '{:?}'", id);
+    id.as_ref().is_in_collection(&["url", "external"])
+}
