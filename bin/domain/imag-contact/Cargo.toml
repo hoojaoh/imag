@@ -44,8 +44,6 @@ default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
 [dependencies.toml-query]
-#version          = "0.8"
+version          = "0.9"
 default-features = false
 features         = ["typed"]
-git              = "https://github.com/matthiasbeyer/toml-query"
-branch           = "master"

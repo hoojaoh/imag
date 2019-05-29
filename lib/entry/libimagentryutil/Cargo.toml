@@ -21,7 +21,7 @@ maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
 toml = "0.5"
-toml-query = "0.8"
+toml-query = "0.9"
 filters = "0.3"
 failure = "0.1"
 log = "0.4"

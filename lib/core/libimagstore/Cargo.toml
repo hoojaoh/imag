@@ -29,7 +29,7 @@ walkdir = "2"
 is-match = "0.1"
 serde = "1"
 serde_json = "1"
-toml-query = "0.8"
+toml-query = "0.9"
 failure    = "0.1"
 
 libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }

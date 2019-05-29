@@ -22,7 +22,7 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 log = "0.4.0"
 toml = "0.5"
-toml-query = "0.8"
+toml-query = "0.9"
 handlebars = "1.0"
 tempfile = "3"
 failure = "0.1"

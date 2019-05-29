@@ -26,7 +26,7 @@ toml = "0.5"
 itertools = "0.7"
 is-match = "0.1"
 filters = "0.3"
-toml-query = "0.8"
+toml-query = "0.9"
 failure    = "0.1"
 
 libimagstore = { version = "0.10.0", path = "../../../lib/core/libimagstore" }

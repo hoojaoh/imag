@@ -50,5 +50,5 @@ default-features = false
 features         = ["testing"]
 
 [dev-dependencies.toml-query]
-version          = "0.8"
+version          = "0.9"
 

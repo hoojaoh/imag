@@ -33,7 +33,7 @@ maintenance                       = { status     = "actively-developed" }
 walkdir = "2"
 log = "0.4.0"
 toml = "0.5"
-toml-query = "0.8"
+toml-query = "0.9"
 
 libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
 libimagstore = { version = "0.10.0", path = "../../../lib/core/libimagstore" }

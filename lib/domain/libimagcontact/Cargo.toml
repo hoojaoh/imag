@@ -23,7 +23,7 @@ maintenance                       = { status     = "actively-developed" }
 failure      = "0.1"
 log          = "0.4"
 toml         = "0.5"
-toml-query   = "0.8"
+toml-query   = "0.9"
 vobject      = "0.7"
 uuid         = "0.7"
 serde        = "1"

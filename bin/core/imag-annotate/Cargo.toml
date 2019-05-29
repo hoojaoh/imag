@@ -23,7 +23,7 @@ maintenance                       = { status     = "actively-developed" }
 log = "0.4.0"
 url = "1.2"
 toml = "0.5"
-toml-query = "0.8"
+toml-query = "0.9"
 failure = "0.1"
 
 libimagstore           = { version = "0.10.0", path = "../../../lib/core/libimagstore" }

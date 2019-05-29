@@ -23,7 +23,7 @@ maintenance                       = { status     = "actively-developed" }
 log          =  "0.4"
 version      =  "2.0.1"
 toml         =  "0.5"
-toml-query   =  "0.8"
+toml-query   =  "0.9"
 filters      =  "0.3"
 failure      = "0.1"
 
