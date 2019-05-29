@@ -20,7 +20,7 @@
 //! BookmarkCollection module
 //!
 //! A BookmarkCollection is nothing more than a simple store entry. One can simply call functions
-//! from the libimagentrylink::external::ExternalLinker trait on this to generate external links.
+//! from the libimagentryurl::linker::UrlLinker trait on this to generate external links.
 //!
 //! The BookmarkCollection type offers helper functions to get all links or such things.
 
@@ -34,7 +34,7 @@ use libimagstore::store::Store;
 use libimagstore::store::Entry;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
-use libimagentrylink::external::ExternalLinker;
+use libimagentryurl::linker::UrlLinker;
 use libimagentrylink::external::iter::UrlIter;
 use libimagentrylink::internal::InternalLinker;
 use libimagentrylink::internal::Link as StoreLink;

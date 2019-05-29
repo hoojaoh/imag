@@ -61,7 +61,7 @@ use std::path::PathBuf;
 use failure::Error;
 use failure::err_msg;
 
-use libimagentrylink::external::ExternalLinker;
+use libimagentryurl::linker::UrlLinker;
 use libimagentrylink::internal::InternalLinker;
 use libimagentrylink::internal::store_check::StoreLinkConsistentExt;
 use libimagerror::trace::{MapErrTrace, trace_error};

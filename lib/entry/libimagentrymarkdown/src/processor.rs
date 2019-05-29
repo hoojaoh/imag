@@ -24,7 +24,7 @@ use failure::ResultExt;
 use failure::Error;
 use crate::link::extract_links;
 
-use libimagentrylink::external::ExternalLinker;
+use libimagentryurl::linker::UrlLinker;
 use libimagentrylink::internal::InternalLinker;
 use libimagentryref::reference::MutRef;
 use libimagentryref::reference::RefFassade;
