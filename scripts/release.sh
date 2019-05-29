@@ -16,6 +16,7 @@ CRATES=(
     ./lib/etc/libimaginteraction
     ./lib/core/libimagrt
     ./lib/entry/libimagentrylink
+    ./lib/entry/libimagentryurl
     ./lib/entry/libimagentrytag
     ./lib/entry/libimagentryfilter
     ./lib/entry/libimagentrygps
