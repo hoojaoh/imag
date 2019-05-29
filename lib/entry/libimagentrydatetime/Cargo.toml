@@ -22,7 +22,7 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 chrono = "0.4"
 toml-query = "0.8"
-toml = "0.4"
+toml = "0.5"
 failure = "0.1"
 
 libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }

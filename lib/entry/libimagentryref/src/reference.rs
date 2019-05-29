@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
-use std::collections::BTreeMap;
 use std::ops::Deref;
 
 use libimagentryutil::isa::Is;
@@ -27,6 +27,7 @@ use libimagentryutil::isa::IsKindHeaderPathProvider;
 use libimagerror::errors::ErrorMsg as EM;
 
 use toml::Value;
+use toml::map::Map;
 use toml_query::read::TomlValueReadExt;
 use toml_query::read::TomlValueReadTypeExt;
 use toml_query::read::Partial;
@@ -288,7 +289,7 @@ impl<'a, H> MutRef for MutRefWithHasher<'a, H>
 
             if let Some(hash_tbl) = header.read_mut("ref.hash")? {
                 match hash_tbl {
-                    Value::Table(ref mut tbl) => *tbl = BTreeMap::new(),
+                    Value::Table(ref mut tbl) => *tbl = Map::new(),
                     _ => {
                         // should not happen
                     }
@@ -382,7 +383,7 @@ pub(crate) fn make_header_section<P, C, H>(hash: String, hashname: H, relpath: P
           C: AsRef<str>,
           H: AsRef<str>,
 {
-    let mut header_section = Value::Table(BTreeMap::new());
+    let mut header_section = Value::Table(Map::new());
     {
         let relpath = relpath
             .as_ref()
@@ -397,7 +398,7 @@ pub(crate) fn make_header_section<P, C, H>(hash: String, hashname: H, relpath: P
     }
 
     {
-        let mut hash_table = Value::Table(BTreeMap::new());
+        let mut hash_table = Value::Table(Map::new());
         let _ = hash_table.insert(hashname.as_ref(), Value::String(hash))?;
         let _ = header_section.insert("hash", hash_table)?;
     }

@@ -17,12 +17,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
 use toml::Value;
+use toml::map::Map;
 use failure::Fallible as Result;
 use failure::err_msg;
 use failure::Error;
@@ -68,7 +68,7 @@ impl GPSValue {
 impl Into<Value> for GPSValue {
 
     fn into(self) -> Value {
-        let mut map = BTreeMap::new();
+        let mut map = Map::new();
         let _ = map.insert("degree".to_owned(),  Value::Integer(self.degree));
         let _ = map.insert("minutes".to_owned(), Value::Integer(self.minutes));
         let _ = map.insert("seconds".to_owned(), Value::Integer(self.seconds));
@@ -141,7 +141,7 @@ impl Coordinates {
 impl Into<Value> for Coordinates {
 
     fn into(self) -> Value {
-        let mut map = BTreeMap::new();
+        let mut map = Map::new();
         let _ = map.insert("longitude".to_owned(), self.longitude.into());
         let _ = map.insert("latitude".to_owned(), self.latitude.into());
         Value::Table(map)
@@ -154,7 +154,7 @@ impl FromValue for Coordinates {
         v.as_table()
             .ok_or_else(|| Error::from(EM::EntryHeaderTypeError))
             .and_then(|t| {
-                let get = |m: &BTreeMap<_, _>, what: &'static str, ek| -> Result<GPSValue> {
+                let get = |m: &Map<_, _>, what: &'static str, ek| -> Result<GPSValue> {
                     m.get(what)
                         .ok_or_else(|| Error::from(err_msg(ek)))
                         .and_then(GPSValue::from_value)

@@ -32,7 +32,7 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 walkdir = "2"
 log = "0.4.0"
-toml = "0.4"
+toml = "0.5"
 toml-query = "0.8"
 
 libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }

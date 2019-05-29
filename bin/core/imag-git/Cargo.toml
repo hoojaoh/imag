@@ -21,7 +21,7 @@ maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
 log        = "0.4"
-toml       = "0.4"
+toml       = "0.5"
 toml-query = "0.8"
 
 libimagrt    = { version = "0.10.0", path = "../../../lib/core/libimagrt" }

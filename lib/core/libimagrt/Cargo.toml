@@ -21,7 +21,7 @@ maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
 env_logger = "0.5"
-toml = "0.4"
+toml = "0.5"
 xdg-basedir = "1.0"
 itertools = "0.7"
 ansi_term = "0.11"

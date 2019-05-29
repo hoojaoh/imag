@@ -18,11 +18,11 @@
 //
 
 use std::borrow::Cow;
-use std::collections::btree_map::{BTreeMap, Entry};
 use std::str::Split;
 
 use clap::ArgMatches;
 use toml::Value;
+use toml::map::{Map, Entry};
 
 use libimagutil::key_value_split::IntoKeyValue;
 
@@ -55,7 +55,7 @@ pub fn build_toml_header(matches: &ArgMatches, mut header: Value) -> Value {
 fn insert_key_into<'a>(current: String,
                    rest_path: &mut Split<char>,
                    value: Cow<'a, str>,
-                   map: &mut BTreeMap<String, Value>) {
+                   map: &mut Map<String, Value>) {
     let next = rest_path.next();
 
     if next.is_none() {
@@ -73,7 +73,7 @@ fn insert_key_into<'a>(current: String,
                 }
             },
             Entry::Vacant(v) => { v.insert(Value::Table( {
-                let mut submap = BTreeMap::new();
+                let mut submap = Map::new();
                 insert_key_into(String::from(next.unwrap()), rest_path, value, &mut submap);
                 debug!("Inserting submap = {:?}", submap);
                 submap }));

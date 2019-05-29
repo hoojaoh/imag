@@ -17,11 +17,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use std::collections::BTreeMap;
 use std::io::BufRead;
 use std::result::Result as RResult;
 
 use toml::Value;
+use toml::map::Map;
 use uuid::Uuid;
 
 use task_hookrs::task::Task as TTask;
@@ -167,7 +167,7 @@ impl<'a> TaskStore<'a> for Store {
                 {
                     let hdr = fle.get_header_mut();
                     if hdr.read("todo")?.is_none() {
-                        hdr.set("todo", Value::Table(BTreeMap::new()))?;
+                        hdr.set("todo", Value::Table(Map::new()))?;
                     }
 
                     hdr.set("todo.uuid", Value::String(format!("{}",uuid)))?;
