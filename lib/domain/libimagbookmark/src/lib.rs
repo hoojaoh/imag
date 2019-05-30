@@ -44,6 +44,7 @@ extern crate regex;
 #[macro_use] extern crate libimagstore;
 extern crate libimagerror;
 extern crate libimagentrylink;
+extern crate libimagentryurl;
 
 module_entry_path_mod!("bookmark");
 

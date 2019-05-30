@@ -35,7 +35,7 @@ use libimagstore::store::Entry;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
 use libimagentryurl::linker::UrlLinker;
-use libimagentrylink::external::iter::UrlIter;
+use libimagentryurl::iter::UrlIter;
 use libimagentrylink::internal::InternalLinker;
 use libimagentrylink::internal::Link as StoreLink;
 
@@ -80,7 +80,7 @@ impl<'a> BookmarkCollectionStore<'a> for Store {
 
 }
 
-pub trait BookmarkCollection : Sized + InternalLinker + ExternalLinker {
+pub trait BookmarkCollection : Sized + InternalLinker + UrlLinker {
     fn links<'a>(&self, store: &'a Store)                        -> Result<UrlIter<'a>>;
     fn link_entries(&self)                                       -> Result<Vec<StoreLink>>;
     fn add_link(&mut self, store: &Store, l: Link)               -> Result<Vec<StoreId>>;
@@ -95,7 +95,7 @@ impl BookmarkCollection for Entry {
     }
 
     fn link_entries(&self) -> Result<Vec<StoreLink>> {
-        use libimagentrylink::external::is_external_link_storeid;
+        use libimagentryurl::util::is_external_link_storeid;
         self.get_internal_links().map(|v| v.filter(|id| is_external_link_storeid(id)).collect())
     }
 
@@ -120,6 +120,9 @@ pub mod iter {
     use crate::link::Link;
     use failure::Fallible as Result;
     use failure::Error;
+    use regex::Regex;
+
+    use libimagentryurl::iter::UrlIter;
 
     pub struct LinkIter<I>(I)
         where I: Iterator<Item = Link>;
@@ -143,9 +146,6 @@ pub mod iter {
             LinkIter(i)
         }
     }
-
-    use libimagentrylink::external::iter::UrlIter;
-    use regex::Regex;
 
     pub struct LinksMatchingRegexIter<'a>(UrlIter<'a>, Regex);
 
