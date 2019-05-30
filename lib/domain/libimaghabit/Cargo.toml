@@ -22,8 +22,8 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 chrono = "0.4"
 log = "0.4"
-toml = "0.4"
-toml-query = "0.8"
+toml = "0.5"
+toml-query = "0.9"
 kairos     = "0.3"
 failure    = "0.1"
 

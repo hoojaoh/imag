@@ -18,7 +18,6 @@
 //
 
 use std::collections::HashMap;
-use std::collections::BTreeMap;
 use std::ops::Drop;
 use std::path::PathBuf;
 use std::result::Result as RResult;
@@ -774,11 +773,13 @@ impl Entry {
     ///
     /// This function should be used to get a new Header, as the default header may change. Via
     /// this function, compatibility is ensured.
-    pub fn default_header() -> Value { // BTreeMap<String, Value>
-        let mut m = BTreeMap::new();
+    pub fn default_header() -> Value { // Map<String, Value>
+        use toml::map::Map;
+
+        let mut m = Map::new();
 
         m.insert(String::from("imag"), {
-            let mut imag_map = BTreeMap::<String, Value>::new();
+            let mut imag_map = Map::new();
 
             imag_map.insert(String::from("version"),
                 Value::String(String::from(env!("CARGO_PKG_VERSION"))));
@@ -930,12 +931,12 @@ fn has_imag_version_in_main_section(t: &Value) -> Result<bool> {
 mod test {
     extern crate env_logger;
 
-    use std::collections::BTreeMap;
     use crate::storeid::StoreId;
     use crate::store::has_main_section;
     use crate::store::has_imag_version_in_main_section;
 
     use toml::Value;
+    use toml::map::Map;
 
     fn setup_logging() {
         let _ = env_logger::try_init();
@@ -943,15 +944,15 @@ mod test {
 
     #[test]
     fn test_imag_section() {
-        let mut map = BTreeMap::new();
-        map.insert("imag".into(), Value::Table(BTreeMap::new()));
+        let mut map = Map::new();
+        map.insert("imag".into(), Value::Table(Map::new()));
 
         assert!(has_main_section(&Value::Table(map)).unwrap());
     }
 
     #[test]
     fn test_imag_abscent_main_section() {
-        let mut map = BTreeMap::new();
+        let mut map = Map::new();
         map.insert("not_imag".into(), Value::Boolean(false));
 
         assert!(has_main_section(&Value::Table(map)).is_err());
@@ -959,16 +960,16 @@ mod test {
 
     #[test]
     fn test_main_section_without_version() {
-        let mut map = BTreeMap::new();
-        map.insert("imag".into(), Value::Table(BTreeMap::new()));
+        let mut map = Map::new();
+        map.insert("imag".into(), Value::Table(Map::new()));
 
         assert!(has_imag_version_in_main_section(&Value::Table(map)).is_err());
     }
 
     #[test]
     fn test_main_section_with_version() {
-        let mut map = BTreeMap::new();
-        let mut sub = BTreeMap::new();
+        let mut map = Map::new();
+        let mut sub = Map::new();
         sub.insert("version".into(), Value::String("0.0.0".into()));
         map.insert("imag".into(), Value::Table(sub));
 
@@ -977,8 +978,8 @@ mod test {
 
     #[test]
     fn test_main_section_with_version_in_wrong_type() {
-        let mut map = BTreeMap::new();
-        let mut sub = BTreeMap::new();
+        let mut map = Map::new();
+        let mut sub = Map::new();
         sub.insert("version".into(), Value::Boolean(false));
         map.insert("imag".into(), Value::Table(sub));
 

@@ -15,8 +15,8 @@ homepage      = "http://imag-pim.org"
 
 [dependencies]
 log  = "0.4"
-toml = "0.4"
-toml-query = "0.8"
+toml = "0.5"
+toml-query = "0.9"
 indicatif  = "0.9"
 failure    = "0.1"
 

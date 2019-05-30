@@ -21,8 +21,8 @@ maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
 lazy_static = "1.2"
-toml = "0.4"
-toml-query = "0.8"
+toml = "0.5"
+toml-query = "0.9"
 failure        = "0.1"
 failure_derive = "0.1"
 uuid           = { version = "0.7", features = ["v4"] }

@@ -31,7 +31,6 @@
 ///
 
 use std::ops::DerefMut;
-use std::collections::BTreeMap;
 use std::fmt::Debug;
 
 use libimagstore::store::Entry;
@@ -43,6 +42,7 @@ use libimagerror::errors::ErrorMsg as EM;
 use toml_query::read::TomlValueReadExt;
 use toml_query::read::TomlValueReadTypeExt;
 use toml_query::insert::TomlValueInsertExt;
+use toml::map::Map;
 use failure::Error;
 use failure::Fallible as Result;
 use failure::ResultExt;
@@ -366,9 +366,9 @@ impl ExternalLinker for Entry {
                     Some(_) => {
                         warn!("There is a value at 'links.external.content' which is not a table.");
                         warn!("Going to override this value");
-                        BTreeMap::new()
+                        Map::new()
                     },
-                    None => BTreeMap::new(),
+                    None => Map::new(),
                 };
 
                 let v = Value::String(link.into_string());

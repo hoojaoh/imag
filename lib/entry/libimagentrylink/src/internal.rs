@@ -17,8 +17,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use std::collections::BTreeMap;
-
 use libimagstore::storeid::StoreId;
 use libimagstore::storeid::IntoStoreId;
 use libimagstore::store::Entry;
@@ -27,6 +25,7 @@ use libimagerror::errors::ErrorMsg as EM;
 
 use toml_query::read::TomlValueReadExt;
 use toml_query::insert::TomlValueInsertExt;
+use toml::map::Map;
 use failure::ResultExt;
 use failure::Fallible as Result;
 use failure::Error;
@@ -99,7 +98,7 @@ impl Link {
                     .context(EM::ConversionError)
                     .map_err(Error::from)
                     .map(|link| {
-                        let mut tab = BTreeMap::new();
+                        let mut tab = Map::new();
 
                         tab.insert("link".to_owned(),       link);
                         tab.insert("annotation".to_owned(), Value::String(anno.clone()));
