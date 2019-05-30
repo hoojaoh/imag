@@ -44,6 +44,7 @@ extern crate failure;
 #[cfg(test)] extern crate env_logger;
 
 extern crate libimagentrylink;
+extern crate libimagentryurl;
 #[macro_use] extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagerror;
