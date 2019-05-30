@@ -23,9 +23,11 @@ use libimagrt::runtime::Runtime;
 use libimagerror::trace::MapErrTrace;
 use libimagerror::iter::TraceIterator;
 use libimagerror::exit::ExitUnwrap;
+use libimagerror::io::ToExitCode;
 use libimagutil::warn_exit::warn_exit;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagentryview::viewer::Viewer;
+use libimagentryview::error::Error;
 
 use crate::util::get_diary_name;
 
@@ -49,7 +51,13 @@ pub fn view(rt: &Runtime) {
     });
 
     let out = rt.stdout();
-    DV::new(hdr).view_entries(entries, &mut out.lock())
-        .map_err_trace_exit_unwrap();
+    let mut outlock = out.lock();
+
+    if let Err(e) = DV::new(hdr).view_entries(entries, &mut outlock) {
+        match e {
+            Error::Io(e)    => Err(e).to_exit_code().unwrap_or_exit(),
+            Error::Other(e) => Err(e).map_err_trace_exit_unwrap()
+        }
+    }
 }
 
