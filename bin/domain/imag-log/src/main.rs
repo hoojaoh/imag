@@ -273,7 +273,7 @@ fn do_write_to<'a>(sink: &mut Write, id: DiaryId, entry: &FileLockEntry<'a>) -> 
              d = id.day(),
              H = id.hour(),
              M = id.minute(),
-             text = entry.get_content().trim_right())
+             text = entry.get_content().trim_end())
         .to_exit_code()
 }
 
