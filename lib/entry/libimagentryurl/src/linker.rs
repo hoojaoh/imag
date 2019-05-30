@@ -131,7 +131,7 @@ impl UrlLinker for Entry {
 
             // then add an internal link to the new file or return an error if this fails
             let _ = self.add_internal_link(file.deref_mut())?;
-            debug!("Error adding internal link");
+            debug!("Added internal link");
 
             Ok((link_already_exists, file_id))
         })
