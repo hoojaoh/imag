@@ -22,14 +22,14 @@
 use std::io::Write;
 use std::ops::Deref;
 
-use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::err_msg;
-use failure::Error;
 
 use libimagstore::store::Entry;
 use libimagentryview::viewer::Viewer;
 use libimagentryview::builtin::plain::PlainViewer;
+use libimagentryview::error::Error;
+use libimagentryview::error::Result;
 use crate::entry::DiaryEntry;
 
 /// This viewer does _not_ implement libimagentryview::viewer::Viewer because we need to be able to
