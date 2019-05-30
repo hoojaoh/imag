@@ -29,8 +29,8 @@
 //! Not to confuse with `external::Link` which is a real `FileLockEntry` under the hood.
 //!
 
-use libimagentrylink::internal::Link;
-use libimagentrylink::internal::iter::LinkIter;
+use libimagentrylink::link::Link;
+use libimagentrylink::iter::LinkIter;
 use libimagstore::store::Store;
 use libimagutil::debug_result::DebugResult;
 

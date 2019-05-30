@@ -63,8 +63,8 @@ use failure::Error;
 use failure::err_msg;
 
 use libimagentryurl::linker::UrlLinker;
-use libimagentrylink::internal::InternalLinker;
-use libimagentrylink::internal::store_check::StoreLinkConsistentExt;
+use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::storecheck::StoreLinkConsistentExt;
 use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::exit::ExitUnwrap;
 use libimagerror::io::ToExitCode;

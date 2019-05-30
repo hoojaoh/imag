@@ -252,7 +252,7 @@ fn show(rt: &Runtime, wiki_name: &str) {
 }
 
 fn delete(rt: &Runtime, wiki_name: &str) {
-    use libimagentrylink::internal::InternalLinker;
+    use libimagentrylink::linker::InternalLinker;
 
     let scmd   = rt.cli().subcommand_matches("delete").unwrap(); // safed by clap
     let name   = String::from(scmd.value_of("delete-name").unwrap()); // safe by clap

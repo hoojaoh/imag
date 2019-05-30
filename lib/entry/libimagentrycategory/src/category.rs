@@ -22,7 +22,7 @@ use libimagentryutil::isa::IsKindHeaderPathProvider;
 use libimagstore::store::Entry;
 use libimagstore::store::Store;
 use libimagstore::storeid::StoreIdIterator;
-use libimagentrylink::internal::InternalLinker;
+use libimagentrylink::linker::InternalLinker;
 
 use toml_query::read::TomlValueReadTypeExt;
 

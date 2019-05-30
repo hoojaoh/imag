@@ -66,7 +66,7 @@ use libimagrt::runtime::Runtime;
 use libimagrt::setup::generate_runtime_setup;
 use libimagstore::store::FileLockEntry;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
-use libimagentrylink::internal::InternalLinker;
+use libimagentrylink::linker::InternalLinker;
 
 mod ui;
 

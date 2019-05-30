@@ -33,7 +33,7 @@ use crate::util::IsHabitCheck;
 use crate::util::get_string_header_from_entry;
 use crate::instance::IsHabitInstance;
 
-use libimagentrylink::internal::InternalLinker;
+use libimagentrylink::linker::InternalLinker;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Entry;

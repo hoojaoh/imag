@@ -25,7 +25,7 @@ use failure::Error;
 use crate::link::extract_links;
 
 use libimagentryurl::linker::UrlLinker;
-use libimagentrylink::internal::InternalLinker;
+use libimagentrylink::linker::InternalLinker;
 use libimagentryref::reference::MutRef;
 use libimagentryref::reference::RefFassade;
 use libimagentryref::hasher::sha1::Sha1Hasher;
@@ -286,7 +286,7 @@ mod tests {
     use std::path::PathBuf;
 
     use libimagstore::store::Store;
-    use libimagentrylink::internal::InternalLinker;
+    use libimagentrylink::linker::InternalLinker;
 
     fn setup_logging() {
         let _ = ::env_logger::try_init();
