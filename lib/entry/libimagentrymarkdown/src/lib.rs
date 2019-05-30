@@ -42,6 +42,7 @@ extern crate url;
 extern crate libimagstore;
 extern crate libimagerror;
 extern crate libimagentrylink;
+extern crate libimagentryurl;
 extern crate libimagentryref;
 extern crate libimagutil;
 #[macro_use] extern crate failure;

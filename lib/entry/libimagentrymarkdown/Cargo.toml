@@ -30,6 +30,7 @@ sha-1   = "0.8"
 libimagstore     = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
 libimagentrylink = { version = "0.10.0", path = "../../../lib/entry/libimagentrylink/" }
+libimagentryurl  = { version = "0.10.0", path = "../../../lib/entry/libimagentryurl/" }
 libimagentryref  = { version = "0.10.0", path = "../../../lib/entry/libimagentryref/" }
 libimagutil      = { version = "0.10.0", path = "../../../lib/etc/libimagutil/" }
 
