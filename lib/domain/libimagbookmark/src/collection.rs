@@ -91,7 +91,7 @@ pub trait BookmarkCollection : Sized + InternalLinker + UrlLinker {
 impl BookmarkCollection for Entry {
 
     fn links<'a>(&self, store: &'a Store) -> Result<UrlIter<'a>> {
-        self.get_external_links(store)
+        self.get_urls(store)
     }
 
     fn link_entries(&self) -> Result<Vec<StoreLink>> {
@@ -101,17 +101,17 @@ impl BookmarkCollection for Entry {
 
     fn add_link(&mut self, store: &Store, l: Link) -> Result<Vec<StoreId>> {
         use crate::link::IntoUrl;
-        l.into_url().and_then(|url| self.add_external_link(store, url))
+        l.into_url().and_then(|url| self.add_url(store, url))
     }
 
     fn get_links_matching<'a>(&self, store: &'a Store, r: Regex) -> Result<LinksMatchingRegexIter<'a>> {
         use self::iter::IntoLinksMatchingRegexIter;
-        self.get_external_links(store).map(|iter| iter.matching_regex(r))
+        self.get_urls(store).map(|iter| iter.matching_regex(r))
     }
 
     fn remove_link(&mut self, store: &Store, l: Link) -> Result<Vec<StoreId>> {
         use crate::link::IntoUrl;
-        l.into_url().and_then(|url| self.remove_external_link(store, url))
+        l.into_url().and_then(|url| self.remove_url(store, url))
     }
 
 }

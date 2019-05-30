@@ -39,16 +39,16 @@ use crate::iter::UrlIter;
 pub trait UrlLinker : InternalLinker {
 
     /// Get the external links from the implementor object
-    fn get_external_links<'a>(&self, store: &'a Store) -> Result<UrlIter<'a>>;
+    fn get_urls<'a>(&self, store: &'a Store) -> Result<UrlIter<'a>>;
 
     /// Set the external links for the implementor object
-    fn set_external_links(&mut self, store: &Store, links: Vec<Url>) -> Result<Vec<StoreId>>;
+    fn set_urls(&mut self, store: &Store, links: Vec<Url>) -> Result<Vec<StoreId>>;
 
     /// Add an external link to the implementor object
-    fn add_external_link(&mut self, store: &Store, link: Url) -> Result<Vec<StoreId>>;
+    fn add_url(&mut self, store: &Store, link: Url) -> Result<Vec<StoreId>>;
 
     /// Remove an external link from the implementor object
-    fn remove_external_link(&mut self, store: &Store, link: Url) -> Result<Vec<StoreId>>;
+    fn remove_url(&mut self, store: &Store, link: Url) -> Result<Vec<StoreId>>;
 
 }
 
@@ -58,7 +58,7 @@ pub trait UrlLinker : InternalLinker {
 impl UrlLinker for Entry {
 
     /// Get the external links from the implementor object
-    fn get_external_links<'a>(&self, store: &'a Store) -> Result<UrlIter<'a>> {
+    fn get_urls<'a>(&self, store: &'a Store) -> Result<UrlIter<'a>> {
         use crate::iter::OnlyExternalLinks;
 
         // Iterate through all internal links and filter for FileLockEntries which live in
@@ -67,7 +67,7 @@ impl UrlLinker for Entry {
         self.get_internal_links()
             .map(|iter| {
                 debug!("Getting external links");
-                iter.only_external_links().urls(store)
+                iter.only_urls().urls(store)
             })
     }
 
@@ -79,7 +79,7 @@ impl UrlLinker for Entry {
     /// external links than before.
     /// If there are less external links than before, an empty vec![] is returned.
     ///
-    fn set_external_links(&mut self, store: &Store, links: Vec<Url>) -> Result<Vec<StoreId>> {
+    fn set_urls(&mut self, store: &Store, links: Vec<Url>) -> Result<Vec<StoreId>> {
         // Take all the links, generate a SHA sum out of each one, filter out the already existing
         // store entries and store the other URIs in the header of one FileLockEntry each, in
         // the path /link/external/<SHA of the URL>
@@ -146,16 +146,16 @@ impl UrlLinker for Entry {
     ///
     /// # Return Value
     ///
-    /// (See ExternalLinker::set_external_links())
+    /// (See ExternalLinker::set_urls())
     ///
     /// Returns the StoreIds which were newly created for the new external links, if there are more
     /// external links than before.
     /// If there are less external links than before, an empty vec![] is returned.
     ///
-    fn add_external_link(&mut self, store: &Store, link: Url) -> Result<Vec<StoreId>> {
+    fn add_url(&mut self, store: &Store, link: Url) -> Result<Vec<StoreId>> {
         // get external links, add this one, save them
         debug!("Getting links");
-        self.get_external_links(store)
+        self.get_urls(store)
             .and_then(|links| {
                 let mut links = links.collect::<Result<Vec<_>>>()?;
 
@@ -163,7 +163,7 @@ impl UrlLinker for Entry {
                 links.push(link);
 
                 debug!("Setting {} links = {:?}", links.len(), links);
-                self.set_external_links(store, links)
+                self.set_urls(store, links)
             })
     }
 
@@ -171,22 +171,22 @@ impl UrlLinker for Entry {
     ///
     /// # Return Value
     ///
-    /// (See ExternalLinker::set_external_links())
+    /// (See ExternalLinker::set_urls())
     ///
     /// Returns the StoreIds which were newly created for the new external links, if there are more
     /// external links than before.
     /// If there are less external links than before, an empty vec![] is returned.
     ///
-    fn remove_external_link(&mut self, store: &Store, link: Url) -> Result<Vec<StoreId>> {
+    fn remove_url(&mut self, store: &Store, link: Url) -> Result<Vec<StoreId>> {
         // get external links, remove this one, save them
-        self.get_external_links(store)
+        self.get_urls(store)
             .and_then(|links| {
                 debug!("Removing link = '{:?}'", link);
                 let links = links
                     .filter_map(Result::ok)
                     .filter(|l| l.as_str() != link.as_str())
                     .collect::<Vec<_>>();
-                self.set_external_links(store, links)
+                self.set_urls(store, links)
             })
     }
 
@@ -215,10 +215,10 @@ mod tests {
         let mut e = store.retrieve(PathBuf::from("base-test_simple")).unwrap();
         let url   = Url::parse("http://google.de").unwrap();
 
-        assert!(e.add_external_link(&store, url.clone()).is_ok());
+        assert!(e.add_url(&store, url.clone()).is_ok());
 
-        assert_eq!(1, e.get_external_links(&store).unwrap().count());
-        assert_eq!(url, e.get_external_links(&store).unwrap().next().unwrap().unwrap());
+        assert_eq!(1, e.get_urls(&store).unwrap().count());
+        assert_eq!(url, e.get_urls(&store).unwrap().next().unwrap().unwrap());
     }
 
 }

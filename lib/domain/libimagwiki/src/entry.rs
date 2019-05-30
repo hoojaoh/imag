@@ -57,7 +57,7 @@ impl WikiEntry for Entry {
         let processor = LinkProcessor::default()
             .process_internal_links(true)
             .create_internal_targets(true)
-            .process_external_links(true)
+            .process_urls(true)
             .process_refs(true);
 
         self.autolink_with_processor(store, processor)
