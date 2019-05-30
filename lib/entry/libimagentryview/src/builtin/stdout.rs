@@ -66,7 +66,7 @@ impl Viewer for StdoutViewer {
 
         if self.view_content {
             let content = if self.trim_right {
-                e.get_content().trim_right()
+                e.get_content().trim_end()
             } else {
                 &e.get_content()
             };
