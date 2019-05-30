@@ -349,79 +349,59 @@ mod log_lvl_aggregate {
 fn aggregate_module_settings(_matches: &ArgMatches, config: Option<&Value>)
     -> Result<BTreeMap<ModuleName, ModuleSettings>>
 {
-    // Helper macro to return the error from Some(Err(_)) and map everything else to an
-    // Option<_>
-    macro_rules! inner_try {
-        ($v:expr) => {
-            match $v {
-                Some(Ok(v))  => Some(v),
-                Some(Err(e)) => return Err(e),
-                None         => None,
+    use std::convert::TryInto;
+
+    //
+    // We define helper types here for deserializing easily using typed toml-query functionality.
+    //
+    // We need the helper types because we cannot deserialize in the target types directly, because
+    // of the `File(Arc<Mutex<::std::fs::File>>)` variant in `LogDestination`, which would
+    // technically possible to deserialize the toml into the type, but it might be a bad idea.
+    //
+    // This code is idomatic enough for the conversions, so it is not a big painpoint.
+    //
+
+    #[derive(Serialize, Deserialize, Debug)]
+    struct LoggingModuleConfig {
+        pub destinations: Option<Vec<String>>,
+        pub level: Option<Level>,
+        pub enabled: bool,
+    }
+
+    #[derive(Partial, Serialize, Deserialize, Debug)]
+    #[location = "imag.logging.modules"]
+    struct LoggingModuleConfigMap(BTreeMap<String, LoggingModuleConfig>);
+
+    impl TryInto<BTreeMap<String, ModuleSettings>> for LoggingModuleConfigMap {
+        type Error = Error;
+
+        fn try_into(self) -> Result<BTreeMap<String, ModuleSettings>> {
+            let mut map = BTreeMap::new();
+
+            for (key, value) in self.0.into_iter() {
+                map.insert(key, ModuleSettings {
+                    enabled:      value.enabled,
+                    level:        value.level.map(Into::into),
+                    destinations: match value.destinations {
+                        None     => None,
+                        Some(ds) => Some(ds
+                            .iter()
+                            .map(Deref::deref)
+                            .map(translate_destination) // This is why we do this whole thing
+                            .collect::<Result<Vec<LogDestination>>>()?)
+                    },
+                });
             }
+
+            Ok(map)
         }
-    };
+    }
 
     match config {
-        Some(cfg) => match cfg.read("imag.logging.modules").map_err(Error::from) {
-            Ok(Some(&Value::Table(ref t))) => {
-                // translate the module settings from the table `t`
-                let mut settings = BTreeMap::new();
-
-                for (module_name, v) in t {
-                    let destinations = inner_try! {
-                        v.read("destinations")
-                            .context("Failed reading header 'destinations'")
-                            .map_err(Error::from)
-                            .context(EM::TomlQueryError)?
-                            .map(|val| {
-                                val.as_array()
-                                    .ok_or_else(|| {
-                                        let msg = "Type error at 'imag.logging.modules.<mod>.destinations', expected 'Array'";
-                                        Error::from(err_msg(msg))
-                                    })
-                                    .and_then(translate_destinations)
-                            })
-                    };
-
-                    let level = inner_try! {
-                        v.read_string("level")
-                            .context("Failed reading header 'level'")
-                            .map_err(Error::from)
-                            .context(EM::TomlQueryError)?
-                            .map(|s| match_log_level_str(&s))
-                    };
-
-                    let enabled = v.read("enabled")
-                        .map_err(Error::from)
-                        .context(EM::TomlQueryError)?
-                        .map(|v| v.as_bool().unwrap_or(false))
-                        .ok_or_else(|| {
-                            let msg = "Type error at 'imag.logging.modules.<mod>.enabled', expected 'Boolean'";
-                            Error::from(err_msg(msg))
-                        })?;
-
-                    let module_settings = ModuleSettings {
-                        enabled: enabled,
-                        level: level,
-                        destinations: destinations,
-                    };
-
-                    // We don't care whether there was a value, we override it.
-                    let _ = settings.insert(module_name.to_owned(), module_settings);
-                }
-
-                Ok(settings)
-            },
-            Ok(Some(_)) => {
-                let msg = "Type error at 'imag.logging.modules', expected 'Table'";
-                Err(Error::from(err_msg(msg)))
-            },
-            Ok(None)    => {
-                // No modules configured. This is okay!
-                Ok(BTreeMap::new())
-            },
-            Err(e) => Err(e).context(EM::TomlQueryError).map_err(Error::from),
-        },
+        Some(cfg) => cfg.read_partial::<LoggingModuleConfigMap>()?
+            .ok_or_else(|| err_msg("Logging configuration missing"))?
+            .try_into()
+            .map_err(Error::from),
         None => {
             write!(stderr(), "No Configuration.").ok();
             write!(stderr(), "cannot find module-settings for logging.").ok();
