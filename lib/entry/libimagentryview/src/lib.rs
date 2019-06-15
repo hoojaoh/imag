@@ -56,5 +56,6 @@ extern crate libimagerror;
 extern crate libimagentryedit;
 
 pub mod builtin;
+pub mod error;
 pub mod viewer;
 

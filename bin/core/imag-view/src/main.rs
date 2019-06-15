@@ -209,9 +209,9 @@ fn main() {
                             .map(|s| writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit());
                     }
 
-                    viewer
-                        .view_entry(&entry, &mut outlock)
-                        .map_err_trace_exit_unwrap();
+                    if let Err(e) = viewer.view_entry(&entry, &mut outlock) {
+                        handle_error(e);
+                    }
 
                     rt.report_touched(entry.get_location()).unwrap_or_exit();
                 });
@@ -243,9 +243,9 @@ fn main() {
                             .map(|s| writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit());
                     }
 
-                    viewer
-                        .view_entry(&entry, &mut outlock)
-                        .map_err_trace_exit_unwrap();
+                    if let Err(e) = viewer.view_entry(&entry, &mut outlock) {
+                        handle_error(e);
+                    }
 
                     rt.report_touched(entry.get_location()).unwrap_or_exit();
                 });
@@ -283,5 +283,13 @@ fn create_tempfile_for<'a>(entry: &FileLockEntry<'a>, view_header: bool, hide_co
         .map_err_trace_exit_unwrap();
 
     (tmpfile, file_path)
+}
+
+fn handle_error(e: ::libimagentryview::error::Error) {
+    use libimagentryview::error::Error;
+    match e {
+        Error::Io(e)    => Err(e).to_exit_code().unwrap_or_exit(),
+        Error::Other(e) => Err(e).map_err_trace_exit_unwrap()
+    }
 }
 

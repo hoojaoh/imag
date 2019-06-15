@@ -22,7 +22,7 @@ use std::ops::Deref;
 
 use libimagstore::store::Entry;
 
-use failure::Fallible as Result;
+use crate::error::Result;
 
 pub trait Viewer {
 

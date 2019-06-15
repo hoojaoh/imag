@@ -24,7 +24,7 @@ use libimagstore::store::Entry;
 use toml::ser::to_string;
 
 use crate::viewer::Viewer;
-use failure::Fallible as Result;
+use crate::error::Result;
 
 pub struct StdoutViewer {
     view_header: bool,

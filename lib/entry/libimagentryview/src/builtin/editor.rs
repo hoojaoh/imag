@@ -24,9 +24,9 @@ use libimagrt::runtime::Runtime;
 use libimagentryedit::edit::edit_in_tmpfile;
 
 use crate::viewer::Viewer;
-use failure::Fallible as Result;
+use crate::error::Result;
+use crate::error::Error;
 use failure::ResultExt;
-use failure::Error;
 
 pub struct EditorView<'a>(&'a Runtime<'a>);
 

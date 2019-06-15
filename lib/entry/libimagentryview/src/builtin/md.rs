@@ -27,8 +27,8 @@ use pulldown_cmark::Parser;
 use syntect::parsing::SyntaxSet;
 
 use crate::viewer::Viewer;
-use failure::Fallible as Result;
-use failure::Error;
+use crate::error::Result;
+use crate::error::Error;
 
 pub struct MarkdownViewer<'a> {
     rt:                 &'a Runtime<'a>,
@@ -66,6 +66,7 @@ impl<'a> Viewer for MarkdownViewer<'a> {
                           self.resource_access.clone(),
                           syntax_set)
         .map_err(|e| e.compat())
+        .map_err(::failure::Error::from)
         .map_err(Error::from)
     }
 }
