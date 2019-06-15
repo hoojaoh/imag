@@ -44,6 +44,7 @@ extern crate failure;
 #[cfg(test)] extern crate env_logger;
 
 extern crate libimagentrylink;
+extern crate libimagentryurl;
 #[macro_use] extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagerror;
@@ -61,9 +62,9 @@ use std::path::PathBuf;
 use failure::Error;
 use failure::err_msg;
 
-use libimagentrylink::external::ExternalLinker;
-use libimagentrylink::internal::InternalLinker;
-use libimagentrylink::internal::store_check::StoreLinkConsistentExt;
+use libimagentryurl::linker::UrlLinker;
+use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::storecheck::StoreLinkConsistentExt;
 use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::exit::ExitUnwrap;
 use libimagerror::io::ToExitCode;
@@ -157,7 +158,7 @@ fn link_from_to<'a, I>(rt: &'a Runtime, from: &'a str, to: I)
             });
 
             let iter = from_entry
-                .add_external_link(rt.store(), url)
+                .add_url(rt.store(), url)
                 .map_err_trace_exit_unwrap()
                 .into_iter();
 
@@ -238,7 +239,7 @@ fn remove_linking(rt: &Runtime) {
                         error!("Error parsing URL: {:?}", e);
                         ::std::process::exit(1);
                     });
-                    from.remove_external_link(rt.store(), url).map_err_trace_exit_unwrap();
+                    from.remove_url(rt.store(), url).map_err_trace_exit_unwrap();
                     info!("Ok: {}", id);
                 } else {
                     warn!("Entry not found: {:?}", id);
@@ -313,7 +314,7 @@ fn list_linkings(rt: &Runtime) {
                     }
 
                     if list_externals {
-                        entry.get_external_links(rt.store())
+                        entry.get_urls(rt.store())
                             .map_err_trace_exit_unwrap()
                             .enumerate()
                             .for_each(|(i, link)| {

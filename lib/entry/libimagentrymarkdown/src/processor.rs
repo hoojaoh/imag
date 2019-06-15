@@ -24,8 +24,8 @@ use failure::ResultExt;
 use failure::Error;
 use crate::link::extract_links;
 
-use libimagentrylink::external::ExternalLinker;
-use libimagentrylink::internal::InternalLinker;
+use libimagentryurl::linker::UrlLinker;
+use libimagentrylink::linker::InternalLinker;
 use libimagentryref::reference::MutRef;
 use libimagentryref::reference::RefFassade;
 use libimagentryref::hasher::sha1::Sha1Hasher;
@@ -58,7 +58,7 @@ use url::Url;
 pub struct LinkProcessor {
     process_internal_links: bool,
     create_internal_targets: bool,
-    process_external_links: bool,
+    process_urls: bool,
     process_refs: bool
 }
 
@@ -86,8 +86,8 @@ impl LinkProcessor {
     /// Switch external link processing on/off
     ///
     /// An external link must start with `https://` or `http://`.
-    pub fn process_external_links(mut self, b: bool) -> Self {
-        self.process_external_links = b;
+    pub fn process_urls(mut self, b: bool) -> Self {
+        self.process_urls = b;
         self
     }
 
@@ -154,11 +154,11 @@ impl LinkProcessor {
                     let _ = entry.add_internal_link(&mut target)?;
                 },
                 LinkQualification::ExternalLink(url) => {
-                    if !self.process_external_links {
+                    if !self.process_urls {
                         continue
                     }
 
-                    entry.add_external_link(store, url)?;
+                    entry.add_url(store, url)?;
                 },
                 LinkQualification::RefLink(url) => {
                     use sha1::{Sha1, Digest};
@@ -273,7 +273,7 @@ impl Default for LinkProcessor {
         LinkProcessor {
             process_internal_links: true,
             create_internal_targets: false,
-            process_external_links: true,
+            process_urls: true,
             process_refs: false
         }
     }
@@ -286,7 +286,7 @@ mod tests {
     use std::path::PathBuf;
 
     use libimagstore::store::Store;
-    use libimagentrylink::internal::InternalLinker;
+    use libimagentrylink::linker::InternalLinker;
 
     fn setup_logging() {
         let _ = ::env_logger::try_init();
@@ -330,7 +330,7 @@ mod tests {
         let processor = LinkProcessor::default()
             .process_internal_links(true)
             .create_internal_targets(false)
-            .process_external_links(false)
+            .process_urls(false)
             .process_refs(false);
 
         let result = processor.process(&mut base, &store);
@@ -370,7 +370,7 @@ mod tests {
         let processor = LinkProcessor::default()
             .process_internal_links(true)
             .create_internal_targets(false)
-            .process_external_links(false)
+            .process_urls(false)
             .process_refs(false);
 
         let result = processor.process(&mut base, &store);
@@ -391,7 +391,7 @@ mod tests {
         let processor = LinkProcessor::default()
             .process_internal_links(true)
             .create_internal_targets(true)
-            .process_external_links(false)
+            .process_urls(false)
             .process_refs(false);
 
         let result = processor.process(&mut base, &store);
@@ -418,7 +418,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_one_external_link() {
+    fn test_process_one_url() {
         setup_logging();
         let store = get_store();
 
@@ -431,14 +431,14 @@ mod tests {
         let processor = LinkProcessor::default()
             .process_internal_links(true)
             .create_internal_targets(true)
-            .process_external_links(true)
+            .process_urls(true)
             .process_refs(false);
 
         let result = processor.process(&mut base, &store);
         assert!(result.is_ok(), "Should be Ok(()): {:?}", result);
 
         // The hash of "http://example.com" processed in the `libimagentrylink` way.
-        let expected_link = "links/external/9c17e047f58f9220a7008d4f18152fee4d111d14";
+        let expected_link = "url/external/9c17e047f58f9220a7008d4f18152fee4d111d14";
         {
             let base_links = base.get_internal_links();
             assert!(base_links.is_ok());
@@ -481,7 +481,7 @@ mod tests {
         let processor = LinkProcessor::default()
             .process_internal_links(false)
             .create_internal_targets(false)
-            .process_external_links(false)
+            .process_urls(false)
             .process_refs(true);
 
         let result = processor.process(&mut base, &store);
@@ -514,7 +514,7 @@ mod tests {
         let processor = LinkProcessor::default()
             .process_internal_links(false)
             .create_internal_targets(false)
-            .process_external_links(false)
+            .process_urls(false)
             .process_refs(true);
 
         let result = processor.process(&mut base, &store);
@@ -547,7 +547,7 @@ mod tests {
         let processor = LinkProcessor::default()
             .process_internal_links(false)
             .create_internal_targets(false)
-            .process_external_links(false)
+            .process_urls(false)
             .process_refs(false);
 
         let result = processor.process(&mut base, &store);
@@ -575,7 +575,7 @@ mod tests {
         let processor = LinkProcessor::default()
             .process_internal_links(true)
             .create_internal_targets(true)
-            .process_external_links(false)
+            .process_urls(false)
             .process_refs(false);
 
         let result = processor.process(&mut base, &store);
@@ -605,7 +605,7 @@ mod tests {
         let processor = LinkProcessor::default()
             .process_internal_links(false)
             .create_internal_targets(false)
-            .process_external_links(false)
+            .process_urls(false)
             .process_refs(false);
 
         let result = processor.process(&mut base, &store);

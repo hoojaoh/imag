@@ -19,8 +19,6 @@
 
 #![forbid(unsafe_code)]
 
-#![recursion_limit="256"]
-
 #![deny(
     dead_code,
     non_camel_case_types,
@@ -37,22 +35,40 @@
     while_true,
 )]
 
-extern crate hoedown;
-extern crate url;
-extern crate libimagstore;
-extern crate libimagerror;
-extern crate libimagentrylink;
-extern crate libimagentryurl;
-extern crate libimagentryref;
-extern crate libimagutil;
-#[macro_use] extern crate failure;
+//! External linking is a complex implementation to be able to serve a clean and easy-to-use
+//! interface.
+//!
+//! Internally, there are no such things as "external links" (plural). Each Entry in the store can
+//! only have _one_ external link.
+//!
+//! This library does the following therefor: It allows you to have several external links with one
+//! entry, which are internally one file in the store for each link, linked with "internal
+//! linking".
+//!
+//! This helps us greatly with deduplication of URLs.
+//!
+
+extern crate itertools;
 #[macro_use] extern crate log;
+extern crate toml;
+extern crate toml_query;
+extern crate url;
 extern crate sha1;
+extern crate hex;
+#[macro_use] extern crate failure;
 
 #[cfg(test)]
 extern crate env_logger;
 
-pub mod html;
+#[macro_use] extern crate libimagstore;
+extern crate libimagerror;
+extern crate libimagutil;
+extern crate libimagentrylink;
+
+module_entry_path_mod!("url");
+
+pub mod iter;
 pub mod link;
-pub mod processor;
+pub mod linker;
+pub mod util;
 

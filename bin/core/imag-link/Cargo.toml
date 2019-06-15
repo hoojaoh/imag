@@ -31,6 +31,7 @@ libimagstore     = { version = "0.10.0", path = "../../../lib/core/libimagstore"
 libimagrt        = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
 libimagentrylink = { version = "0.10.0", path = "../../../lib/entry/libimagentrylink" }
+libimagentryurl = { version = "0.10.0", path = "../../../lib/entry/libimagentryurl" }
 libimagutil      = { version = "0.10.0", path = "../../../lib/etc/libimagutil" }
 
 [dependencies.clap]

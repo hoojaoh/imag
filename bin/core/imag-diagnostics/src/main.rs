@@ -55,7 +55,7 @@ use libimagerror::io::ToExitCode;
 use libimagerror::exit::ExitUnwrap;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
-use libimagentrylink::internal::*;
+use libimagentrylink::linker::InternalLinker;
 
 use toml::Value;
 use toml_query::read::TomlValueReadExt;

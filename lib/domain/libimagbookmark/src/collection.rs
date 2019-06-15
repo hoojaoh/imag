@@ -20,7 +20,7 @@
 //! BookmarkCollection module
 //!
 //! A BookmarkCollection is nothing more than a simple store entry. One can simply call functions
-//! from the libimagentrylink::external::ExternalLinker trait on this to generate external links.
+//! from the libimagentryurl::linker::UrlLinker trait on this to generate external links.
 //!
 //! The BookmarkCollection type offers helper functions to get all links or such things.
 
@@ -34,10 +34,10 @@ use libimagstore::store::Store;
 use libimagstore::store::Entry;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
-use libimagentrylink::external::ExternalLinker;
-use libimagentrylink::external::iter::UrlIter;
-use libimagentrylink::internal::InternalLinker;
-use libimagentrylink::internal::Link as StoreLink;
+use libimagentryurl::linker::UrlLinker;
+use libimagentryurl::iter::UrlIter;
+use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::link::Link as StoreLink;
 
 use crate::link::Link;
 
@@ -80,7 +80,7 @@ impl<'a> BookmarkCollectionStore<'a> for Store {
 
 }
 
-pub trait BookmarkCollection : Sized + InternalLinker + ExternalLinker {
+pub trait BookmarkCollection : Sized + InternalLinker + UrlLinker {
     fn links<'a>(&self, store: &'a Store)                        -> Result<UrlIter<'a>>;
     fn link_entries(&self)                                       -> Result<Vec<StoreLink>>;
     fn add_link(&mut self, store: &Store, l: Link)               -> Result<Vec<StoreId>>;
@@ -91,27 +91,27 @@ pub trait BookmarkCollection : Sized + InternalLinker + ExternalLinker {
 impl BookmarkCollection for Entry {
 
     fn links<'a>(&self, store: &'a Store) -> Result<UrlIter<'a>> {
-        self.get_external_links(store)
+        self.get_urls(store)
     }
 
     fn link_entries(&self) -> Result<Vec<StoreLink>> {
-        use libimagentrylink::external::is_external_link_storeid;
+        use libimagentryurl::util::is_external_link_storeid;
         self.get_internal_links().map(|v| v.filter(|id| is_external_link_storeid(id)).collect())
     }
 
     fn add_link(&mut self, store: &Store, l: Link) -> Result<Vec<StoreId>> {
         use crate::link::IntoUrl;
-        l.into_url().and_then(|url| self.add_external_link(store, url))
+        l.into_url().and_then(|url| self.add_url(store, url))
     }
 
     fn get_links_matching<'a>(&self, store: &'a Store, r: Regex) -> Result<LinksMatchingRegexIter<'a>> {
         use self::iter::IntoLinksMatchingRegexIter;
-        self.get_external_links(store).map(|iter| iter.matching_regex(r))
+        self.get_urls(store).map(|iter| iter.matching_regex(r))
     }
 
     fn remove_link(&mut self, store: &Store, l: Link) -> Result<Vec<StoreId>> {
         use crate::link::IntoUrl;
-        l.into_url().and_then(|url| self.remove_external_link(store, url))
+        l.into_url().and_then(|url| self.remove_url(store, url))
     }
 
 }
@@ -120,6 +120,9 @@ pub mod iter {
     use crate::link::Link;
     use failure::Fallible as Result;
     use failure::Error;
+    use regex::Regex;
+
+    use libimagentryurl::iter::UrlIter;
 
     pub struct LinkIter<I>(I)
         where I: Iterator<Item = Link>;
@@ -143,9 +146,6 @@ pub mod iter {
             LinkIter(i)
         }
     }
-
-    use libimagentrylink::external::iter::UrlIter;
-    use regex::Regex;
 
     pub struct LinksMatchingRegexIter<'a>(UrlIter<'a>, Regex);
 

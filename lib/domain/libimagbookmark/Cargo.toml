@@ -27,4 +27,5 @@ failure = "0.1"
 libimagstore     = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
 libimagentrylink = { version = "0.10.0", path = "../../../lib/entry/libimagentrylink" }
+libimagentryurl  = { version = "0.10.0", path = "../../../lib/entry/libimagentryurl" }
 
