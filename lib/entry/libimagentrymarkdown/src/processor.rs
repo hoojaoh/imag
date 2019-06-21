@@ -25,7 +25,7 @@ use failure::Error;
 use crate::link::extract_links;
 
 use libimagentryurl::linker::UrlLinker;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linker::Linkable;
 use libimagentryref::reference::MutRef;
 use libimagentryref::reference::RefFassade;
 use libimagentryref::hasher::sha1::Sha1Hasher;
@@ -56,8 +56,8 @@ use url::Url;
 ///  There's no LinkProcessor::new() function, please use `LinkProcessor::default()`.
 ///
 pub struct LinkProcessor {
-    process_internal_links: bool,
-    create_internal_targets: bool,
+    process_links: bool,
+    create_targets: bool,
     process_urls: bool,
     process_refs: bool
 }
@@ -68,8 +68,8 @@ impl LinkProcessor {
     ///
     /// Internal links are links which are simply `dirctory/file`, but not `/directory/file`, as
     /// beginning an id with `/` is discouraged in imag.
-    pub fn process_internal_links(mut self, b: bool) -> Self {
-        self.process_internal_links = b;
+    pub fn process_links(mut self, b: bool) -> Self {
+        self.process_links = b;
         self
     }
 
@@ -78,8 +78,8 @@ impl LinkProcessor {
     /// If a link points to a non-existing imag entry, a `false` here will cause the processor to
     /// return an error from `process()`. A `true` setting will create the entry and then fetch it
     /// to link it to the processed entry.
-    pub fn create_internal_targets(mut self, b: bool) -> Self {
-        self.create_internal_targets = b;
+    pub fn create_targets(mut self, b: bool) -> Self {
+        self.create_targets = b;
         self
     }
 
@@ -121,14 +121,14 @@ impl LinkProcessor {
     ///
     /// # Warning
     ///
-    /// When `LinkProcessor::create_internal_targets()` was called to set the setting to true, this
+    /// When `LinkProcessor::create_targets()` was called to set the setting to true, this
     /// function returns all errors returned by the Store.
     ///
     /// That means:
     ///
-    /// * For an internal link, the linked target is created if create_internal_targets() is true,
+    /// * For an internal link, the linked target is created if create_targets() is true,
     ///   else error
-    /// * For an external link, if create_internal_targets() is true, libimagentrylink creates the
+    /// * For an external link, if create_targets() is true, libimagentrylink creates the
     ///   external link entry, else the link is ignored
     /// * all other cases do not create elements in the store
     ///
@@ -139,19 +139,19 @@ impl LinkProcessor {
             trace!("Processing {:?}", link);
             match LinkQualification::qualify(&link.link) {
                 LinkQualification::InternalLink => {
-                    if !self.process_internal_links {
+                    if !self.process_links {
                         continue
                     }
 
                     let id         = StoreId::new(PathBuf::from(&link.link))?;
-                    let mut target = if self.create_internal_targets {
+                    let mut target = if self.create_targets {
                         store.retrieve(id)?
                     } else {
                         store.get(id.clone())?
                             .ok_or_else(|| Error::from(format_err!("Store get error: {}", id)))?
                     };
 
-                    let _ = entry.add_internal_link(&mut target)?;
+                    let _ = entry.add_link(&mut target)?;
                 },
                 LinkQualification::ExternalLink(url) => {
                     if !self.process_urls {
@@ -212,7 +212,7 @@ impl LinkProcessor {
 
                     trace!("Ready processing, linking new ref entry...");
 
-                    let _ = entry.add_internal_link(&mut ref_entry)?;
+                    let _ = entry.add_link(&mut ref_entry)?;
                 },
                 LinkQualification::Undecidable(e) => {
                     // error
@@ -271,8 +271,8 @@ impl LinkQualification {
 impl Default for LinkProcessor {
     fn default() -> Self {
         LinkProcessor {
-            process_internal_links: true,
-            create_internal_targets: false,
+            process_links: true,
+            create_targets: false,
             process_urls: true,
             process_refs: false
         }
@@ -286,7 +286,7 @@ mod tests {
     use std::path::PathBuf;
 
     use libimagstore::store::Store;
-    use libimagentrylink::linker::InternalLinker;
+    use libimagentrylink::linker::Linkable;
 
     fn setup_logging() {
         let _ = ::env_logger::try_init();
@@ -328,8 +328,8 @@ mod tests {
         let _ = store.create(PathBuf::from("test-2.2")).unwrap();
 
         let processor = LinkProcessor::default()
-            .process_internal_links(true)
-            .create_internal_targets(false)
+            .process_links(true)
+            .create_targets(false)
             .process_urls(false)
             .process_refs(false);
 
@@ -337,7 +337,7 @@ mod tests {
         assert!(result.is_ok(), "Should be Ok(()): {:?}", result);
 
         {
-            let base_links = base.get_internal_links();
+            let base_links = base.links();
             assert!(base_links.is_ok());
             let base_links : Vec<_> = base_links.unwrap().collect();
 
@@ -347,7 +347,7 @@ mod tests {
 
         {
             let link = store.get(PathBuf::from("test-2.2")).unwrap().unwrap();
-            let link_links = link.get_internal_links();
+            let link_links = link.links();
             assert!(link_links.is_ok());
             let link_links : Vec<_> = link_links.unwrap().collect();
 
@@ -368,8 +368,8 @@ mod tests {
         assert!(update.is_ok());
 
         let processor = LinkProcessor::default()
-            .process_internal_links(true)
-            .create_internal_targets(false)
+            .process_links(true)
+            .create_targets(false)
             .process_urls(false)
             .process_refs(false);
 
@@ -389,8 +389,8 @@ mod tests {
         assert!(update.is_ok());
 
         let processor = LinkProcessor::default()
-            .process_internal_links(true)
-            .create_internal_targets(true)
+            .process_links(true)
+            .create_targets(true)
             .process_urls(false)
             .process_refs(false);
 
@@ -398,7 +398,7 @@ mod tests {
         assert!(result.is_ok(), "Should be Ok(()): {:?}", result);
 
         {
-            let base_links = base.get_internal_links();
+            let base_links = base.links();
             assert!(base_links.is_ok());
             let base_links : Vec<_> = base_links.unwrap().collect();
 
@@ -408,7 +408,7 @@ mod tests {
 
         {
             let link = store.get(PathBuf::from("test-2.2")).unwrap().unwrap();
-            let link_links = link.get_internal_links();
+            let link_links = link.links();
             assert!(link_links.is_ok());
             let link_links : Vec<_> = link_links.unwrap().collect();
 
@@ -429,8 +429,8 @@ mod tests {
         assert!(update.is_ok());
 
         let processor = LinkProcessor::default()
-            .process_internal_links(true)
-            .create_internal_targets(true)
+            .process_links(true)
+            .create_targets(true)
             .process_urls(true)
             .process_refs(false);
 
@@ -440,7 +440,7 @@ mod tests {
         // The hash of "http://example.com" processed in the `libimagentrylink` way.
         let expected_link = "url/external/9c17e047f58f9220a7008d4f18152fee4d111d14";
         {
-            let base_links = base.get_internal_links();
+            let base_links = base.links();
             assert!(base_links.is_ok());
             let base_links : Vec<_> = base_links.unwrap().collect();
 
@@ -456,7 +456,7 @@ mod tests {
 
         {
             let link = store.get(PathBuf::from(expected_link)).unwrap().unwrap();
-            let link_links = link.get_internal_links();
+            let link_links = link.links();
             assert!(link_links.is_ok());
             let link_links : Vec<_> = link_links.unwrap().collect();
 
@@ -479,8 +479,8 @@ mod tests {
         assert!(update.is_ok());
 
         let processor = LinkProcessor::default()
-            .process_internal_links(false)
-            .create_internal_targets(false)
+            .process_links(false)
+            .create_targets(false)
             .process_urls(false)
             .process_refs(true);
 
@@ -512,8 +512,8 @@ mod tests {
         assert!(update.is_ok());
 
         let processor = LinkProcessor::default()
-            .process_internal_links(false)
-            .create_internal_targets(false)
+            .process_links(false)
+            .create_targets(false)
             .process_urls(false)
             .process_refs(true);
 
@@ -545,8 +545,8 @@ mod tests {
         assert!(update.is_ok());
 
         let processor = LinkProcessor::default()
-            .process_internal_links(false)
-            .create_internal_targets(false)
+            .process_links(false)
+            .create_targets(false)
             .process_urls(false)
             .process_refs(false);
 
@@ -573,8 +573,8 @@ mod tests {
         assert!(update.is_ok());
 
         let processor = LinkProcessor::default()
-            .process_internal_links(true)
-            .create_internal_targets(true)
+            .process_links(true)
+            .create_targets(true)
             .process_urls(false)
             .process_refs(false);
 
@@ -589,7 +589,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_one_existing_file_linked_with_internal_processing_switched_off() {
+    fn test_process_one_existing_file_linked_with_processing_switched_off() {
         setup_logging();
         let store = get_store();
 
@@ -603,8 +603,8 @@ mod tests {
         let _ = store.create(PathBuf::from("test-2.2")).unwrap();
 
         let processor = LinkProcessor::default()
-            .process_internal_links(false)
-            .create_internal_targets(false)
+            .process_links(false)
+            .create_targets(false)
             .process_urls(false)
             .process_refs(false);
 

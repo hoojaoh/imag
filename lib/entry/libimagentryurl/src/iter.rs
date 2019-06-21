@@ -79,7 +79,7 @@ impl Iterator for ExternalFilterIter {
 /// # See also
 ///
 /// Also see `OnlyExternalIter` and `NoExternalIter` and the helper traits/functions
-/// `OnlyInteralLinks`/`only_internal_links()` and `OnlyExternalLinks`/`only_urls()`.
+/// `OnlyInteralLinks`/`only_links()` and `OnlyExternalLinks`/`only_urls()`.
 pub trait SelectExternal {
     fn select_urls(self, b: bool) -> ExternalFilterIter;
 }
@@ -130,7 +130,7 @@ impl Iterator for NoExternalIter {
 pub trait OnlyExternalLinks : Sized {
     fn only_urls(self) -> OnlyExternalIter ;
 
-    fn no_internal_links(self) -> OnlyExternalIter {
+    fn no_links(self) -> OnlyExternalIter {
         self.only_urls()
     }
 }
@@ -142,15 +142,15 @@ impl OnlyExternalLinks for LinkIter {
 }
 
 pub trait OnlyInternalLinks : Sized {
-    fn only_internal_links(self) -> NoExternalIter;
+    fn only_links(self) -> NoExternalIter;
 
     fn no_urls(self) -> NoExternalIter {
-        self.only_internal_links()
+        self.only_links()
     }
 }
 
 impl OnlyInternalLinks for LinkIter {
-    fn only_internal_links(self) -> NoExternalIter {
+    fn only_links(self) -> NoExternalIter {
         NoExternalIter::new(self)
     }
 }

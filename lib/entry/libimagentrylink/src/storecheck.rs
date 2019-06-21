@@ -62,7 +62,7 @@ impl StoreLinkConsistentExt for Store {
                         debug!("Checking entry = {:?}", entry.get_location());
 
                         let internal_links = entry
-                            .get_internal_links()?
+                            .links()?
                             .into_getter(store); // get the FLEs from the Store
 
                         let mut linking = Linking::default();

@@ -48,6 +48,7 @@ extern crate libimagentrylink;
 
 use std::io::Write;
 use std::process::exit;
+use std::ops::DerefMut;
 
 use toml_query::read::TomlValueReadTypeExt;
 use failure::Error;
@@ -61,7 +62,7 @@ use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::io::ToExitCode;
 use libimagerror::exit::ExitUnwrap;
 use libimagutil::debug_result::DebugResult;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linker::Linkable;
 
 
 mod ui;
@@ -107,8 +108,7 @@ fn add(rt: &Runtime) {
     let _ = rt.report_touched(collection.get_location()).unwrap_or_exit();
 
     for url in scmd.values_of("urls").unwrap() { // unwrap saved by clap
-        let new_ids = collection
-            .add_link(rt.store(), BookmarkLink::from(url))
+        let new_ids = BookmarkCollection::add_link(collection.deref_mut(), rt.store(), BookmarkLink::from(url))
             .map_err_trace_exit_unwrap();
 
         let _ = rt.report_all_touched(new_ids.into_iter()).unwrap_or_exit();
@@ -163,7 +163,7 @@ fn list(rt: &Runtime) {
     let _ = rt.report_touched(collection.get_location()).unwrap_or_exit();
 
     collection
-        .links(rt.store())
+        .get_links(rt.store())
         .map_dbg_str("Listing...")
         .map_err_trace_exit_unwrap()
         .into_iter()
@@ -187,8 +187,7 @@ fn remove(rt: &Runtime) {
     let _ = rt.report_touched(collection.get_location()).unwrap_or_exit();
 
     for url in scmd.values_of("urls").unwrap() { // enforced by clap
-        let removed_links = collection
-            .remove_link(rt.store(), BookmarkLink::from(url))
+        let removed_links = BookmarkCollection::remove_link(collection.deref_mut(), rt.store(), BookmarkLink::from(url))
             .map_err_trace_exit_unwrap();
 
         let _ = rt.report_all_touched(removed_links.into_iter()).unwrap_or_exit();

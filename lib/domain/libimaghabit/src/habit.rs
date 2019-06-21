@@ -33,7 +33,7 @@ use crate::util::IsHabitCheck;
 use crate::util::get_string_header_from_entry;
 use crate::instance::IsHabitInstance;
 
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linker::Linkable;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Entry;
@@ -129,7 +129,7 @@ impl HabitTemplate for Entry {
 
     fn linked_instances(&self) -> Result<HabitInstanceStoreIdIterator> {
         let iter = self
-            .get_internal_links()?
+            .links()?
             .map(|link| link.get_store_id().clone())
             .filter(IsHabitCheck::is_habit_instance)
             .map(Ok);
@@ -239,7 +239,7 @@ impl HabitTemplate for Entry {
         let name = self.habit_name()?;
         let date = date_to_string(date);
 
-        for link in self.get_internal_links()? {
+        for link in self.links()? {
             let sid         = link.get_store_id();
             let instance_id = instance_id_for_name_and_datestr(&name, &date)?;
 
@@ -410,7 +410,7 @@ fn postprocess_instance<'a>(mut entry: FileLockEntry<'a>,
         let _   = hdr.insert("habit.instance.comment", Value::String(comment))?;
     }
 
-    entry.add_internal_link(template)?;
+    entry.add_link(template)?;
 
     Ok(entry)
 }

@@ -23,7 +23,7 @@ use libimagstore::storeid::StoreId;
 use libimagstore::store::Store;
 use libimagstore::store::Entry;
 use libimagutil::debug_result::DebugResult;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linker::Linkable;
 
 use failure::Fallible as Result;
 use toml::Value;
@@ -36,7 +36,7 @@ use hex;
 
 use crate::iter::UrlIter;
 
-pub trait UrlLinker : InternalLinker {
+pub trait UrlLinker : Linkable {
 
     /// Get the external links from the implementor object
     fn get_urls<'a>(&self, store: &'a Store) -> Result<UrlIter<'a>>;
@@ -64,7 +64,7 @@ impl UrlLinker for Entry {
         // Iterate through all internal links and filter for FileLockEntries which live in
         // /link/external/<SHA> -> load these files and get the external link from their headers,
         // put them into the return vector.
-        self.get_internal_links()
+        self.links()
             .map(|iter| {
                 debug!("Getting external links");
                 iter.only_urls().urls(store)
@@ -130,7 +130,7 @@ impl UrlLinker for Entry {
             }
 
             // then add an internal link to the new file or return an error if this fails
-            let _ = self.add_internal_link(file.deref_mut())?;
+            let _ = self.add_link(file.deref_mut())?;
             debug!("Added internal link");
 
             Ok((link_already_exists, file_id))

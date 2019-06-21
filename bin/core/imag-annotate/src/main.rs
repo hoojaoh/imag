@@ -66,7 +66,7 @@ use libimagrt::runtime::Runtime;
 use libimagrt::setup::generate_runtime_setup;
 use libimagstore::store::FileLockEntry;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linker::Linkable;
 
 mod ui;
 
@@ -124,7 +124,7 @@ fn add(rt: &Runtime) {
                 .ok_or_else(|| format_err!("Not found: {}", id.local_display_string()))
                 .map_err_trace_exit_unwrap();
 
-            let _ = entry.add_internal_link(&mut annotation).map_err_trace_exit_unwrap();
+            let _ = entry.add_link(&mut annotation).map_err_trace_exit_unwrap();
         }
 
         if !scmd.is_present("dont-print-name") {

@@ -35,27 +35,27 @@ use crate::link::Link;
 
 use toml::Value;
 
-pub trait InternalLinker {
+pub trait Linkable {
 
     /// Get the internal links from the implementor object
-    fn get_internal_links(&self) -> Result<LinkIter>;
+    fn links(&self) -> Result<LinkIter>;
 
     /// Add an internal link to the implementor object
-    fn add_internal_link(&mut self, link: &mut Entry) -> Result<()>;
+    fn add_link(&mut self, link: &mut Entry) -> Result<()>;
 
     /// Remove an internal link from the implementor object
-    fn remove_internal_link(&mut self, link: &mut Entry) -> Result<()>;
+    fn remove_link(&mut self, link: &mut Entry) -> Result<()>;
 
     /// Remove _all_ internal links
     fn unlink(&mut self, store: &Store) -> Result<()>;
 
     /// Add internal annotated link
-    fn add_internal_annotated_link(&mut self, link: &mut Entry, annotation: String) -> Result<()>;
+    fn add_annotated_link(&mut self, link: &mut Entry, annotation: String) -> Result<()>;
 }
 
-impl InternalLinker for Entry {
+impl Linkable for Entry {
 
-    fn get_internal_links(&self) -> Result<LinkIter> {
+    fn links(&self) -> Result<LinkIter> {
         debug!("Getting internal links");
         trace!("Getting internal links from header of '{}' = {:?}", self.get_location(), self.get_header());
         let res = self
@@ -69,13 +69,13 @@ impl InternalLinker for Entry {
         process_rw_result(res)
     }
 
-    fn add_internal_link(&mut self, link: &mut Entry) -> Result<()> {
+    fn add_link(&mut self, link: &mut Entry) -> Result<()> {
         debug!("Adding internal link: {:?}", link);
         let location = link.get_location().clone().into();
-        add_internal_link_with_instance(self, link, location)
+        add_link_with_instance(self, link, location)
     }
 
-    fn remove_internal_link(&mut self, link: &mut Entry) -> Result<()> {
+    fn remove_link(&mut self, link: &mut Entry) -> Result<()> {
         debug!("Removing internal link: {:?}", link);
 
         // Cloning because of borrowing
@@ -84,13 +84,13 @@ impl InternalLinker for Entry {
 
         debug!("Removing internal link from {:?} to {:?}", own_loc, other_loc);
 
-        let links = link.get_internal_links()?;
+        let links = link.links()?;
         debug!("Rewriting own links for {:?}, without {:?}", other_loc, own_loc);
 
         let links = links.filter(|l| !l.eq_store_id(&own_loc));
         let _     = rewrite_links(link.get_header_mut(), links)?;
 
-        self.get_internal_links()
+        self.links()
             .and_then(|links| {
                 debug!("Rewriting own links for {:?}, without {:?}", own_loc, other_loc);
                 let links = links.filter(|l| !l.eq_store_id(&other_loc));
@@ -99,9 +99,9 @@ impl InternalLinker for Entry {
     }
 
     fn unlink(&mut self, store: &Store) -> Result<()> {
-        for id in self.get_internal_links()?.map(|l| l.get_store_id().clone()) {
+        for id in self.links()?.map(|l| l.get_store_id().clone()) {
             match store.get(id).context("Failed to get entry")? {
-                Some(mut entry) => self.remove_internal_link(&mut entry)?,
+                Some(mut entry) => self.remove_link(&mut entry)?,
                 None            => return Err(err_msg("Link target does not exist")),
             }
         }
@@ -109,23 +109,23 @@ impl InternalLinker for Entry {
         Ok(())
     }
 
-    fn add_internal_annotated_link(&mut self, link: &mut Entry, annotation: String) -> Result<()> {
+    fn add_annotated_link(&mut self, link: &mut Entry, annotation: String) -> Result<()> {
         let new_link = Link::Annotated {
             link: link.get_location().clone(),
             annotation: annotation,
         };
 
-        add_internal_link_with_instance(self, link, new_link)
+        add_link_with_instance(self, link, new_link)
     }
 
 }
 
-fn add_internal_link_with_instance(this: &mut Entry, link: &mut Entry, instance: Link) -> Result<()> {
+fn add_link_with_instance(this: &mut Entry, link: &mut Entry, instance: Link) -> Result<()> {
     debug!("Adding internal link from {:?} to {:?}", this.get_location(), instance);
 
     add_foreign_link(link, this.get_location().clone())
         .and_then(|_| {
-            this.get_internal_links()
+            this.links()
                 .and_then(|links| {
                     let links = links.chain(LinkIter::new(vec![instance]));
                     rewrite_links(this.get_header_mut(), links)
@@ -156,7 +156,7 @@ fn rewrite_links<I: Iterator<Item = Link>>(header: &mut Value, links: I) -> Resu
 /// This is a helper function which does this.
 fn add_foreign_link(target: &mut Entry, from: StoreId) -> Result<()> {
     debug!("Linking back from {:?} to {:?}", target.get_location(), from);
-    target.get_internal_links()
+    target.links()
         .and_then(|links| {
             let links = links
                              .chain(LinkIter::new(vec![from.into()]))
@@ -258,7 +258,7 @@ mod test {
 
     use libimagstore::store::Store;
 
-    use super::InternalLinker;
+    use super::Linkable;
     use super::Link;
 
     fn setup_logging() {
@@ -274,7 +274,7 @@ mod test {
         setup_logging();
         let store = get_store();
         let entry = store.create(PathBuf::from("test_new_entry_no_links")).unwrap();
-        let links = entry.get_internal_links();
+        let links = entry.links();
         assert!(links.is_ok());
         let links = links.unwrap();
         assert_eq!(links.collect::<Vec<_>>().len(), 0);
@@ -285,16 +285,16 @@ mod test {
         setup_logging();
         let store = get_store();
         let mut e1 = store.create(PathBuf::from("test_link_two_entries1")).unwrap();
-        assert!(e1.get_internal_links().is_ok());
+        assert!(e1.links().is_ok());
 
         let mut e2 = store.create(PathBuf::from("test_link_two_entries2")).unwrap();
-        assert!(e2.get_internal_links().is_ok());
+        assert!(e2.links().is_ok());
 
         {
-            assert!(e1.add_internal_link(&mut e2).is_ok());
+            assert!(e1.add_link(&mut e2).is_ok());
 
-            let e1_links = e1.get_internal_links().unwrap().collect::<Vec<_>>();
-            let e2_links = e2.get_internal_links().unwrap().collect::<Vec<_>>();
+            let e1_links = e1.links().unwrap().collect::<Vec<_>>();
+            let e2_links = e2.links().unwrap().collect::<Vec<_>>();
 
             debug!("1 has links: {:?}", e1_links);
             debug!("2 has links: {:?}", e2_links);
@@ -307,14 +307,14 @@ mod test {
         }
 
         {
-            assert!(e1.remove_internal_link(&mut e2).is_ok());
+            assert!(e1.remove_link(&mut e2).is_ok());
 
             debug!("{:?}", e2.to_str());
-            let e2_links = e2.get_internal_links().unwrap().collect::<Vec<_>>();
+            let e2_links = e2.links().unwrap().collect::<Vec<_>>();
             assert_eq!(e2_links.len(), 0, "Expected [], got: {:?}", e2_links);
 
             debug!("{:?}", e1.to_str());
-            let e1_links = e1.get_internal_links().unwrap().collect::<Vec<_>>();
+            let e1_links = e1.links().unwrap().collect::<Vec<_>>();
             assert_eq!(e1_links.len(), 0, "Expected [], got: {:?}", e1_links);
 
         }
@@ -331,69 +331,69 @@ mod test {
         let mut e4 = store.retrieve(PathBuf::from("4")).unwrap();
         let mut e5 = store.retrieve(PathBuf::from("5")).unwrap();
 
-        assert!(e1.add_internal_link(&mut e2).is_ok());
+        assert!(e1.add_link(&mut e2).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e4.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
 
-        assert!(e1.add_internal_link(&mut e3).is_ok());
+        assert!(e1.add_link(&mut e3).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 2);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
 
-        assert!(e1.add_internal_link(&mut e4).is_ok());
+        assert!(e1.add_link(&mut e4).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 3);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e5.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 3);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
 
-        assert!(e1.add_internal_link(&mut e5).is_ok());
+        assert!(e1.add_link(&mut e5).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 4);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e5.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 4);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 1);
 
-        assert!(e5.remove_internal_link(&mut e1).is_ok());
+        assert!(e5.remove_link(&mut e1).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 3);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e5.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 3);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
 
-        assert!(e4.remove_internal_link(&mut e1).is_ok());
+        assert!(e4.remove_link(&mut e1).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 2);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
 
-        assert!(e3.remove_internal_link(&mut e1).is_ok());
+        assert!(e3.remove_link(&mut e1).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e4.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
 
-        assert!(e2.remove_internal_link(&mut e1).is_ok());
+        assert!(e2.remove_link(&mut e1).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e4.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
 
     }
 
@@ -405,18 +405,18 @@ mod test {
         let mut e1 = store.retrieve(PathBuf::from("1")).unwrap();
         let mut e2 = store.retrieve(PathBuf::from("2")).unwrap();
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
 
-        assert!(e1.add_internal_link(&mut e2).is_ok());
+        assert!(e1.add_link(&mut e2).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
 
-        assert!(e1.remove_internal_link(&mut e2).is_ok());
+        assert!(e1.remove_link(&mut e2).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
     }
 
     #[test]
@@ -428,40 +428,40 @@ mod test {
         let mut e2 = store.retrieve(PathBuf::from("2")).unwrap();
         let mut e3 = store.retrieve(PathBuf::from("3")).unwrap();
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
 
-        assert!(e1.add_internal_link(&mut e2).is_ok()); // 1-2
-        assert!(e1.add_internal_link(&mut e3).is_ok()); // 1-2, 1-3
+        assert!(e1.add_link(&mut e2).is_ok()); // 1-2
+        assert!(e1.add_link(&mut e3).is_ok()); // 1-2, 1-3
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 2);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
 
-        assert!(e2.add_internal_link(&mut e3).is_ok()); // 1-2, 1-3, 2-3
+        assert!(e2.add_link(&mut e3).is_ok()); // 1-2, 1-3, 2-3
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 2);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 2);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 2);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 2);
 
-        assert!(e1.remove_internal_link(&mut e2).is_ok()); // 1-3, 2-3
+        assert!(e1.remove_link(&mut e2).is_ok()); // 1-3, 2-3
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 2);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 2);
 
-        assert!(e1.remove_internal_link(&mut e3).is_ok()); // 2-3
+        assert!(e1.remove_link(&mut e3).is_ok()); // 2-3
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
 
-        assert!(e2.remove_internal_link(&mut e3).is_ok());
+        assert!(e2.remove_link(&mut e3).is_ok());
 
-        assert_eq!(e1.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e3.get_internal_links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
     }
 
     #[test]
@@ -471,11 +471,11 @@ mod test {
         let mut entry1 = store.create(PathBuf::from("test_link_annotating-1")).unwrap();
         let mut entry2 = store.create(PathBuf::from("test_link_annotating-2")).unwrap();
 
-        let res = entry1.add_internal_annotated_link(&mut entry2, String::from("annotation"));
+        let res = entry1.add_annotated_link(&mut entry2, String::from("annotation"));
         assert!(res.is_ok());
 
         {
-            for link in entry1.get_internal_links().unwrap() {
+            for link in entry1.links().unwrap() {
                 match link  {
                     Link::Annotated {annotation, ..} => assert_eq!(annotation, "annotation"),
                     _ => assert!(false, "Non-annotated link found"),
@@ -484,7 +484,7 @@ mod test {
         }
 
         {
-            for link in entry2.get_internal_links().unwrap() {
+            for link in entry2.links().unwrap() {
                 match link  {
                     Link::Id {..}        => {},
                     Link::Annotated {..} => assert!(false, "Annotated link found"),

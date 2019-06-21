@@ -63,7 +63,7 @@ use failure::Error;
 use failure::err_msg;
 
 use libimagentryurl::linker::UrlLinker;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linker::Linkable;
 use libimagentrylink::storecheck::StoreLinkConsistentExt;
 use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::exit::ExitUnwrap;
@@ -182,7 +182,7 @@ fn link_from_to<'a, I>(rt: &'a Runtime, from: &'a str, to: I)
                 },
             };
             let _ = from_entry
-                .add_internal_link(&mut to_entry)
+                .add_link(&mut to_entry)
                 .map_err_trace_exit_unwrap();
 
             let _ = rt.report_touched(to_entry.get_location()).unwrap_or_exit();
@@ -222,7 +222,7 @@ fn remove_linking(rt: &Runtime) {
             Err(e) => trace_error(&e),
             Ok(Some(mut to_entry)) => {
                 let _ = to_entry
-                    .remove_internal_link(&mut from)
+                    .remove_link(&mut from)
                     .map_err_trace_exit_unwrap();
 
                 let _ = rt.report_touched(to_entry.get_location()).unwrap_or_exit();
@@ -296,7 +296,7 @@ fn list_linkings(rt: &Runtime) {
         .for_each(|id| {
             match rt.store().get(id.clone()) {
                 Ok(Some(entry)) => {
-                    for (i, link) in entry.get_internal_links().map_err_trace_exit_unwrap().enumerate() {
+                    for (i, link) in entry.links().map_err_trace_exit_unwrap().enumerate() {
                         let link = link
                             .to_str()
                             .map_warn_err(|e| format!("Failed to convert StoreId to string: {:?}", e))

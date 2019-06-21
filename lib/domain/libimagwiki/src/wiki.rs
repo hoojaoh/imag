@@ -22,7 +22,7 @@ use std::path::PathBuf;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagstore::iter::Entries;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linker::Linkable;
 
 use failure::Fallible as Result;
 use failure::Error;
@@ -78,7 +78,7 @@ impl<'a, 'b> Wiki<'a, 'b> {
             .ok_or_else(|| err_msg("Missing index page"))?;
         let mut entry = self.0.create(sid)?;
 
-        entry.add_internal_link(&mut index).map(|_| entry)
+        entry.add_link(&mut index).map(|_| entry)
     }
 
     pub fn retrieve_entry<EN: AsRef<str>>(&self, entry_name: EN) -> Result<FileLockEntry<'a>> {
@@ -89,7 +89,7 @@ impl<'a, 'b> Wiki<'a, 'b> {
             .ok_or_else(|| err_msg("Missing index page"))?;
         let mut entry = self.0.retrieve(sid)?;
 
-        entry.add_internal_link(&mut index).map(|_| entry)
+        entry.add_link(&mut index).map(|_| entry)
     }
 
     pub fn all_ids(&self) -> Result<Entries<'a>> {
