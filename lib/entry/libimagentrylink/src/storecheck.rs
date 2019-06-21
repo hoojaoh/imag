@@ -28,7 +28,7 @@ use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;
 
-use crate::linker::*;
+use crate::linkable::*;
 
 pub trait StoreLinkConsistentExt {
     fn check_link_consistency(&self) -> Result<()>;

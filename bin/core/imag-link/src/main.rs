@@ -63,7 +63,7 @@ use failure::Error;
 use failure::err_msg;
 
 use libimagentryurl::linker::UrlLinker;
-use libimagentrylink::linker::Linkable;
+use libimagentrylink::linkable::Linkable;
 use libimagentrylink::storecheck::StoreLinkConsistentExt;
 use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::exit::ExitUnwrap;

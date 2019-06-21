@@ -23,7 +23,7 @@ use libimagstore::storeid::StoreId;
 use libimagstore::store::Store;
 use libimagstore::store::Entry;
 use libimagutil::debug_result::DebugResult;
-use libimagentrylink::linker::Linkable;
+use libimagentrylink::linkable::Linkable;
 
 use failure::Fallible as Result;
 use toml::Value;

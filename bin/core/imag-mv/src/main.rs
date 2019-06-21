@@ -56,7 +56,7 @@ use libimagerror::exit::ExitUnwrap;
 use libimagstore::storeid::StoreId;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
-use libimagentrylink::linker::Linkable;
+use libimagentrylink::linkable::Linkable;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 
 fn main() {

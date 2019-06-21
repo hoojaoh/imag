@@ -24,7 +24,7 @@ use libimagstore::store::Entry;
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Store;
 use libimagstore::storeid::StoreIdIterator;
-use libimagentrylink::linker::Linkable;
+use libimagentrylink::linkable::Linkable;
 use libimagentryutil::isa::Is;
 use libimagentryutil::isa::IsKindHeaderPathProvider;
 

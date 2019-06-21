@@ -22,7 +22,7 @@ use std::path::PathBuf;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagstore::iter::Entries;
-use libimagentrylink::linker::Linkable;
+use libimagentrylink::linkable::Linkable;
 
 use failure::Fallible as Result;
 use failure::Error;

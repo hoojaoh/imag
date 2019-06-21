@@ -57,7 +57,7 @@ extern crate libimagutil;
 module_entry_path_mod!("links");
 
 pub mod iter;
-pub mod linker;
+pub mod linkable;
 pub mod link;
 pub mod storecheck;
 

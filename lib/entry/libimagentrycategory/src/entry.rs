@@ -23,7 +23,7 @@ use toml_query::read::TomlValueReadTypeExt;
 use toml::Value;
 
 use libimagstore::store::Entry;
-use libimagentrylink::linker::Linkable;
+use libimagentrylink::linkable::Linkable;
 use libimagerror::errors::ErrorMsg as EM;
 
 use failure::Fallible as Result;

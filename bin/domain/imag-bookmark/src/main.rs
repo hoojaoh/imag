@@ -62,7 +62,7 @@ use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::io::ToExitCode;
 use libimagerror::exit::ExitUnwrap;
 use libimagutil::debug_result::DebugResult;
-use libimagentrylink::linker::Linkable;
+use libimagentrylink::linkable::Linkable;
 
 
 mod ui;

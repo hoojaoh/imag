@@ -36,7 +36,7 @@ use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
 use libimagentryurl::linker::UrlLinker;
 use libimagentryurl::iter::UrlIter;
-use libimagentrylink::linker::Linkable;
+use libimagentrylink::linkable::Linkable;
 use libimagentrylink::link::Link as StoreLink;
 
 use crate::link::Link;
