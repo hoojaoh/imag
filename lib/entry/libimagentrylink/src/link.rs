@@ -30,6 +30,8 @@ use failure::Error;
 #[derive(Eq, PartialOrd, Ord, Hash, Debug, Clone)]
 pub enum Link {
     Id          { link: StoreId },
+    LinkTo   { link: StoreId },
+    LinkFrom { link: StoreId },
 }
 
 impl Link {
@@ -37,6 +39,8 @@ impl Link {
     pub fn exists(&self, store: &Store) -> Result<bool> {
         match *self {
             Link::Id { ref link }             => store.exists(link.clone()),
+            Link::LinkTo   { ref link }       => store.exists(link.clone()),
+            Link::LinkFrom { ref link }       => store.exists(link.clone()),
         }
         .map_err(From::from)
     }
@@ -44,6 +48,8 @@ impl Link {
     pub fn to_str(&self) -> Result<String> {
         match *self {
             Link::Id { ref link }             => link.to_str(),
+            Link::LinkTo   { ref link }       => link.to_str(),
+            Link::LinkFrom { ref link }       => link.to_str(),
         }
         .map_err(From::from)
     }
@@ -52,6 +58,8 @@ impl Link {
     pub(crate) fn eq_store_id(&self, id: &StoreId) -> bool {
         match self {
             &Link::Id { link: ref s }             => s.eq(id),
+            &Link::LinkTo   { ref link }          => link.eq(id),
+            &Link::LinkFrom { ref link }          => link.eq(id),
         }
     }
 
@@ -59,17 +67,21 @@ impl Link {
     pub fn get_store_id(&self) -> &StoreId {
         match self {
             &Link::Id { link: ref s }             => s,
+            &Link::LinkTo   { ref link }          => link,
+            &Link::LinkFrom { ref link }          => link,
         }
     }
 
     pub(crate) fn to_value(&self) -> Result<Value> {
         match self {
-            Link::Id { ref link } => link
-                .to_str()
-                .map(Value::String)
-                .context(EM::ConversionError)
-                .map_err(Error::from),
+            Link::Id       { ref link } => link,
+            Link::LinkTo   { ref link } => link,
+            Link::LinkFrom { ref link } => link,
         }
+        .to_str()
+        .map(Value::String)
+        .context(EM::ConversionError)
+        .map_err(Error::from)
     }
 
 }
@@ -78,6 +90,9 @@ impl ::std::cmp::PartialEq for Link {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (&Link::Id { link: ref a }, &Link::Id { link: ref b }) => a.eq(&b),
+            (&Link::LinkTo   { link: ref a }, &Link::LinkTo   { link: ref b })=> a.eq(&b),
+            (&Link::LinkFrom { link: ref a }, &Link::LinkFrom { link: ref b })=> a.eq(&b),
+            _ => false,
         }
     }
 }
@@ -93,6 +108,8 @@ impl Into<StoreId> for Link {
     fn into(self) -> StoreId {
         match self {
             Link::Id { link }            => link,
+            Link::LinkTo   { link }      => link,
+            Link::LinkFrom { link }      => link,
         }
     }
 }
@@ -101,6 +118,8 @@ impl IntoStoreId for Link {
     fn into_storeid(self) -> Result<StoreId> {
         match self {
             Link::Id { link }            => Ok(link),
+            Link::LinkTo   { link }      => Ok(link),
+            Link::LinkFrom { link }      => Ok(link),
         }
     }
 }
@@ -109,6 +128,8 @@ impl AsRef<StoreId> for Link {
     fn as_ref(&self) -> &StoreId {
         match self {
             &Link::Id { ref link }            => &link,
+            &Link::LinkTo   { ref link }      => &link,
+            &Link::LinkFrom { ref link }      => &link,
         }
     }
 }

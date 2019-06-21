@@ -38,6 +38,15 @@ pub trait Linkable {
     /// Get all links
     fn links(&self) -> Result<LinkIter>;
 
+    /// Get all links which are unidirectional links
+    fn unidirectional_links(&self) -> Result<LinkIter>;
+
+    /// Get all links which are directional links, outgoing
+    fn directional_links_to(&self) -> Result<LinkIter>;
+
+    /// Get all links which are directional links, incoming
+    fn directional_links_from(&self) -> Result<LinkIter>;
+
     /// Add an internal link to the implementor object
     fn add_link(&mut self, link: &mut Entry) -> Result<()>;
 
@@ -47,17 +56,27 @@ pub trait Linkable {
     /// Remove _all_ internal links
     fn unlink(&mut self, store: &Store) -> Result<()>;
 
+    /// Add a directional link: self -> otehr
+    fn add_link_to(&mut self, other: &mut Entry) -> Result<()>;
+
+    /// Remove a directional link: self -> otehr
+    fn remove_link_to(&mut self, other: &mut Entry) -> Result<()>;
+
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct LinkPartial {
     internal: Option<Vec<String>>,
+    from: Option<Vec<String>>,
+    to: Option<Vec<String>>,
 }
 
 impl Default for LinkPartial {
     fn default() -> Self {
         LinkPartial {
             internal: None,
+            from: None,
+            to: None,
         }
     }
 }
@@ -82,11 +101,55 @@ impl Linkable for Entry {
             .internal
             .unwrap_or_else(|| vec![])
             .into_iter()
+            .chain(partial.from.unwrap_or_else(|| vec![]).into_iter())
+            .chain(partial.to.unwrap_or_else(|| vec![]).into_iter())
             .map(PathBuf::from)
             .map(StoreId::new)
             .map(|r| r.map(Link::from))
             .collect::<Result<Vec<Link>>>()
             .map(LinkIter::new)
+    }
+
+    /// Get all links which are unidirectional links
+    fn unidirectional_links(&self) -> Result<LinkIter> {
+        trace!("Getting unidirectional links from header of '{}' = {:?}", self.get_location(), self.get_header());
+
+        let iter = self.get_header()
+            .read_partial::<LinkPartial>()?
+            .unwrap_or_else(Default::default)
+            .internal
+            .unwrap_or_else(|| vec![])
+            .into_iter();
+
+        link_string_iter_to_link_iter(iter)
+    }
+
+    /// Get all links which are directional links, outgoing
+    fn directional_links_to(&self) -> Result<LinkIter> {
+        trace!("Getting unidirectional (to) links from header of '{}' = {:?}", self.get_location(), self.get_header());
+
+        let iter = self.get_header()
+            .read_partial::<LinkPartial>()?
+            .unwrap_or_else(Default::default)
+            .to
+            .unwrap_or_else(|| vec![])
+            .into_iter();
+
+        link_string_iter_to_link_iter(iter)
+    }
+
+    /// Get all links which are directional links, incoming
+    fn directional_links_from(&self) -> Result<LinkIter> {
+        trace!("Getting unidirectional (from) links from header of '{}' = {:?}", self.get_location(), self.get_header());
+
+        let iter = self.get_header()
+            .read_partial::<LinkPartial>()?
+            .unwrap_or_else(Default::default)
+            .from
+            .unwrap_or_else(|| vec![])
+            .into_iter();
+
+        link_string_iter_to_link_iter(iter)
     }
 
     fn add_link(&mut self, other: &mut Entry) -> Result<()> {
@@ -150,6 +213,53 @@ impl Linkable for Entry {
         Ok(())
     }
 
+    fn add_link_to(&mut self, other: &mut Entry) -> Result<()> {
+        let left_location  = self.get_location().to_str()?;
+        let right_location = other.get_location().to_str()?;
+
+        alter_linking(self, other, |mut left, mut right| {
+            let mut left_to = left.to.unwrap_or_else(|| vec![]);
+            left_to.push(right_location);
+
+            let mut right_from = right.from.unwrap_or_else(|| vec![]);
+            right_from.push(left_location);
+
+            left.to = Some(left_to);
+            right.from = Some(right_from);
+
+            Ok((left, right))
+        })
+    }
+
+    /// Remove a directional link: self -> otehr
+    fn remove_link_to(&mut self, other: &mut Entry) -> Result<()> {
+        let left_location  = self.get_location().to_str()?;
+        let right_location = other.get_location().to_str()?;
+
+        alter_linking(self, other, |mut left, mut right| {
+            let mut left_to = left.to.unwrap_or_else(|| vec![]);
+            left_to.retain(|l| *l != right_location);
+
+            let mut right_from = right.from.unwrap_or_else(|| vec![]);
+            right_from.retain(|l| *l != left_location);
+
+            left.to = Some(left_to);
+            right.from = Some(right_from);
+
+            Ok((left, right))
+        })
+    }
+
+}
+
+fn link_string_iter_to_link_iter<I>(iter: I) -> Result<LinkIter>
+    where I: Iterator<Item = String>
+{
+    iter.map(PathBuf::from)
+        .map(StoreId::new)
+        .map(|r| r.map(Link::from))
+        .collect::<Result<Vec<Link>>>()
+        .map(LinkIter::new)
 }
 
 fn alter_linking<F>(left: &mut Entry, right: &mut Entry, f: F) -> Result<()>
@@ -390,6 +500,63 @@ mod test {
         assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
         assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
         assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
+    }
+
+    #[test]
+    fn test_directional_link() {
+        use libimagstore::store::Entry;
+
+        setup_logging();
+        let store      = get_store();
+        let mut entry1 = store.create(PathBuf::from("test_directional_link-1")).unwrap();
+        let mut entry2 = store.create(PathBuf::from("test_directional_link-2")).unwrap();
+
+        assert!(entry1.unidirectional_links().unwrap().collect::<Vec<_>>().is_empty());
+        assert!(entry2.unidirectional_links().unwrap().collect::<Vec<_>>().is_empty());
+
+        assert!(entry1.directional_links_to().unwrap().collect::<Vec<_>>().is_empty());
+        assert!(entry2.directional_links_to().unwrap().collect::<Vec<_>>().is_empty());
+
+        assert!(entry1.directional_links_from().unwrap().collect::<Vec<_>>().is_empty());
+        assert!(entry2.directional_links_from().unwrap().collect::<Vec<_>>().is_empty());
+
+        assert!(entry1.add_link_to(&mut entry2).is_ok());
+
+        assert_eq!(entry1.unidirectional_links().unwrap().collect::<Vec<_>>(), vec![]);
+        assert_eq!(entry2.unidirectional_links().unwrap().collect::<Vec<_>>(), vec![]);
+
+        let get_directional_links_to = |e: &Entry| -> Result<Vec<String>, _> {
+            e.directional_links_to()
+                .unwrap()
+                .map(|l| l.to_str())
+                .collect::<Result<Vec<_>, _>>()
+        };
+
+        let get_directional_links_from = |e: &Entry| {
+            e.directional_links_from()
+                .unwrap()
+                .map(|l| l.to_str())
+                .collect::<Result<Vec<_>, _>>()
+        };
+
+        {
+            let entry1_dir_links = get_directional_links_to(&entry1).unwrap();
+            assert_eq!(entry1_dir_links, vec!["test_directional_link-2"]);
+        }
+        {
+            let entry2_dir_links = get_directional_links_to(&entry2).unwrap();
+            assert!(entry2_dir_links.is_empty());
+        }
+
+        {
+            let entry1_dir_links = get_directional_links_from(&entry1).unwrap();
+            assert!(entry1_dir_links.is_empty());
+        }
+        {
+            let entry2_dir_links = get_directional_links_from(&entry2).unwrap();
+            assert_eq!(entry2_dir_links, vec!["test_directional_link-1"]);
+        }
+
     }
 
 }
