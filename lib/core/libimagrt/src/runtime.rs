@@ -364,6 +364,7 @@ impl<'a> Runtime<'a> {
 
             // safe debug output for later, after the instance itself
             // is moved away
+            #[allow(unused)]
             let logger_expl = format!("{:?}", logger);
 
             set_boxed_logger(Box::new(logger))
