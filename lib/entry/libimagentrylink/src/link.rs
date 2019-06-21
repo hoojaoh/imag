@@ -68,15 +68,6 @@ impl Link {
         }
     }
 
-    /// Helper wrapper around Link for StoreId
-    pub(crate) fn without_base(self) -> Link {
-        match self {
-            Link::Id { link: s } => Link::Id { link: s },
-            Link::Annotated { link: s, annotation: ann } =>
-                Link::Annotated { link: s, annotation: ann },
-        }
-    }
-
     pub(crate) fn to_value(&self) -> Result<Value> {
         match self {
             &Link::Id { link: ref s } =>

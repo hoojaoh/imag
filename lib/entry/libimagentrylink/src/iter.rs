@@ -60,8 +60,7 @@ pub trait IntoValues {
 
 impl<I: Iterator<Item = Link>> IntoValues for I {
     fn into_values(self) -> Vec<Result<Value>> {
-        self.map(|s| s.without_base())
-            .unique()
+        self.unique()
             .sorted()
             .into_iter() // Cannot sort toml::Value, hence uglyness here
             .map(|link| link.to_value().context(EM::ConversionError).map_err(Error::from))
