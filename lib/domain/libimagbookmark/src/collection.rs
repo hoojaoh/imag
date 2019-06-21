@@ -36,7 +36,7 @@ use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
 use libimagentryurl::linker::UrlLinker;
 use libimagentryurl::iter::UrlIter;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linkable::Linkable;
 use libimagentrylink::link::Link as StoreLink;
 
 use crate::link::Link;
@@ -80,8 +80,8 @@ impl<'a> BookmarkCollectionStore<'a> for Store {
 
 }
 
-pub trait BookmarkCollection : Sized + InternalLinker + UrlLinker {
-    fn links<'a>(&self, store: &'a Store)                        -> Result<UrlIter<'a>>;
+pub trait BookmarkCollection : Sized + Linkable + UrlLinker {
+    fn get_links<'a>(&self, store: &'a Store)                    -> Result<UrlIter<'a>>;
     fn link_entries(&self)                                       -> Result<Vec<StoreLink>>;
     fn add_link(&mut self, store: &Store, l: Link)               -> Result<Vec<StoreId>>;
     fn get_links_matching<'a>(&self, store: &'a Store, r: Regex) -> Result<LinksMatchingRegexIter<'a>>;
@@ -90,13 +90,13 @@ pub trait BookmarkCollection : Sized + InternalLinker + UrlLinker {
 
 impl BookmarkCollection for Entry {
 
-    fn links<'a>(&self, store: &'a Store) -> Result<UrlIter<'a>> {
+    fn get_links<'a>(&self, store: &'a Store) -> Result<UrlIter<'a>> {
         self.get_urls(store)
     }
 
     fn link_entries(&self) -> Result<Vec<StoreLink>> {
         use libimagentryurl::util::is_external_link_storeid;
-        self.get_internal_links().map(|v| v.filter(|id| is_external_link_storeid(id)).collect())
+        self.links().map(|v| v.filter(|id| is_external_link_storeid(id)).collect())
     }
 
     fn add_link(&mut self, store: &Store, l: Link) -> Result<Vec<StoreId>> {

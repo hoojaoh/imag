@@ -24,7 +24,7 @@ use libimagstore::store::Entry;
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Store;
 use libimagstore::storeid::StoreIdIterator;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linkable::Linkable;
 use libimagentryutil::isa::Is;
 use libimagentryutil::isa::IsKindHeaderPathProvider;
 
@@ -62,7 +62,7 @@ impl Annotateable for Entry {
                 Ok(anno)
             })
             .and_then(|mut anno| {
-                anno.add_internal_link(self)
+                anno.add_link(self)
                     .context(err_msg("Linking error"))
                     .map_err(Error::from)
                     .map(|_| anno)
@@ -74,7 +74,7 @@ impl Annotateable for Entry {
     // exist.
     fn denotate<'a>(&mut self, store: &'a Store, ann_name: &str) -> Result<Option<FileLockEntry<'a>>> {
         if let Some(mut annotation) = store.get(crate::module_path::new_id(ann_name)?)? {
-            let _ = self.remove_internal_link(&mut annotation)?;
+            let _ = self.remove_link(&mut annotation)?;
             Ok(Some(annotation))
         } else {
             // error: annotation does not exist
@@ -84,7 +84,7 @@ impl Annotateable for Entry {
 
     /// Get all annotations of an entry
     fn annotations(&self) -> Result<StoreIdIterator> {
-        self.get_internal_links()
+        self.links()
             .map(|it| {
                 it.filter(|link| link.get_store_id().is_in_collection(&["annotation"]))
                     .map(|link| Ok(link.get_store_id().clone()))

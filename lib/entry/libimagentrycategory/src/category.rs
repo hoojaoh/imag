@@ -22,7 +22,7 @@ use libimagentryutil::isa::IsKindHeaderPathProvider;
 use libimagstore::store::Entry;
 use libimagstore::store::Store;
 use libimagstore::storeid::StoreIdIterator;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linkable::Linkable;
 
 use toml_query::read::TomlValueReadTypeExt;
 
@@ -57,7 +57,7 @@ impl Category for Entry {
 
     fn get_entries<'a>(&self, store: &'a Store) -> Result<CategoryEntryIterator<'a>> {
         trace!("Getting linked entries for category '{:?}'", self.get_location());
-        let sit  = self.get_internal_links()?.map(|l| l.get_store_id().clone()).map(Ok);
+        let sit  = self.links()?.map(|l| l.get_store_id().clone()).map(Ok);
         let sit  = StoreIdIterator::new(Box::new(sit));
         let name = self.get_name()?;
         Ok(CategoryEntryIterator::new(store, sit, name))

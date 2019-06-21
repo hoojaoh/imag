@@ -23,7 +23,7 @@ use toml_query::read::TomlValueReadTypeExt;
 use toml::Value;
 
 use libimagstore::store::Entry;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linkable::Linkable;
 use libimagerror::errors::ErrorMsg as EM;
 
 use failure::Fallible as Result;
@@ -68,7 +68,7 @@ impl EntryCategory for Entry {
             .ok_or_else(|| Error::from(err_msg("Category does not exist")))?;
 
         let _ = self.set_category(s)?;
-        let _ = self.add_internal_link(&mut category)?;
+        let _ = self.add_link(&mut category)?;
 
         Ok(())
     }

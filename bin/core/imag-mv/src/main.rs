@@ -56,7 +56,7 @@ use libimagerror::exit::ExitUnwrap;
 use libimagstore::storeid::StoreId;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linkable::Linkable;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 
 fn main() {
@@ -93,7 +93,7 @@ fn main() {
                 error!("Funny things happened: Entry moved to destination did not fail, but entry does not exist");
                 exit(1)
             })
-            .get_internal_links()
+            .links()
             .map_err_trace_exit_unwrap()
             .map(|link| Ok(link.get_store_id().clone()) as Result<_, _>)
             .into_get_iter(rt.store())
@@ -118,7 +118,7 @@ fn main() {
             });
 
         for link in linked_entries.iter_mut() {
-            let _ = entry.remove_internal_link(link).map_err_trace_exit_unwrap();
+            let _ = entry.remove_link(link).map_err_trace_exit_unwrap();
         }
     }
 
@@ -151,6 +151,6 @@ fn relink<'a>(store: &'a Store, target: StoreId, linked_entries: &mut Vec<FileLo
 
 
     for mut link in linked_entries {
-        let _ = entry.add_internal_link(&mut link).map_err_trace_exit_unwrap();
+        let _ = entry.add_link(&mut link).map_err_trace_exit_unwrap();
     }
 }

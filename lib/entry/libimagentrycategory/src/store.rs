@@ -84,7 +84,7 @@ impl CategoryStore for Store {
     ///
     /// Automatically removes all category settings from entries which are linked to this category.
     fn delete_category(&self, name: &str) -> Result<()> {
-        use libimagentrylink::linker::InternalLinker;
+        use libimagentrylink::linkable::Linkable;
         use crate::category::Category;
 
         trace!("Deleting category: '{}'", name);
@@ -97,7 +97,7 @@ impl CategoryStore for Store {
 
             for entry in category.get_entries(self)? {
                 let mut entry = entry?;
-                let _         = category.remove_internal_link(&mut entry)?;
+                let _         = category.remove_link(&mut entry)?;
             }
         }
 

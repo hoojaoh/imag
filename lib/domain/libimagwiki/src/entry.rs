@@ -55,8 +55,8 @@ impl WikiEntry for Entry {
     ///
     fn autolink(&mut self, store: &Store) -> Result<()> {
         let processor = LinkProcessor::default()
-            .process_internal_links(true)
-            .create_internal_targets(true)
+            .process_links(true)
+            .create_targets(true)
             .process_urls(true)
             .process_refs(true);
 

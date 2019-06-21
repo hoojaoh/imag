@@ -28,7 +28,7 @@ use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;
 
-use crate::linker::*;
+use crate::linkable::*;
 
 pub trait StoreLinkConsistentExt {
     fn check_link_consistency(&self) -> Result<()>;
@@ -62,7 +62,7 @@ impl StoreLinkConsistentExt for Store {
                         debug!("Checking entry = {:?}", entry.get_location());
 
                         let internal_links = entry
-                            .get_internal_links()?
+                            .links()?
                             .into_getter(store); // get the FLEs from the Store
 
                         let mut linking = Linking::default();

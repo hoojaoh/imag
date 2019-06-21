@@ -55,7 +55,7 @@ use libimagerror::io::ToExitCode;
 use libimagerror::exit::ExitUnwrap;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
-use libimagentrylink::linker::InternalLinker;
+use libimagentrylink::linkable::Linkable;
 
 use toml::Value;
 use toml_query::read::TomlValueReadExt;
@@ -76,7 +76,7 @@ struct Diagnostic {
     pub bytecount_content: usize,
     pub overall_byte_size: usize,
     pub verified: bool,
-    pub num_internal_links: usize,
+    pub num_links: usize,
 }
 
 impl Diagnostic {
@@ -100,7 +100,7 @@ impl Diagnostic {
             bytecount_content: entry.get_content().as_str().len(),
             overall_byte_size: entry.to_str()?.as_str().len(),
             verified: entry.verify().is_ok(),
-            num_internal_links: entry.get_internal_links().map(Iterator::count).unwrap_or(0),
+            num_links: entry.links().map(Iterator::count).unwrap_or(0),
         })
     }
 }
@@ -176,15 +176,15 @@ fn main() {
     let mut max_overall_byte_size : Option<(usize, StoreId)> = None;
     let mut verified_count        = 0;
     let mut unverified_count      = 0;
-    let mut num_internal_links    = 0;
-    let mut max_internal_links : Option<(usize, StoreId)> = None;
+    let mut num_links    = 0;
+    let mut max_links : Option<(usize, StoreId)> = None;
 
     for diag in diags.iter() {
         sum_header_sections     += diag.header_sections;
         sum_bytecount_content   += diag.bytecount_content;
         sum_overall_byte_size   += diag.overall_byte_size;
         match max_overall_byte_size {
-            None => max_overall_byte_size = Some((diag.num_internal_links, diag.id.clone())),
+            None => max_overall_byte_size = Some((diag.num_links, diag.id.clone())),
             Some((num, _)) => if num < diag.overall_byte_size {
                 max_overall_byte_size = Some((diag.overall_byte_size, diag.id.clone()));
             }
@@ -199,11 +199,11 @@ fn main() {
             unverified_count += 1;
         }
 
-        num_internal_links += diag.num_internal_links;
-        match max_internal_links {
-            None => max_internal_links = Some((diag.num_internal_links, diag.id.clone())),
-            Some((num, _)) => if num < diag.num_internal_links {
-                max_internal_links = Some((diag.num_internal_links, diag.id.clone()));
+        num_links += diag.num_links;
+        match max_links {
+            None => max_links = Some((diag.num_links, diag.id.clone())),
+            Some((num, _)) => if num < diag.num_links {
+                max_links = Some((diag.num_links, diag.id.clone()));
             }
         }
 
@@ -230,9 +230,9 @@ fn main() {
             do_write!(out, "Largest Entry ({} bytes): {}", num, path.local_display_string());
         }
 
-        do_write!(out, "{} average internal link count per entry", num_internal_links / n);
+        do_write!(out, "{} average internal link count per entry", num_links / n);
 
-        if let Some((num, path)) = max_internal_links {
+        if let Some((num, path)) = max_links {
             do_write!(out, "Entry with most internal links ({}): {}",
                      num,
                      path.local_display_string());
