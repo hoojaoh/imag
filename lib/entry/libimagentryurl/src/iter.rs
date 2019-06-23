@@ -175,7 +175,7 @@ impl<'a> Iterator for UrlIter<'a> {
                         .and_then(|f| {
                             debug!("Store::retrieve({:?}) succeeded", id);
                             debug!("getting uri link from file now");
-                            f.get_link_uri_from_filelockentry()
+                            f.get_url()
                                 .map_dbg_str("Error happened while getting link URI from FLE")
                                 .map_dbg_err(|e| format!("URL -> Err = {:?}", e))
                         })
