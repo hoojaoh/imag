@@ -438,7 +438,7 @@ mod tests {
         assert!(result.is_ok(), "Should be Ok(()): {:?}", result);
 
         // The hash of "http://example.com" processed in the `libimagentrylink` way.
-        let expected_link = "url/external/9c17e047f58f9220a7008d4f18152fee4d111d14";
+        let expected_link = "url/9c17e047f58f9220a7008d4f18152fee4d111d14";
         {
             let base_links = base.links();
             assert!(base_links.is_ok());
