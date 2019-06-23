@@ -178,6 +178,47 @@ mod tests {
         Store::new_inmemory(PathBuf::from("/"), &None).unwrap()
     }
 
+    #[test]
+    fn test_adding_url() {
+        use toml_query::read::TomlValueReadTypeExt;
+
+        setup_logging();
+        let store = get_store();
+        let mut e = store.retrieve(PathBuf::from("base-test_simple")).unwrap();
+        let url   = Url::parse("http://google.de").unwrap();
+
+        assert!(e.add_url(&store, url.clone()).is_ok());
+
+        debug!("{:?}", e);
+        debug!("Header: {:?}", e.get_header());
+
+        let link = e.links().unwrap().next();
+        assert!(link.is_some());
+        let link = link.unwrap();
+
+        debug!("link[0] = {:?}", link);
+        let id = link.get_store_id();
+
+        let link_entry = store.get(id.clone()).unwrap().unwrap();
+
+        debug!("Entry = {:?}", link_entry);
+        debug!("Header = {:?}", link_entry.get_header());
+
+        let link = match link_entry.get_header().read_string("url.uri") {
+            Ok(Some(s)) => s,
+            Ok(None) => {
+                assert!(false);
+                unreachable!()
+            },
+            Err(e) => {
+                error!("{:?}", e);
+                assert!(false);
+                unreachable!()
+            },
+        };
+
+        assert_eq!(link, "http://google.de/");
+    }
 
     #[test]
     fn test_simple() {
