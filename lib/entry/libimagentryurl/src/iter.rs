@@ -37,7 +37,7 @@ use libimagutil::debug_result::DebugResult;
 use failure::Fallible as Result;
 use url::Url;
 
-/// Helper for building `OnlyExternalIter` and `NoExternalIter`
+/// Helper for building `OnlyUrlIter` and `NoUrlIter`
 ///
 /// The boolean value defines, how to interpret the `is_external_link_storeid()` return value
 /// (here as "pred"):
@@ -55,9 +55,9 @@ use url::Url;
 /// false... and so on.
 ///
 /// As we can see, the operator between these two operants is `!(a ^ b)`.
-pub struct ExternalFilterIter(LinkIter, bool);
+pub struct UrlFilterIter(LinkIter, bool);
 
-impl Iterator for ExternalFilterIter {
+impl Iterator for UrlFilterIter {
     type Item = Link;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -78,24 +78,24 @@ impl Iterator for ExternalFilterIter {
 ///
 /// # See also
 ///
-/// Also see `OnlyExternalIter` and `NoExternalIter` and the helper traits/functions
-/// `OnlyInteralLinks`/`only_links()` and `OnlyExternalLinks`/`only_urls()`.
-pub trait SelectExternal {
-    fn select_urls(self, b: bool) -> ExternalFilterIter;
+/// Also see `OnlyUrlIter` and `NoUrlIter` and the helper traits/functions
+/// `OnlyInteralLinks`/`only_links()` and `OnlyUrlLinks`/`only_urls()`.
+pub trait SelectUrl {
+    fn select_urls(self, b: bool) -> UrlFilterIter;
 }
 
-impl SelectExternal for LinkIter {
-    fn select_urls(self, b: bool) -> ExternalFilterIter {
-        ExternalFilterIter(self, b)
+impl SelectUrl for LinkIter {
+    fn select_urls(self, b: bool) -> UrlFilterIter {
+        UrlFilterIter(self, b)
     }
 }
 
 
-pub struct OnlyExternalIter(ExternalFilterIter);
+pub struct OnlyUrlIter(UrlFilterIter);
 
-impl OnlyExternalIter {
-    pub fn new(li: LinkIter) -> OnlyExternalIter {
-        OnlyExternalIter(ExternalFilterIter(li, true))
+impl OnlyUrlIter {
+    pub fn new(li: LinkIter) -> OnlyUrlIter {
+        OnlyUrlIter(UrlFilterIter(li, true))
     }
 
     pub fn urls<'a>(self, store: &'a Store) -> UrlIter<'a> {
@@ -103,7 +103,7 @@ impl OnlyExternalIter {
     }
 }
 
-impl Iterator for OnlyExternalIter {
+impl Iterator for OnlyUrlIter {
     type Item = Link;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -111,15 +111,15 @@ impl Iterator for OnlyExternalIter {
     }
 }
 
-pub struct NoExternalIter(ExternalFilterIter);
+pub struct NoUrlIter(UrlFilterIter);
 
-impl NoExternalIter {
-    pub fn new(li: LinkIter) -> NoExternalIter {
-        NoExternalIter(ExternalFilterIter(li, false))
+impl NoUrlIter {
+    pub fn new(li: LinkIter) -> NoUrlIter {
+        NoUrlIter(UrlFilterIter(li, false))
     }
 }
 
-impl Iterator for NoExternalIter {
+impl Iterator for NoUrlIter {
     type Item = Link;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -127,35 +127,35 @@ impl Iterator for NoExternalIter {
     }
 }
 
-pub trait OnlyExternalLinks : Sized {
-    fn only_urls(self) -> OnlyExternalIter ;
+pub trait OnlyUrlLinks : Sized {
+    fn only_urls(self) -> OnlyUrlIter ;
 
-    fn no_links(self) -> OnlyExternalIter {
+    fn no_links(self) -> OnlyUrlIter {
         self.only_urls()
     }
 }
 
-impl OnlyExternalLinks for LinkIter {
-    fn only_urls(self) -> OnlyExternalIter {
-        OnlyExternalIter::new(self)
+impl OnlyUrlLinks for LinkIter {
+    fn only_urls(self) -> OnlyUrlIter {
+        OnlyUrlIter::new(self)
     }
 }
 
 pub trait OnlyInternalLinks : Sized {
-    fn only_links(self) -> NoExternalIter;
+    fn only_links(self) -> NoUrlIter;
 
-    fn no_urls(self) -> NoExternalIter {
+    fn no_urls(self) -> NoUrlIter {
         self.only_links()
     }
 }
 
 impl OnlyInternalLinks for LinkIter {
-    fn only_links(self) -> NoExternalIter {
-        NoExternalIter::new(self)
+    fn only_links(self) -> NoUrlIter {
+        NoUrlIter::new(self)
     }
 }
 
-pub struct UrlIter<'a>(OnlyExternalIter, &'a Store);
+pub struct UrlIter<'a>(OnlyUrlIter, &'a Store);
 
 impl<'a> Iterator for UrlIter<'a> {
     type Item = Result<Url>;
@@ -174,7 +174,7 @@ impl<'a> Iterator for UrlIter<'a> {
                         .map_err(From::from)
                         .and_then(|f| {
                             debug!("Store::retrieve({:?}) succeeded", id);
-                            debug!("getting external link from file now");
+                            debug!("getting uri link from file now");
                             f.get_link_uri_from_filelockentry()
                                 .map_dbg_str("Error happened while getting link URI from FLE")
                                 .map_dbg_err(|e| format!("URL -> Err = {:?}", e))

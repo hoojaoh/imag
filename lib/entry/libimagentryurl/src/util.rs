@@ -21,8 +21,8 @@ use std::fmt::Debug;
 
 use libimagstore::storeid::StoreId;
 
-/// Check whether the StoreId starts with `/link/external/`
+/// Check whether the StoreId starts with `/url/`
 pub fn is_external_link_storeid<A: AsRef<StoreId> + Debug>(id: A) -> bool {
-    debug!("Checking whether this is a 'url/external/': '{:?}'", id);
-    id.as_ref().is_in_collection(&["url", "external"])
+    debug!("Checking whether this is a 'url/': '{:?}'", id);
+    id.as_ref().is_in_collection(&["url"])
 }

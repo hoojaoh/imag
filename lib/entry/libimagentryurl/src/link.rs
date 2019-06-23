@@ -40,8 +40,8 @@ impl Link for Entry {
 
     fn get_link_uri_from_filelockentry(&self) -> Result<Option<Url>> {
         self.get_header()
-            .read_string("links.external.content.url")
-            .context(format_err!("Error reading header 'links.external.content.url' from '{}'", self.get_location()))
+            .read_string("url.uri")
+            .context(format_err!("Error reading header 'url.uri' from '{}'", self.get_location()))
             .context(EM::EntryHeaderReadError)
             .map_err(Error::from)
             .and_then(|opt| match opt {
@@ -61,7 +61,7 @@ impl Link for Entry {
     }
 
     fn get_url(&self) -> Result<Option<Url>> {
-        match self.get_header().read_string("links.external.url")? {
+        match self.get_header().read_string("url.uri")? {
             None        => Ok(None),
             Some(ref s) => Url::parse(&s[..])
                 .context(format_err!("Failed to parse URL: '{}'", s))
