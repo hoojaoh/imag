@@ -229,7 +229,22 @@ mod tests {
 
         assert!(e.add_url(&store, url.clone()).is_ok());
 
-        assert_eq!(1, e.get_urls(&store).unwrap().count());
+        debug!("{:?}", e);
+        debug!("Header: {:?}", e.get_header());
+
+        let urls = e.get_urls(&store);
+        let urls = match urls {
+            Err(e) => {
+                debug!("Error: {:?}", e);
+                assert!(false);
+                unreachable!()
+            },
+            Ok(urls) => urls.collect::<Vec<_>>(),
+        };
+
+        debug!("urls = {:?}", urls);
+
+        assert_eq!(1, urls.len());
         assert_eq!(url, e.get_urls(&store).unwrap().next().unwrap().unwrap());
     }
 

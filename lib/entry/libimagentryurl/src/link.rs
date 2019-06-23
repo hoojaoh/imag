@@ -72,6 +72,8 @@ impl Link for Entry {
             .map_err(Error::from)?
             .unwrap_or_else(|| Default::default());
 
+        debug!("Partial deserialized: {:?}", partial);
+
         let url = match partial.uri {
             Some(uri) => uri,
             None      => return Ok(None),
