@@ -98,8 +98,14 @@ impl Linkable for Entry {
             let mut left_internal = left.internal.unwrap_or_else(|| vec![]);
             left_internal.push(right_location);
 
+            left_internal.sort_unstable();
+            left_internal.dedup();
+
             let mut right_internal = right.internal.unwrap_or_else(|| vec![]);
             right_internal.push(left_location);
+
+            right_internal.sort_unstable();
+            right_internal.dedup();
 
             left.internal = Some(left_internal);
             right.internal = Some(right_internal);
@@ -117,8 +123,14 @@ impl Linkable for Entry {
             let mut left_internal = left.internal.unwrap_or_else(|| vec![]);
             left_internal.retain(|l| *l != right_location);
 
+            left_internal.sort_unstable();
+            left_internal.dedup();
+
             let mut right_internal = right.internal.unwrap_or_else(|| vec![]);
             right_internal.retain(|l| *l != left_location);
+
+            right_internal.sort_unstable();
+            right_internal.dedup();
 
             left.internal = Some(left_internal);
             right.internal = Some(right_internal);
