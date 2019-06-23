@@ -27,13 +27,19 @@ url = "1.5"
 sha-1 = "0.7"
 hex = "0.3"
 is-match = "0.1"
-toml-query = "0.9"
 failure        = "0.1"
 failure_derive = "0.1"
+serde = "1"
+serde_derive = "1"
 
 libimagstore = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
 libimagutil  = { version = "0.10.0", path = "../../../lib/etc/libimagutil" }
+
+[dependencies.toml-query]
+version = "0.9"
+default-features = false
+features = [ "typed" ]
 
 [dev-dependencies]
 env_logger = "0.5"

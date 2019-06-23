@@ -44,6 +44,8 @@ extern crate toml_query;
 extern crate url;
 extern crate sha1;
 extern crate hex;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
 #[macro_use] extern crate failure;
 #[macro_use] extern crate is_match;
 

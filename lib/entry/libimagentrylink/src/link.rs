@@ -23,7 +23,6 @@ use libimagstore::store::Store;
 use libimagerror::errors::ErrorMsg as EM;
 
 use toml::Value;
-use toml::map::Map;
 use failure::ResultExt;
 use failure::Fallible as Result;
 use failure::Error;
@@ -31,7 +30,6 @@ use failure::Error;
 #[derive(Eq, PartialOrd, Ord, Hash, Debug, Clone)]
 pub enum Link {
     Id          { link: StoreId },
-    Annotated   { link: StoreId, annotation: String },
 }
 
 impl Link {
@@ -39,7 +37,6 @@ impl Link {
     pub fn exists(&self, store: &Store) -> Result<bool> {
         match *self {
             Link::Id { ref link }             => store.exists(link.clone()),
-            Link::Annotated { ref link, .. }  => store.exists(link.clone()),
         }
         .map_err(From::from)
     }
@@ -47,16 +44,14 @@ impl Link {
     pub fn to_str(&self) -> Result<String> {
         match *self {
             Link::Id { ref link }             => link.to_str(),
-            Link::Annotated { ref link, .. }  => link.to_str(),
         }
         .map_err(From::from)
     }
 
-
+    #[cfg(test)]
     pub(crate) fn eq_store_id(&self, id: &StoreId) -> bool {
         match self {
             &Link::Id { link: ref s }             => s.eq(id),
-            &Link::Annotated { link: ref s, .. }  => s.eq(id),
         }
     }
 
@@ -64,30 +59,16 @@ impl Link {
     pub fn get_store_id(&self) -> &StoreId {
         match self {
             &Link::Id { link: ref s }             => s,
-            &Link::Annotated { link: ref s, .. }  => s,
         }
     }
 
     pub(crate) fn to_value(&self) -> Result<Value> {
         match self {
-            &Link::Id { link: ref s } =>
-                s.to_str()
+            Link::Id { ref link } => link
+                .to_str()
                 .map(Value::String)
                 .context(EM::ConversionError)
                 .map_err(Error::from),
-            &Link::Annotated { ref link, annotation: ref anno } => {
-                link.to_str()
-                    .map(Value::String)
-                    .context(EM::ConversionError)
-                    .map_err(Error::from)
-                    .map(|link| {
-                        let mut tab = Map::new();
-
-                        tab.insert("link".to_owned(),       link);
-                        tab.insert("annotation".to_owned(), Value::String(anno.clone()));
-                        Value::Table(tab)
-                    })
-            }
         }
     }
 
@@ -97,10 +78,6 @@ impl ::std::cmp::PartialEq for Link {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (&Link::Id { link: ref a }, &Link::Id { link: ref b }) => a.eq(&b),
-            (&Link::Annotated { link: ref a, annotation: ref ann1 },
-             &Link::Annotated { link: ref b, annotation: ref ann2 }) =>
-                (a, ann1).eq(&(b, ann2)),
-            _ => false,
         }
     }
 }
@@ -116,7 +93,6 @@ impl Into<StoreId> for Link {
     fn into(self) -> StoreId {
         match self {
             Link::Id { link }            => link,
-            Link::Annotated { link, .. } => link,
         }
     }
 }
@@ -125,7 +101,6 @@ impl IntoStoreId for Link {
     fn into_storeid(self) -> Result<StoreId> {
         match self {
             Link::Id { link }            => Ok(link),
-            Link::Annotated { link, .. } => Ok(link),
         }
     }
 }
@@ -134,7 +109,6 @@ impl AsRef<StoreId> for Link {
     fn as_ref(&self) -> &StoreId {
         match self {
             &Link::Id { ref link }            => &link,
-            &Link::Annotated { ref link, .. } => &link,
         }
     }
 }

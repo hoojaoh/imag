@@ -17,27 +17,25 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::path::PathBuf;
+
 use libimagstore::storeid::StoreId;
 use libimagstore::store::Entry;
 use libimagstore::store::Store;
-use libimagerror::errors::ErrorMsg as EM;
 
+use toml_query::read::Partial;
 use toml_query::read::TomlValueReadExt;
 use toml_query::insert::TomlValueInsertExt;
 use failure::ResultExt;
 use failure::Fallible as Result;
-use failure::Error;
 use failure::err_msg;
 
 use crate::iter::LinkIter;
-use crate::iter::IntoValues;
 use crate::link::Link;
-
-use toml::Value;
 
 pub trait Linkable {
 
-    /// Get the internal links from the implementor object
+    /// Get all links
     fn links(&self) -> Result<LinkIter>;
 
     /// Add an internal link to the implementor object
@@ -49,8 +47,24 @@ pub trait Linkable {
     /// Remove _all_ internal links
     fn unlink(&mut self, store: &Store) -> Result<()>;
 
-    /// Add internal annotated link
-    fn add_annotated_link(&mut self, link: &mut Entry, annotation: String) -> Result<()>;
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct LinkPartial {
+    internal: Option<Vec<String>>,
+}
+
+impl Default for LinkPartial {
+    fn default() -> Self {
+        LinkPartial {
+            internal: None,
+        }
+    }
+}
+
+impl<'a> Partial<'a> for LinkPartial {
+    const LOCATION: &'static str = "links";
+    type Output = Self;
 }
 
 impl Linkable for Entry {
@@ -58,44 +72,59 @@ impl Linkable for Entry {
     fn links(&self) -> Result<LinkIter> {
         debug!("Getting internal links");
         trace!("Getting internal links from header of '{}' = {:?}", self.get_location(), self.get_header());
-        let res = self
+
+        let partial : LinkPartial = self
             .get_header()
-            .read("links.internal")
-            .context(format_err!("Failed to read header 'links.internal' of '{}'", self.get_location()))
-            .context(EM::EntryHeaderReadError)
-            .context(EM::EntryHeaderError)
-            .map_err(Error::from)
-            .map(|r| r.cloned());
-        process_rw_result(res)
+            .read_partial::<LinkPartial>()?
+            .unwrap_or_else(|| LinkPartial::default());
+
+        partial
+            .internal
+            .unwrap_or_else(|| vec![])
+            .into_iter()
+            .map(PathBuf::from)
+            .map(StoreId::new)
+            .map(|r| r.map(Link::from))
+            .collect::<Result<Vec<Link>>>()
+            .map(LinkIter::new)
     }
 
-    fn add_link(&mut self, link: &mut Entry) -> Result<()> {
-        debug!("Adding internal link: {:?}", link);
-        let location = link.get_location().clone().into();
-        add_link_with_instance(self, link, location)
+    fn add_link(&mut self, other: &mut Entry) -> Result<()> {
+        debug!("Adding internal link: {:?}", other);
+        let left_location  = self.get_location().to_str()?;
+        let right_location = other.get_location().to_str()?;
+
+        alter_linking(self, other, |mut left, mut right| {
+            let mut left_internal = left.internal.unwrap_or_else(|| vec![]);
+            left_internal.push(right_location);
+
+            let mut right_internal = right.internal.unwrap_or_else(|| vec![]);
+            right_internal.push(left_location);
+
+            left.internal = Some(left_internal);
+            right.internal = Some(right_internal);
+
+            Ok((left, right))
+        })
     }
 
-    fn remove_link(&mut self, link: &mut Entry) -> Result<()> {
-        debug!("Removing internal link: {:?}", link);
+    fn remove_link(&mut self, other: &mut Entry) -> Result<()> {
+        debug!("Remove internal link: {:?}", other);
+        let left_location  = self.get_location().to_str()?;
+        let right_location = other.get_location().to_str()?;
 
-        // Cloning because of borrowing
-        let own_loc   = self.get_location().clone();
-        let other_loc = link.get_location().clone();
+        alter_linking(self, other, |mut left, mut right| {
+            let mut left_internal = left.internal.unwrap_or_else(|| vec![]);
+            left_internal.retain(|l| *l != right_location);
 
-        debug!("Removing internal link from {:?} to {:?}", own_loc, other_loc);
+            let mut right_internal = right.internal.unwrap_or_else(|| vec![]);
+            right_internal.retain(|l| *l != left_location);
 
-        let links = link.links()?;
-        debug!("Rewriting own links for {:?}, without {:?}", other_loc, own_loc);
+            left.internal = Some(left_internal);
+            right.internal = Some(right_internal);
 
-        let links = links.filter(|l| !l.eq_store_id(&own_loc));
-        let _     = rewrite_links(link.get_header_mut(), links)?;
-
-        self.links()
-            .and_then(|links| {
-                debug!("Rewriting own links for {:?}, without {:?}", own_loc, other_loc);
-                let links = links.filter(|l| !l.eq_store_id(&other_loc));
-                rewrite_links(self.get_header_mut(), links)
-            })
+            Ok((left, right))
+        })
     }
 
     fn unlink(&mut self, store: &Store) -> Result<()> {
@@ -109,147 +138,33 @@ impl Linkable for Entry {
         Ok(())
     }
 
-    fn add_annotated_link(&mut self, link: &mut Entry, annotation: String) -> Result<()> {
-        let new_link = Link::Annotated {
-            link: link.get_location().clone(),
-            annotation: annotation,
-        };
-
-        add_link_with_instance(self, link, new_link)
-    }
-
 }
 
-fn add_link_with_instance(this: &mut Entry, link: &mut Entry, instance: Link) -> Result<()> {
-    debug!("Adding internal link from {:?} to {:?}", this.get_location(), instance);
+fn alter_linking<F>(left: &mut Entry, right: &mut Entry, f: F) -> Result<()>
+    where F: FnOnce(LinkPartial, LinkPartial) -> Result<(LinkPartial, LinkPartial)>
+{
+    debug!("Altering linkage of {:?} and {:?}", left, right);
 
-    add_foreign_link(link, this.get_location().clone())
-        .and_then(|_| {
-            this.links()
-                .and_then(|links| {
-                    let links = links.chain(LinkIter::new(vec![instance]));
-                    rewrite_links(this.get_header_mut(), links)
-                })
-        })
-}
-
-fn rewrite_links<I: Iterator<Item = Link>>(header: &mut Value, links: I) -> Result<()> {
-    let links = links.into_values()
-                     .into_iter()
-                     .fold(Ok(vec![]), |acc: Result<Vec<_>>, elem| {
-                        acc.and_then(move |mut v| {
-                            v.push(elem.context(EM::ConversionError)?);
-                            Ok(v)
-                        })
-                     })?;
-
-    debug!("Setting new link array: {:?}", links);
-    let process = header
-        .insert("links.internal", Value::Array(links))
-        .context(format_err!("Failed to insert header 'links.internal'"))
-        .context(EM::EntryHeaderReadError)
-        .map_err(Error::from);
-    process_rw_result(process).map(|_| ())
-}
-
-/// When Linking A -> B, the specification wants us to link back B -> A.
-/// This is a helper function which does this.
-fn add_foreign_link(target: &mut Entry, from: StoreId) -> Result<()> {
-    debug!("Linking back from {:?} to {:?}", target.get_location(), from);
-    target.links()
-        .and_then(|links| {
-            let links = links
-                             .chain(LinkIter::new(vec![from.into()]))
-                             .into_values()
-                             .into_iter()
-                             .fold(Ok(vec![]), |acc: Result<Vec<_>>, elem| {
-                                acc.and_then(move |mut v| {
-                                    v.push(elem.context(EM::ConversionError)?);
-                                    Ok(v)
-                                })
-                             })?;
-            debug!("Setting links in {:?}: {:?}", target.get_location(), links);
-
-            let res = target
-                .get_header_mut()
-                .insert("links.internal", Value::Array(links))
-                .context(format_err!("Failed to insert header 'links.internal'"))
-                .context(EM::EntryHeaderReadError)
-                .map_err(Error::from);
-
-            process_rw_result(res).map(|_| ())
-        })
-}
-
-fn process_rw_result(links: Result<Option<Value>>) -> Result<LinkIter> {
-    use std::path::PathBuf;
-
-    let links = match links {
-        Err(e) => {
-            debug!("RW action on store failed. Generating LinkError");
-            return Err(e).context(EM::EntryHeaderReadError).map_err(Error::from)
-        },
-        Ok(None) => {
-            debug!("We got no value from the header!");
-            return Ok(LinkIter::new(vec![]))
-        },
-        Ok(Some(Value::Array(l))) => l,
-        Ok(Some(_)) => {
-            debug!("We expected an Array for the links, but there was a non-Array!");
-            return Err(err_msg("Link type error"));
-        }
+    let get_partial = |entry: &mut Entry| -> Result<LinkPartial> {
+        Ok(entry.get_header().read_partial::<LinkPartial>()?.unwrap_or_else(|| LinkPartial::default()))
     };
 
-    if !links.iter().all(|l| is_match!(*l, Value::String(_)) || is_match!(*l, Value::Table(_))) {
-        debug!("At least one of the Values which were expected in the Array of links is not a String or a Table!");
-        debug!("Generating LinkError");
-        return Err(err_msg("Existing Link type error"));
-    }
+    let left_partial : LinkPartial = get_partial(left)?;
+    let right_partial : LinkPartial = get_partial(right)?;
 
-    let links : Vec<Link> = links.into_iter()
-        .map(|link| {
-            debug!("Matching the link: {:?}", link);
-            match link {
-                Value::String(s) => StoreId::new(PathBuf::from(s))
-                    .map(|s| Link::Id { link: s })
-                    .map_err(From::from)
-                    ,
-                Value::Table(mut tab) => {
-                    debug!("Destructuring table");
-                    if !tab.contains_key("link")
-                    || !tab.contains_key("annotation") {
-                        debug!("Things missing... returning Error instance");
-                        Err(err_msg("Link parser error"))
-                    } else {
-                        let link = tab.remove("link")
-                            .ok_or(err_msg("Link parser: field missing"))?;
+    trace!("Partial left before: {:?}", left_partial);
+    trace!("Partial right before: {:?}", right_partial);
 
-                        let anno = tab.remove("annotation")
-                            .ok_or(err_msg("Link parser: Field missing"))?;
+    let (left_partial, right_partial) = f(left_partial, right_partial)?;
 
-                        debug!("Ok, here we go with building a Link::Annotated");
-                        match (link, anno) {
-                            (Value::String(link), Value::String(anno)) => {
-                                StoreId::new(PathBuf::from(link))
-                                    .map_err(From::from)
-                                    .map(|link| {
-                                        Link::Annotated {
-                                            link: link,
-                                            annotation: anno,
-                                        }
-                                    })
-                            },
-                            _ => Err(err_msg("Link parser: Field type error")),
-                        }
-                    }
-                }
-                _ => unreachable!(),
-            }
-        })
-        .collect::<Result<Vec<Link>>>()?;
+    trace!("Partial left after: {:?}", left_partial);
+    trace!("Partial right after: {:?}", right_partial);
 
-    debug!("Ok, the RW action was successful, returning link vector now!");
-    Ok(LinkIter::new(links))
+    left.get_header_mut().insert_serialized("links", left_partial)?;
+    right.get_header_mut().insert_serialized("links", right_partial)?;
+
+    debug!("Finished altering linkage!");
+    Ok(())
 }
 
 #[cfg(test)]
@@ -259,7 +174,6 @@ mod test {
     use libimagstore::store::Store;
 
     use super::Linkable;
-    use super::Link;
 
     fn setup_logging() {
         let _ = ::env_logger::try_init();
@@ -291,7 +205,9 @@ mod test {
         assert!(e2.links().is_ok());
 
         {
-            assert!(e1.add_link(&mut e2).is_ok());
+            let res = e1.add_link(&mut e2);
+            debug!("Result = {:?}", res);
+            assert!(res.is_ok());
 
             let e1_links = e1.links().unwrap().collect::<Vec<_>>();
             let e2_links = e2.links().unwrap().collect::<Vec<_>>();
@@ -462,35 +378,6 @@ mod test {
         assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
         assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
         assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
-    }
-
-    #[test]
-    fn test_link_annotating() {
-        setup_logging();
-        let store      = get_store();
-        let mut entry1 = store.create(PathBuf::from("test_link_annotating-1")).unwrap();
-        let mut entry2 = store.create(PathBuf::from("test_link_annotating-2")).unwrap();
-
-        let res = entry1.add_annotated_link(&mut entry2, String::from("annotation"));
-        assert!(res.is_ok());
-
-        {
-            for link in entry1.links().unwrap() {
-                match link  {
-                    Link::Annotated {annotation, ..} => assert_eq!(annotation, "annotation"),
-                    _ => assert!(false, "Non-annotated link found"),
-                }
-            }
-        }
-
-        {
-            for link in entry2.links().unwrap() {
-                match link  {
-                    Link::Id {..}        => {},
-                    Link::Annotated {..} => assert!(false, "Annotated link found"),
-                }
-            }
-        }
     }
 
 }
