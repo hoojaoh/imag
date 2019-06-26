@@ -153,6 +153,7 @@ fn show(rt: &Runtime) {
     } else {
         None
     };
+    let do_remove_newlines = scmd.is_present("show-skipnewlines");
 
     if let Some(wrap_value) = scmd.value_of("show-wrap") {
         do_wrap = Some(usize::from_str(wrap_value).map_err(Error::from).map_err_trace_exit_unwrap());
@@ -182,7 +183,7 @@ fn show(rt: &Runtime) {
                 // 10 + 4 + 2 + 2 + 2 + 2 + 6 + 4 = 32
                 // plus text, which we assume to be 120 characters... lets allocate 256 bytes.
                 let mut buffer = Cursor::new(Vec::with_capacity(256));
-                let _ = do_write_to(&mut buffer, id, &entry).unwrap_or_exit();
+                let _ = do_write_to(&mut buffer, id, &entry, do_remove_newlines).unwrap_or_exit();
                 let buffer = String::from_utf8(buffer.into_inner())
                     .map_err(Error::from)
                     .map_err_trace_exit_unwrap();
@@ -192,7 +193,7 @@ fn show(rt: &Runtime) {
                     let _ = writeln!(&mut output, "{}", line).to_exit_code()?;
                 }
             } else {
-                let _ = do_write_to(&mut output, id, &entry).unwrap_or_exit();
+                let _ = do_write_to(&mut output, id, &entry, do_remove_newlines).unwrap_or_exit();
             }
 
             let _ = rt
@@ -264,7 +265,13 @@ fn get_log_text(rt: &Runtime) -> String {
         })
 }
 
-fn do_write_to<'a>(sink: &mut Write, id: DiaryId, entry: &FileLockEntry<'a>) -> RResult<(), ExitCode> {
+fn do_write_to<'a>(sink: &mut Write, id: DiaryId, entry: &FileLockEntry<'a>, do_remove_newlines: bool) -> RResult<(), ExitCode> {
+    let text = if do_remove_newlines {
+        entry.get_content().trim_end().replace("\n", "")
+    } else {
+        entry.get_content().trim_end().to_string()
+    };
+
     writeln!(sink,
             "{dname: >10} - {y: >4}-{m:0>2}-{d:0>2}T{H:0>2}:{M:0>2} - {text}",
              dname = id.diary_name(),
@@ -273,7 +280,7 @@ fn do_write_to<'a>(sink: &mut Write, id: DiaryId, entry: &FileLockEntry<'a>) -> 
              d = id.day(),
              H = id.hour(),
              M = id.minute(),
-             text = entry.get_content().trim_end())
+             text = text)
         .to_exit_code()
 }
 

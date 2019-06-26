@@ -65,6 +65,14 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .required(false)
                         .help("Wrap at N characters, defaults to 80."))
 
+                   .arg(Arg::with_name("show-skipnewlines")
+                        .long("no-newlines")
+                        .short("N")
+                        .takes_value(false)
+                        .multiple(false)
+                        .required(false)
+                        .help("Remove newlines in logtext"))
+
                 )
 
 }
