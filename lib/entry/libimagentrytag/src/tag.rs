@@ -31,6 +31,7 @@ pub fn is_tag(s: String) -> Result<(), String> {
 
 pub fn is_tag_str(s: &String) -> Result<(), String> {
     use filters::filter::Filter;
+    trace!("Checking whether '{}' is a valid tag", s);
 
     let is_lower      = |s: &String| s.chars().all(|c| c.is_lowercase());
     let no_whitespace = |s: &String| s.chars().all(|c| !c.is_whitespace());
