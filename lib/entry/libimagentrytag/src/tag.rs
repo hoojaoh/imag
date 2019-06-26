@@ -20,16 +20,17 @@
 use std::result::Result;
 
 use regex::Regex;
+use failure::Error;
 
 pub type Tag = String;
 pub type TagSlice<'a> = &'a str;
 
 /// validator which can be used by clap to validate that a string is a valid tag
 pub fn is_tag(s: String) -> Result<(), String> {
-    is_tag_str(&s)
+    is_tag_str(&s).map_err(|_| format!("The string '{}' is not a valid tag", s))
 }
 
-pub fn is_tag_str(s: &String) -> Result<(), String> {
+pub fn is_tag_str(s: &String) -> Result<(), Error> {
     use filters::filter::Filter;
     trace!("Checking whether '{}' is a valid tag", s);
 
@@ -41,7 +42,7 @@ pub fn is_tag_str(s: &String) -> Result<(), String> {
     if is_lower.and(no_whitespace).and(is_alphanum).and(matches_regex).filter(s) {
         Ok(())
     } else {
-        Err(format!("The string '{}' is not a valid tag", s))
+        Err(format_err!("The string '{}' is not a valid tag", s))
     }
 }
 

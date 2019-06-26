@@ -23,6 +23,7 @@ use libimagstore::store::Entry;
 use libimagerror::errors::ErrorMsg as EM;
 
 use toml_query::read::TomlValueReadExt;
+use toml_query::read::Partial;
 use toml_query::insert::TomlValueInsertExt;
 
 use failure::Error;
@@ -47,42 +48,29 @@ pub trait Tagable {
 
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct TagHeader {
+    values: Vec<String>,
+}
+
+impl<'a> Partial<'a> for TagHeader {
+    const LOCATION: &'static str = "tags";
+    type Output                  = Self;
+}
+
 impl Tagable for Value {
 
     fn get_tags(&self) -> Result<Vec<Tag>> {
-        self.read("tag.values")
-            .context(format_err!("Failed to read header at 'tag.values'"))
-            .map_err(Error::from)
-            .context(EM::EntryHeaderReadError)?
-            .map(|val| {
-                debug!("Got Value of tags...");
-                val.as_array()
-                    .map(|tags| {
-                        debug!("Got Array<T> of tags...");
-                        if !tags.iter().all(|t| is_match!(*t, Value::String(_))) {
-                            return Err(format_err!("Tag type error: Got Array<T> where T is not a String: {:?}", tags));
-                        }
-                        debug!("Got Array<String> of tags...");
-                        if tags.iter().any(|t| match *t {
-                            Value::String(ref s) => !is_tag_str(s).is_ok(),
-                            _ => unreachable!()})
-                        {
-                            return Err(format_err!("At least one tag is not a valid tag string"));
-                        }
+        self.read_partial::<TagHeader>()?
+            .map(|header| {
+                let _ = header.values
+                    .iter()
+                    .map(is_tag_str)
+                    .collect::<Result<_>>()?;
 
-                        Ok(tags.iter()
-                            .cloned()
-                            .map(|t| {
-                                match t {
-                                   Value::String(s) => s,
-                                   _ => unreachable!(),
-                                }
-                            })
-                            .collect())
-                    })
-                    .unwrap_or(Ok(vec![]))
+                Ok(header.values)
             })
-            .unwrap_or(Ok(vec![]))
+            .unwrap_or_else(|| Ok(vec![]))
     }
 
     fn set_tags(&mut self, ts: &[Tag]) -> Result<()> {
