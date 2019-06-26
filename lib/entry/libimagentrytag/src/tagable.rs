@@ -74,14 +74,18 @@ impl Tagable for Value {
     }
 
     fn set_tags(&mut self, ts: &[Tag]) -> Result<()> {
-        if ts.iter().any(|tag| !is_tag_str(tag).is_ok()) {
-            let not_tag = ts.iter().filter(|t| !is_tag_str(t).is_ok()).next().unwrap();
-            return Err(format_err!("Not a tag: '{}'", not_tag));
-        }
+        let _ = ts
+            .iter()
+            .map(is_tag_str)
+            .collect::<Result<Vec<_>>>()?;
 
-        let a = ts.iter().unique().map(|t| Value::String(t.clone())).collect();
-        debug!("Setting tags = {:?}", a);
-        self.insert("tag.values", Value::Array(a))
+        let header = TagHeader {
+            values: ts.iter().unique().cloned().collect(),
+        };
+
+        debug!("Setting tags = {:?}", header);
+        self.get_header_mut()
+            .insert_serialized("tags", header)
             .map(|_| ())
             .map_err(|_| Error::from(EM::EntryHeaderWriteError))
     }
