@@ -111,12 +111,7 @@ impl Tagable for Value {
     }
 
     fn has_tags(&self, tags: &[Tag]) -> Result<bool> {
-        let mut result = true;
-        for tag in tags {
-            result = result && self.has_tag(tag)?;
-        }
-
-        Ok(result)
+        tags.iter().map(|t| self.has_tag(t)).fold(Ok(true), |a, e| a.and_then(|b| Ok(b && e?)))
     }
 
 }
