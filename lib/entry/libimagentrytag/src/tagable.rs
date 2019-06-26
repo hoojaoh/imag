@@ -108,20 +108,8 @@ impl Tagable for Value {
     }
 
     fn has_tag(&self, t: TagSlice) -> Result<bool> {
-        let tags = self.read("tag.values").context(EM::EntryHeaderReadError)?;
-
-        if !tags.iter().all(|t| is_match!(*t, &Value::String(_))) {
-            return Err(err_msg("Tag type error"))
-        }
-
-        Ok(tags
-           .iter()
-           .any(|tag| {
-               match *tag {
-                   &Value::String(ref s) => { s == t },
-                   _ => unreachable!()
-               }
-           }))
+        // use any() because Vec::contains() wants &String, but we do not want to allocate.
+        self.get_tags().map(|v| v.iter().any(|s| s == t))
     }
 
     fn has_tags(&self, tags: &[Tag]) -> Result<bool> {
