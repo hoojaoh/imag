@@ -55,9 +55,9 @@ extern crate libimagerror;
 
 mod constants;
 pub mod timetracking;
-pub mod timetrackingstore;
 pub mod iter;
 pub mod tag;
+pub mod store;
 
 module_entry_path_mod!("timetrack");
 

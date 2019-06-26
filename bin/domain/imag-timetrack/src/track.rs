@@ -28,7 +28,7 @@ use libimagrt::runtime::Runtime;
 use libimagerror::trace::trace_error;
 use libimagerror::exit::ExitUnwrap;
 use libimagtimetrack::tag::TimeTrackingTag;
-use libimagtimetrack::timetrackingstore::TimeTrackStore;
+use libimagtimetrack::store::TimeTrackStore;
 
 const DATE_TIME_PARSE_FMT : &'static str    = "%Y-%m-%dT%H:%M:%S";
 const DATE_PARSE_FMT : &'static str         = "%Y-%m-%d";

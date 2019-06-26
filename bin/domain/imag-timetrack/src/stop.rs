@@ -31,7 +31,7 @@ use libimagrt::runtime::Runtime;
 
 use libimagtimetrack::timetracking::TimeTracking;
 use libimagtimetrack::tag::TimeTrackingTag;
-use libimagtimetrack::timetrackingstore::*;
+use libimagtimetrack::store::*;
 use libimagtimetrack::iter::filter::has_end_time;
 use libimagtimetrack::iter::filter::has_one_of_tags;
 use libimagutil::warn_result::*;

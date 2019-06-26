@@ -26,7 +26,7 @@ use libimagrt::runtime::Runtime;
 use libimagerror::trace::trace_error;
 use libimagerror::exit::ExitUnwrap;
 use libimagtimetrack::tag::TimeTrackingTag;
-use libimagtimetrack::timetrackingstore::TimeTrackStore;
+use libimagtimetrack::store::TimeTrackStore;
 
 pub fn start(rt: &Runtime) -> i32 {
     let (_, cmd) = rt.cli().subcommand();

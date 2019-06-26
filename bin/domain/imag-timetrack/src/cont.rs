@@ -27,7 +27,7 @@ use libimagerror::trace::trace_error;
 use libimagerror::trace::MapErrTrace;
 use libimagerror::iter::TraceIterator;
 use libimagerror::exit::ExitUnwrap;
-use libimagtimetrack::timetrackingstore::TimeTrackStore;
+use libimagtimetrack::store::TimeTrackStore;
 use libimagtimetrack::timetracking::TimeTracking;
 use libimagtimetrack::iter::filter::*;
 

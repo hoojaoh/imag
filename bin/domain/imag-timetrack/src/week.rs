@@ -30,7 +30,7 @@ use libimagerror::iter::TraceIterator;
 use libimagerror::io::ToExitCode;
 use libimagerror::exit::ExitUnwrap;
 use libimagstore::store::FileLockEntry;
-use libimagtimetrack::timetrackingstore::TimeTrackStore;
+use libimagtimetrack::store::TimeTrackStore;
 use libimagtimetrack::timetracking::TimeTracking;
 use libimagtimetrack::tag::TimeTrackingTag;
 use libimagtimetrack::iter::filter::*;
