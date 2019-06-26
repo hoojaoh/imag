@@ -100,20 +100,11 @@ impl Tagable for Value {
     }
 
     fn remove_tag(&mut self, t: Tag) -> Result<()> {
-        if !is_tag_str(&t).map(|_| true)
-            .map_err(|s| format_err!("{}", s))
-            .context(err_msg("Not a tag"))?
-        {
-            debug!("Not a tag: '{}'", t);
-            return Err(format_err!("Not a tag: '{}'", t));
-        }
+        let _ = is_tag_str(&t)?;
 
-        self.get_tags()
-            .map(|mut tags| {
-                tags.retain(|tag| tag.clone() != t);
-                self.set_tags(&tags[..])
-            })
-            .map(|_| ())
+        let mut tags = self.get_tags()?;
+        tags.retain(|tag| *tag != t);
+        self.set_tags(&tags)
     }
 
     fn has_tag(&self, t: TagSlice) -> Result<bool> {
