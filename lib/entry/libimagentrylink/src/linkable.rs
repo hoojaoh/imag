@@ -112,6 +112,7 @@ impl Linkable for Entry {
 
     /// Get all links which are unidirectional links
     fn unidirectional_links(&self) -> Result<LinkIter> {
+        debug!("Getting unidirectional links");
         trace!("Getting unidirectional links from header of '{}' = {:?}", self.get_location(), self.get_header());
 
         let iter = self.get_header()
@@ -126,6 +127,7 @@ impl Linkable for Entry {
 
     /// Get all links which are directional links, outgoing
     fn directional_links_to(&self) -> Result<LinkIter> {
+        debug!("Getting directional links (to)");
         trace!("Getting unidirectional (to) links from header of '{}' = {:?}", self.get_location(), self.get_header());
 
         let iter = self.get_header()
@@ -140,6 +142,7 @@ impl Linkable for Entry {
 
     /// Get all links which are directional links, incoming
     fn directional_links_from(&self) -> Result<LinkIter> {
+        debug!("Getting directional links (from)");
         trace!("Getting unidirectional (from) links from header of '{}' = {:?}", self.get_location(), self.get_header());
 
         let iter = self.get_header()
@@ -159,13 +162,17 @@ impl Linkable for Entry {
 
         alter_linking(self, other, |mut left, mut right| {
             let mut left_internal = left.internal.unwrap_or_else(|| vec![]);
+            trace!("left: {:?} <- {:?}", left_internal, right_location);
             left_internal.push(right_location);
+            trace!("left: {:?}", left_internal);
 
             left_internal.sort_unstable();
             left_internal.dedup();
 
             let mut right_internal = right.internal.unwrap_or_else(|| vec![]);
+            trace!("right: {:?} <- {:?}", right_internal, left_location);
             right_internal.push(left_location);
+            trace!("right: {:?}", right_internal);
 
             right_internal.sort_unstable();
             right_internal.dedup();
@@ -173,6 +180,7 @@ impl Linkable for Entry {
             left.internal = Some(left_internal);
             right.internal = Some(right_internal);
 
+            trace!("Finished: ({:?}, {:?})", left, right);
             Ok((left, right))
         })
     }
@@ -184,13 +192,17 @@ impl Linkable for Entry {
 
         alter_linking(self, other, |mut left, mut right| {
             let mut left_internal = left.internal.unwrap_or_else(|| vec![]);
+            trace!("left: {:?} retaining {:?}", left_internal, right_location);
             left_internal.retain(|l| *l != right_location);
+            trace!("left: {:?}", left_internal);
 
             left_internal.sort_unstable();
             left_internal.dedup();
 
             let mut right_internal = right.internal.unwrap_or_else(|| vec![]);
+            trace!("right: {:?} retaining {:?}", right_internal, left_location);
             right_internal.retain(|l| *l != left_location);
+            trace!("right: {:?}", right_internal);
 
             right_internal.sort_unstable();
             right_internal.dedup();
@@ -198,11 +210,13 @@ impl Linkable for Entry {
             left.internal = Some(left_internal);
             right.internal = Some(right_internal);
 
+            trace!("Finished: ({:?}, {:?})", left, right);
             Ok((left, right))
         })
     }
 
     fn unlink(&mut self, store: &Store) -> Result<()> {
+        debug!("Unlinking {:?}", self);
         for id in self.links()?.map(|l| l.get_store_id().clone()) {
             match store.get(id).context("Failed to get entry")? {
                 Some(mut entry) => self.remove_link(&mut entry)?,
@@ -219,14 +233,19 @@ impl Linkable for Entry {
 
         alter_linking(self, other, |mut left, mut right| {
             let mut left_to = left.to.unwrap_or_else(|| vec![]);
+            trace!("left_to: {:?} <- {:?}", left_to, right_location);
             left_to.push(right_location);
+            trace!("left_to: {:?}", left_to);
 
             let mut right_from = right.from.unwrap_or_else(|| vec![]);
+            trace!("right_from: {:?} <- {:?}", right_from, left_location);
             right_from.push(left_location);
+            trace!("right_from: {:?}", right_from);
 
             left.to = Some(left_to);
             right.from = Some(right_from);
 
+            trace!("Finished: ({:?}, {:?})", left, right);
             Ok((left, right))
         })
     }
@@ -238,14 +257,19 @@ impl Linkable for Entry {
 
         alter_linking(self, other, |mut left, mut right| {
             let mut left_to = left.to.unwrap_or_else(|| vec![]);
+            trace!("left_to: {:?} retaining {:?}", left_to, right_location);
             left_to.retain(|l| *l != right_location);
+            trace!("left_to: {:?}", left_to);
 
             let mut right_from = right.from.unwrap_or_else(|| vec![]);
+            trace!("right_from: {:?} retaining {:?}", right_from, left_location);
             right_from.retain(|l| *l != left_location);
+            trace!("right_from: {:?}", right_from);
 
             left.to = Some(left_to);
             right.from = Some(right_from);
 
+            trace!("Finished: ({:?}, {:?})", left, right);
             Ok((left, right))
         })
     }

@@ -73,6 +73,7 @@ impl Link {
     }
 
     pub(crate) fn to_value(&self) -> Result<Value> {
+        debug!("Converting {:?} to Value", self);
         match self {
             Link::Id       { ref link } => link,
             Link::LinkTo   { ref link } => link,
@@ -88,6 +89,7 @@ impl Link {
 
 impl ::std::cmp::PartialEq for Link {
     fn eq(&self, other: &Self) -> bool {
+        debug!("Checking for equality: {:?} == {:?}", self, other);
         match (self, other) {
             (&Link::Id { link: ref a }, &Link::Id { link: ref b }) => a.eq(&b),
             (&Link::LinkTo   { link: ref a }, &Link::LinkTo   { link: ref b })=> a.eq(&b),
