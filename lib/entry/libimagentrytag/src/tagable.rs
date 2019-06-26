@@ -31,8 +31,6 @@ use failure::Fallible as Result;
 use crate::tag::{Tag, TagSlice};
 use crate::tag::is_tag_str;
 
-use toml::Value;
-
 pub trait Tagable {
 
     fn get_tags(&self) -> Result<Vec<Tag>>;
@@ -56,10 +54,11 @@ impl<'a> Partial<'a> for TagHeader {
     type Output                  = Self;
 }
 
-impl Tagable for Value {
+impl Tagable for Entry {
 
     fn get_tags(&self) -> Result<Vec<Tag>> {
-        self.read_partial::<TagHeader>()?
+        self.get_header()
+            .read_partial::<TagHeader>()?
             .map(|header| {
                 let _ = header.values
                     .iter()
@@ -114,33 +113,6 @@ impl Tagable for Value {
         tags.iter().map(|t| self.has_tag(t)).fold(Ok(true), |a, e| a.and_then(|b| Ok(b && e?)))
     }
 
-}
-
-impl Tagable for Entry {
-
-    fn get_tags(&self) -> Result<Vec<Tag>> {
-        self.get_header().get_tags()
-    }
-
-    fn set_tags(&mut self, ts: &[Tag]) -> Result<()> {
-        self.get_header_mut().set_tags(ts)
-    }
-
-    fn add_tag(&mut self, t: Tag) -> Result<()> {
-        self.get_header_mut().add_tag(t)
-    }
-
-    fn remove_tag(&mut self, t: Tag) -> Result<()> {
-        self.get_header_mut().remove_tag(t)
-    }
-
-    fn has_tag(&self, t: TagSlice) -> Result<bool> {
-        self.get_header().has_tag(t)
-    }
-
-    fn has_tags(&self, ts: &[Tag]) -> Result<bool> {
-        self.get_header().has_tags(ts)
-    }
 
 }
 
