@@ -91,20 +91,12 @@ impl Tagable for Value {
     }
 
     fn add_tag(&mut self, t: Tag) -> Result<()> {
-        if !is_tag_str(&t).map(|_| true)
-            .map_err(|s| format_err!("{}", s))
-            .context(err_msg("Not a tag"))?
-        {
-            return Err(format_err!("Not a tag: '{}'", t));
-        }
+        let _ = is_tag_str(&t)?;
 
-        self.get_tags()
-            .map(|mut tags| {
-                debug!("Pushing tag = {:?} to list = {:?}", t, tags);
-                tags.push(t);
-                self.set_tags(&tags.into_iter().unique().collect::<Vec<_>>()[..])
-            })
-            .map(|_| ())
+        let mut tags = self.get_tags()?;
+        debug!("Pushing tag = {:?} to list = {:?}", t, tags);
+        tags.push(t);
+        self.set_tags(&tags)
     }
 
     fn remove_tag(&mut self, t: Tag) -> Result<()> {
