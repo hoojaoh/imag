@@ -50,7 +50,7 @@ struct TagHeader {
 }
 
 impl<'a> Partial<'a> for TagHeader {
-    const LOCATION: &'static str = "tags";
+    const LOCATION: &'static str = "tag";
     type Output                  = Self;
 }
 
@@ -82,7 +82,7 @@ impl Tagable for Entry {
 
         debug!("Setting tags = {:?}", header);
         self.get_header_mut()
-            .insert_serialized("tags", header)
+            .insert_serialized("tag", header)
             .map(|_| ())
             .map_err(|_| Error::from(EM::EntryHeaderWriteError))
     }
@@ -167,7 +167,7 @@ mod tests {
 
         entry.add_tag(String::from("test")).unwrap();
 
-        let v = entry.get_header().read_string("tags.values.[0]").unwrap();
+        let v = entry.get_header().read_string("tag.values.[0]").unwrap();
 
         assert!(v.is_some());
         let v = v.unwrap();
@@ -187,12 +187,12 @@ mod tests {
 
         entry.add_tag(String::from("test")).unwrap();
 
-        let v = entry.get_header().read_string("tags.values.[0]").unwrap();
+        let v = entry.get_header().read_string("tag.values.[0]").unwrap();
         assert!(v.is_some());
 
         entry.remove_tag(String::from("test")).unwrap();
 
-        assert!(entry.get_header().read_string("tags.values.[0]").is_err());
+        assert!(entry.get_header().read_string("tag.values.[0]").is_err());
         let tags = entry.get_tags();
         assert!(tags.is_ok());
         let tags = tags.unwrap();
@@ -212,7 +212,7 @@ mod tests {
         let tags = vec![String::from("testtag")];
         entry.set_tags(&tags).unwrap();
 
-        let v = entry.get_header().read_string("tags.values.[0]").unwrap();
+        let v = entry.get_header().read_string("tag.values.[0]").unwrap();
 
         assert!(v.is_some());
         let v = v.unwrap();
