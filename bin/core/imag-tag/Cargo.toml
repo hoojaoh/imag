@@ -36,7 +36,7 @@ default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
 [dev-dependencies]
-toml-query = "0.9"
+toml-query = "0.9.2"
 env_logger = "0.5"
 
 [dev-dependencies.libimagutil]
