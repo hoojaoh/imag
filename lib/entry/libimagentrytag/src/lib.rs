@@ -48,6 +48,8 @@ extern crate serde;
 extern crate filters;
 #[macro_use] extern crate failure;
 
+#[cfg(test)] extern crate env_logger;
+
 extern crate libimagstore;
 extern crate libimagerror;
 

@@ -116,3 +116,43 @@ impl Tagable for Entry {
 
 }
 
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use toml_query::read::TomlValueReadTypeExt;
+
+    use libimagstore::store::Store;
+
+    use super::*;
+
+    fn setup_logging() {
+        let _ = ::env_logger::try_init();
+    }
+
+    fn get_store() -> Store {
+        Store::new_inmemory(PathBuf::from("/"), &None).unwrap()
+    }
+
+    #[test]
+    fn test_tag_set_sets_tag() {
+        setup_logging();
+        let store = get_store();
+        let name = "test-tag-set-sets-tags";
+
+        debug!("Creating default entry");
+        let id = PathBuf::from(String::from(name));
+        let mut entry = store.create(id).unwrap();
+
+        let tags = vec![String::from("testtag")];
+        entry.set_tags(&tags).unwrap();
+
+        let v = entry.get_header().read_string("tags.values.[0]").unwrap();
+
+        assert!(v.is_some());
+        let v = v.unwrap();
+
+        assert_eq!(v, "testtag");
+    }
+
+}

@@ -42,3 +42,6 @@ version = "^2.29"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
+[dev-dependencies]
+env_logger = "0.5"
+
