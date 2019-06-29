@@ -135,6 +135,71 @@ mod tests {
     }
 
     #[test]
+    fn test_tag_get_tag() {
+        setup_logging();
+        let store = get_store();
+        let name = "test-tag-get-tags";
+
+        debug!("Creating default entry");
+        let id = PathBuf::from(String::from(name));
+        let mut entry = store.create(id).unwrap();
+
+        let tags = vec![String::from("a")];
+        entry.set_tags(&tags).unwrap();
+
+        let v = entry.get_tags();
+
+        assert!(v.is_ok());
+        let v = v.unwrap();
+
+        assert_eq!(v, vec!["a"]);
+    }
+
+    #[test]
+    fn test_tag_add_adds_tag() {
+        setup_logging();
+        let store = get_store();
+        let name = "test-tag-set-sets-tags";
+
+        debug!("Creating default entry");
+        let id = PathBuf::from(String::from(name));
+        let mut entry = store.create(id).unwrap();
+
+        entry.add_tag(String::from("test")).unwrap();
+
+        let v = entry.get_header().read_string("tags.values.[0]").unwrap();
+
+        assert!(v.is_some());
+        let v = v.unwrap();
+
+        assert_eq!(v, "test");
+    }
+
+    #[test]
+    fn test_tag_remove_removes_tag() {
+        setup_logging();
+        let store = get_store();
+        let name = "test-tag-set-sets-tags";
+
+        debug!("Creating default entry");
+        let id = PathBuf::from(String::from(name));
+        let mut entry = store.create(id).unwrap();
+
+        entry.add_tag(String::from("test")).unwrap();
+
+        let v = entry.get_header().read_string("tags.values.[0]").unwrap();
+        assert!(v.is_some());
+
+        entry.remove_tag(String::from("test")).unwrap();
+
+        assert!(entry.get_header().read_string("tags.values.[0]").is_err());
+        let tags = entry.get_tags();
+        assert!(tags.is_ok());
+        let tags = tags.unwrap();
+        assert!(tags.is_empty());
+    }
+
+    #[test]
     fn test_tag_set_sets_tag() {
         setup_logging();
         let store = get_store();
