@@ -43,9 +43,12 @@ extern crate itertools;
 extern crate regex;
 extern crate toml;
 extern crate toml_query;
-#[macro_use] extern crate is_match;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
 extern crate filters;
 #[macro_use] extern crate failure;
+
+#[cfg(test)] extern crate env_logger;
 
 extern crate libimagstore;
 extern crate libimagerror;

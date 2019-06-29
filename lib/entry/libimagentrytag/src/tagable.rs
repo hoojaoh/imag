@@ -23,16 +23,13 @@ use libimagstore::store::Entry;
 use libimagerror::errors::ErrorMsg as EM;
 
 use toml_query::read::TomlValueReadExt;
+use toml_query::read::Partial;
 use toml_query::insert::TomlValueInsertExt;
 
 use failure::Error;
-use failure::ResultExt;
 use failure::Fallible as Result;
-use failure::err_msg;
 use crate::tag::{Tag, TagSlice};
 use crate::tag::is_tag_str;
-
-use toml::Value;
 
 pub trait Tagable {
 
@@ -47,144 +44,180 @@ pub trait Tagable {
 
 }
 
-impl Tagable for Value {
+#[derive(Serialize, Deserialize, Debug)]
+struct TagHeader {
+    values: Vec<String>,
+}
 
-    fn get_tags(&self) -> Result<Vec<Tag>> {
-        self.read("tag.values")
-            .context(format_err!("Failed to read header at 'tag.values'"))
-            .map_err(Error::from)
-            .context(EM::EntryHeaderReadError)?
-            .map(|val| {
-                debug!("Got Value of tags...");
-                val.as_array()
-                    .map(|tags| {
-                        debug!("Got Array<T> of tags...");
-                        if !tags.iter().all(|t| is_match!(*t, Value::String(_))) {
-                            return Err(format_err!("Tag type error: Got Array<T> where T is not a String: {:?}", tags));
-                        }
-                        debug!("Got Array<String> of tags...");
-                        if tags.iter().any(|t| match *t {
-                            Value::String(ref s) => !is_tag_str(s).is_ok(),
-                            _ => unreachable!()})
-                        {
-                            return Err(format_err!("At least one tag is not a valid tag string"));
-                        }
-
-                        Ok(tags.iter()
-                            .cloned()
-                            .map(|t| {
-                                match t {
-                                   Value::String(s) => s,
-                                   _ => unreachable!(),
-                                }
-                            })
-                            .collect())
-                    })
-                    .unwrap_or(Ok(vec![]))
-            })
-            .unwrap_or(Ok(vec![]))
-    }
-
-    fn set_tags(&mut self, ts: &[Tag]) -> Result<()> {
-        if ts.iter().any(|tag| !is_tag_str(tag).is_ok()) {
-            let not_tag = ts.iter().filter(|t| !is_tag_str(t).is_ok()).next().unwrap();
-            return Err(format_err!("Not a tag: '{}'", not_tag));
-        }
-
-        let a = ts.iter().unique().map(|t| Value::String(t.clone())).collect();
-        debug!("Setting tags = {:?}", a);
-        self.insert("tag.values", Value::Array(a))
-            .map(|_| ())
-            .map_err(|_| Error::from(EM::EntryHeaderWriteError))
-    }
-
-    fn add_tag(&mut self, t: Tag) -> Result<()> {
-        if !is_tag_str(&t).map(|_| true)
-            .map_err(|s| format_err!("{}", s))
-            .context(err_msg("Not a tag"))?
-        {
-            return Err(format_err!("Not a tag: '{}'", t));
-        }
-
-        self.get_tags()
-            .map(|mut tags| {
-                debug!("Pushing tag = {:?} to list = {:?}", t, tags);
-                tags.push(t);
-                self.set_tags(&tags.into_iter().unique().collect::<Vec<_>>()[..])
-            })
-            .map(|_| ())
-    }
-
-    fn remove_tag(&mut self, t: Tag) -> Result<()> {
-        if !is_tag_str(&t).map(|_| true)
-            .map_err(|s| format_err!("{}", s))
-            .context(err_msg("Not a tag"))?
-        {
-            debug!("Not a tag: '{}'", t);
-            return Err(format_err!("Not a tag: '{}'", t));
-        }
-
-        self.get_tags()
-            .map(|mut tags| {
-                tags.retain(|tag| tag.clone() != t);
-                self.set_tags(&tags[..])
-            })
-            .map(|_| ())
-    }
-
-    fn has_tag(&self, t: TagSlice) -> Result<bool> {
-        let tags = self.read("tag.values").context(EM::EntryHeaderReadError)?;
-
-        if !tags.iter().all(|t| is_match!(*t, &Value::String(_))) {
-            return Err(err_msg("Tag type error"))
-        }
-
-        Ok(tags
-           .iter()
-           .any(|tag| {
-               match *tag {
-                   &Value::String(ref s) => { s == t },
-                   _ => unreachable!()
-               }
-           }))
-    }
-
-    fn has_tags(&self, tags: &[Tag]) -> Result<bool> {
-        let mut result = true;
-        for tag in tags {
-            result = result && self.has_tag(tag)?;
-        }
-
-        Ok(result)
-    }
-
+impl<'a> Partial<'a> for TagHeader {
+    const LOCATION: &'static str = "tag";
+    type Output                  = Self;
 }
 
 impl Tagable for Entry {
 
     fn get_tags(&self) -> Result<Vec<Tag>> {
-        self.get_header().get_tags()
+        self.get_header()
+            .read_partial::<TagHeader>()?
+            .map(|header| {
+                let _ = header.values
+                    .iter()
+                    .map(is_tag_str)
+                    .collect::<Result<_>>()?;
+
+                Ok(header.values)
+            })
+            .unwrap_or_else(|| Ok(vec![]))
     }
 
     fn set_tags(&mut self, ts: &[Tag]) -> Result<()> {
-        self.get_header_mut().set_tags(ts)
+        let _ = ts
+            .iter()
+            .map(is_tag_str)
+            .collect::<Result<Vec<_>>>()?;
+
+        let header = TagHeader {
+            values: ts.iter().unique().cloned().collect(),
+        };
+
+        debug!("Setting tags = {:?}", header);
+        self.get_header_mut()
+            .insert_serialized("tag", header)
+            .map(|_| ())
+            .map_err(|_| Error::from(EM::EntryHeaderWriteError))
     }
 
     fn add_tag(&mut self, t: Tag) -> Result<()> {
-        self.get_header_mut().add_tag(t)
+        let _ = is_tag_str(&t)?;
+
+        let mut tags = self.get_tags()?;
+        debug!("Pushing tag = {:?} to list = {:?}", t, tags);
+        tags.push(t);
+        self.set_tags(&tags)
     }
 
     fn remove_tag(&mut self, t: Tag) -> Result<()> {
-        self.get_header_mut().remove_tag(t)
+        let _ = is_tag_str(&t)?;
+
+        let mut tags = self.get_tags()?;
+        tags.retain(|tag| *tag != t);
+        self.set_tags(&tags)
     }
 
     fn has_tag(&self, t: TagSlice) -> Result<bool> {
-        self.get_header().has_tag(t)
+        // use any() because Vec::contains() wants &String, but we do not want to allocate.
+        self.get_tags().map(|v| v.iter().any(|s| s == t))
     }
 
-    fn has_tags(&self, ts: &[Tag]) -> Result<bool> {
-        self.get_header().has_tags(ts)
+    fn has_tags(&self, tags: &[Tag]) -> Result<bool> {
+        tags.iter().map(|t| self.has_tag(t)).fold(Ok(true), |a, e| a.and_then(|b| Ok(b && e?)))
     }
+
 
 }
 
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use toml_query::read::TomlValueReadTypeExt;
+
+    use libimagstore::store::Store;
+
+    use super::*;
+
+    fn setup_logging() {
+        let _ = ::env_logger::try_init();
+    }
+
+    fn get_store() -> Store {
+        Store::new_inmemory(PathBuf::from("/"), &None).unwrap()
+    }
+
+    #[test]
+    fn test_tag_get_tag() {
+        setup_logging();
+        let store = get_store();
+        let name = "test-tag-get-tags";
+
+        debug!("Creating default entry");
+        let id = PathBuf::from(String::from(name));
+        let mut entry = store.create(id).unwrap();
+
+        let tags = vec![String::from("a")];
+        entry.set_tags(&tags).unwrap();
+
+        let v = entry.get_tags();
+
+        assert!(v.is_ok());
+        let v = v.unwrap();
+
+        assert_eq!(v, vec!["a"]);
+    }
+
+    #[test]
+    fn test_tag_add_adds_tag() {
+        setup_logging();
+        let store = get_store();
+        let name = "test-tag-set-sets-tags";
+
+        debug!("Creating default entry");
+        let id = PathBuf::from(String::from(name));
+        let mut entry = store.create(id).unwrap();
+
+        entry.add_tag(String::from("test")).unwrap();
+
+        let v = entry.get_header().read_string("tag.values.[0]").unwrap();
+
+        assert!(v.is_some());
+        let v = v.unwrap();
+
+        assert_eq!(v, "test");
+    }
+
+    #[test]
+    fn test_tag_remove_removes_tag() {
+        setup_logging();
+        let store = get_store();
+        let name = "test-tag-set-sets-tags";
+
+        debug!("Creating default entry");
+        let id = PathBuf::from(String::from(name));
+        let mut entry = store.create(id).unwrap();
+
+        entry.add_tag(String::from("test")).unwrap();
+
+        let v = entry.get_header().read_string("tag.values.[0]").unwrap();
+        assert!(v.is_some());
+
+        entry.remove_tag(String::from("test")).unwrap();
+
+        assert!(entry.get_header().read_string("tag.values.[0]").is_err());
+        let tags = entry.get_tags();
+        assert!(tags.is_ok());
+        let tags = tags.unwrap();
+        assert!(tags.is_empty());
+    }
+
+    #[test]
+    fn test_tag_set_sets_tag() {
+        setup_logging();
+        let store = get_store();
+        let name = "test-tag-set-sets-tags";
+
+        debug!("Creating default entry");
+        let id = PathBuf::from(String::from(name));
+        let mut entry = store.create(id).unwrap();
+
+        let tags = vec![String::from("testtag")];
+        entry.set_tags(&tags).unwrap();
+
+        let v = entry.get_header().read_string("tag.values.[0]").unwrap();
+
+        assert!(v.is_some());
+        let v = v.unwrap();
+
+        assert_eq!(v, "testtag");
+    }
+
+}
