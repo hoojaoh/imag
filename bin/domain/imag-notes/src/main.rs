@@ -159,7 +159,6 @@ fn list(rt: &Runtime) {
         } else {
             return Ordering::Greater;
         })
-        .iter()
         .for_each(|note| {
             let name = note.get_name().map_err_trace_exit_unwrap();
             let _ = writeln!(rt.stdout(), "{}", name)
