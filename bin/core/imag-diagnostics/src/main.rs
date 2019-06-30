@@ -126,8 +126,9 @@ fn main() {
                                     "Print diagnostics about imag and the imag store",
                                     ui::build_ui);
 
-    let template            = get_config(&rt, "rt.progressbar_style");
-    let tick_chars          = get_config(&rt, "rt.progressticker_chars");
+    let template    = get_config(&rt, "rt.progressbar_style");
+    let tick_chars  = get_config(&rt, "rt.progressticker_chars");
+    let verbose     = rt.cli().is_present("more-output");
 
     let style = if let Some(tick_chars) = tick_chars {
         ProgressStyle::default_spinner().tick_chars(&tick_chars)
@@ -176,6 +177,7 @@ fn main() {
     let mut max_overall_byte_size : Option<(usize, StoreId)> = None;
     let mut verified_count        = 0;
     let mut unverified_count      = 0;
+    let mut unverified_entries    = vec![];
     let mut num_links    = 0;
     let mut max_links : Option<(usize, StoreId)> = None;
 
@@ -197,6 +199,9 @@ fn main() {
             verified_count += 1;
         } else {
             unverified_count += 1;
+            if verbose {
+                unverified_entries.push(diag.id.clone());
+            }
         }
 
         num_links += diag.num_links;
@@ -239,6 +244,11 @@ fn main() {
         }
         do_write!(out, "{} verified entries", verified_count);
         do_write!(out, "{} unverified entries", unverified_count);
+        if verbose {
+            for unve in unverified_entries.iter() {
+                do_write!(out, "Unverified: {}", unve);
+            }
+        }
     }
 }
 
