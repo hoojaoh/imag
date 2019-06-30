@@ -173,7 +173,7 @@ fn show(rt: &Runtime) {
         })
         .filter(|e| e.is_log().map_err_trace_exit_unwrap())
         .map(|entry| (entry.diary_id().map_err_trace_exit_unwrap(), entry))
-        .sorted_by_key(|tpl| tpl.0.clone())
+        .sorted_by_key(|tpl| tpl.0.get_date_representation())
         .into_iter()
         .map(|tpl| { debug!("Found entry: {:?}", tpl.1); tpl })
         .map(|(id, entry)| {
