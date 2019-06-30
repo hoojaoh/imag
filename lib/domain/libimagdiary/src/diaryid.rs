@@ -132,6 +132,14 @@ impl DiaryId {
         self
     }
 
+    /// Get the date how it is stored in the DiaryId object
+    ///
+    /// This can be useful for sorting a list of diary entries by date, but not using
+    /// Into<NaiveDateTime>
+    pub fn get_date_representation(&self) -> (i32, u32, u32, u32, u32, u32) {
+        (self.year, self.month, self.day, self.hour, self.minute, self.second)
+    }
+
     pub fn now(name: String) -> DiaryId {
         use chrono::offset::Local;
 
