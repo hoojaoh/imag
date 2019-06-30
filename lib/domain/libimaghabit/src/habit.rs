@@ -99,13 +99,12 @@ impl HabitTemplate for Entry {
 
     fn create_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate) -> Result<FileLockEntry<'a>> {
         let name    = self.habit_name()?;
-        let comment = self.habit_comment()?;
         let date    = date_to_string(date);
         let id      = instance_id_for_name_and_datestr(&name, &date)?;
 
         store.create(id)
             .map_err(From::from)
-            .and_then(|entry| postprocess_instance(entry, name, date, comment, self))
+            .and_then(|entry| postprocess_instance(entry, name, date, self))
     }
 
     fn create_instance_today<'a>(&mut self, store: &'a Store) -> Result<FileLockEntry<'a>> {
@@ -114,13 +113,12 @@ impl HabitTemplate for Entry {
 
     fn retrieve_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate) -> Result<FileLockEntry<'a>> {
         let name    = self.habit_name()?;
-        let comment = self.habit_comment()?;
         let date    = date_to_string(date);
         let id      = instance_id_for_name_and_datestr(&name, &date)?;
 
         store.retrieve(id)
             .map_err(From::from)
-            .and_then(|entry| postprocess_instance(entry, name, date, comment, self))
+            .and_then(|entry| postprocess_instance(entry, name, date, self))
     }
 
     fn retrieve_instance_today<'a>(&mut self, store: &'a Store) -> Result<FileLockEntry<'a>> {
@@ -398,7 +396,6 @@ pub mod builder {
 fn postprocess_instance<'a>(mut entry: FileLockEntry<'a>,
                             name: String,
                             date: String,
-                            comment: String,
                             template: &mut Entry)
     -> Result<FileLockEntry<'a>>
 {
@@ -407,7 +404,6 @@ fn postprocess_instance<'a>(mut entry: FileLockEntry<'a>,
         let hdr = entry.get_header_mut();
         let _   = hdr.insert("habit.instance.name",    Value::String(name))?;
         let _   = hdr.insert("habit.instance.date",    Value::String(date))?;
-        let _   = hdr.insert("habit.instance.comment", Value::String(comment))?;
     }
 
     entry.add_link(template)?;
