@@ -17,16 +17,21 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::ops::Deref;
+
 use chrono::NaiveDate;
 use toml::Value;
 use toml_query::set::TomlValueSetExt;
 use failure::Fallible as Result;
 
 use crate::util::*;
+use crate::habit::HabitTemplate;
 
 use libimagstore::store::Entry;
+use libimagstore::store::Store;
 use libimagentryutil::isa::Is;
 use libimagentryutil::isa::IsKindHeaderPathProvider;
+use libimagentrylink::linkable::Linkable;
 
 /// An instance of a habit is created for each time a habit is done.
 ///
@@ -41,8 +46,7 @@ pub trait HabitInstance {
 
     fn get_date(&self) -> Result<NaiveDate>;
     fn set_date(&mut self, n: &NaiveDate) -> Result<()>;
-    fn get_comment(&self) -> Result<String>;
-    fn set_comment(&mut self, c: String) -> Result<()>;
+    fn get_comment(&self, store: &Store) -> Result<String>;
     fn get_template_name(&self) -> Result<String>;
 }
 
@@ -68,16 +72,37 @@ impl HabitInstance for Entry {
             .map(|_| ())
     }
 
-    fn get_comment(&self) -> Result<String> {
-        get_string_header_from_entry(self, "habit.instance.comment")
-    }
-
-    fn set_comment(&mut self, c: String) -> Result<()> {
-        // Using `set` here because when creating the entry, these headers should be made present.
-        self.get_header_mut()
-            .set("habit.instance.comment", Value::String(c))
-            .map_err(From::from)
-            .map(|_| ())
+    /// Iterates all internal links, finds the template for this instance and gets the comment from
+    /// it
+    ///
+    ///
+    /// # Warning
+    ///
+    /// Internally tries to `Store::get()` the template entry. If this entry is borrowed outside of
+    /// this function, this fails.
+    ///
+    /// If multiple templates are linked to this entry, this returns the comment of the first
+    ///
+    ///
+    /// # Return
+    ///
+    /// Returns the Comment string from the first template that is linked to this instance.
+    /// If this is not an instance, this might misbehave.
+    /// If there is no template linked, this returns an error.
+    ///
+    fn get_comment(&self, store: &Store) -> Result<String> {
+        let templ_name = self.get_template_name()?;
+        for link in self.links()? {
+            let template = store.get(link.get_store_id().clone())?.ok_or_else(|| {
+                format_err!("Entry {} is linked to {}, but that entry does not exist",
+                            self.get_location(),
+                            link.get_store_id())
+            })?;
+            if HabitTemplate::is_habit_template(template.deref())? && template.habit_name()? == templ_name {
+                return template.habit_comment()
+            }
+        }
+        Err(format_err!("Cannot find template entry for {}", self.get_location()))
     }
 
     fn get_template_name(&self) -> Result<String> {
