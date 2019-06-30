@@ -413,16 +413,23 @@ fn list(rt: &Runtime) {
         let basedate = h.habit_basedate().map_err_trace_exit_unwrap();
         let recur    = h.habit_recur_spec().map_err_trace_exit_unwrap();
         let comm     = h.habit_comment().map_err_trace_exit_unwrap();
-        let due      = h.next_instance_date().map_err_trace_exit_unwrap()
-            .map(date_to_string_helper)
-            .unwrap_or_else(|| String::from("<finished>"));
+        let (due, done) = if let Some(date) = h.next_instance_date().map_err_trace_exit_unwrap() {
+            let done     = h.instance_exists_for_date(&date)
+                .map(|b| if b { "x" } else { "" })
+                .map(String::from)
+                .map_err_trace_exit_unwrap();
+            (date_to_string_helper(date), done)
+        } else {
+            // "finished" as in "the habit is closed"
+            (String::from("<finished>"), String::from(""))
+        };
 
-        let v = vec![name, basedate, recur, comm, due];
+        let v = vec![name, basedate, recur, comm, due, done];
         debug!(" -> {:?}", v);
         v
     }
 
-    let header = ["#", "Name", "Basedate", "Recurr", "Comment", "Next Due"]
+    let header = ["#", "Name", "Basedate", "Recurr", "Comment", "Next Due", "Done"]
         .iter()
         .map(|s| Cell::new(s))
         .collect::<Vec<Cell>>();
