@@ -7,10 +7,40 @@ if [[ -z "$since" ]]; then
     exit 1
 fi
 
-for rev in $(git rev-list "$since"..HEAD | tac); do
-    if git notes --ref=changelog list $rev &> /dev/null; then
-        output=$(git notes --ref=changelog show $rev | sed '2,$s/^/  /')
-        echo "* [$(echo ${rev:0:10})] $output"
-    fi
-done
+export GIT_PAGER=
+
+do_log() {
+    git log "$since"..HEAD --first-parent --oneline "$@"
+}
+
+echo " ### Major changes"
+echo ""
+    do_log \
+    --merges \
+    --format="* (%h) %s"
+echo ""
+echo ""
+
+echo " ### Fixes"
+echo ""
+    do_log \
+    --grep Fix \
+    --format="* (%h) %s"
+echo ""
+echo ""
+
+
+echo " ### Other "
+echo ""
+    do_log \
+    --no-merges \
+    --grep Fix \
+    --invert-grep \
+    --format="* (%h) %s"
+echo ""
+echo ""
+
+echo "Thanks to all contributors:"
+# do not thank myself...
+do_log --format="* %an" | sort -u | grep -v "Matthias Beyer"
 
