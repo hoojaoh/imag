@@ -20,7 +20,7 @@ is-it-maintained-open-issues      = { repository = "matthiasbeyer/imag" }
 maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
-log = "0.4.0"
+log = "0.4.6"
 
 libimagrt        = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
@@ -28,7 +28,7 @@ libimagstore     = { version = "0.10.0", path = "../../../lib/core/libimagstore"
 libimagentrylink = { version = "0.10.0", path = "../../../lib/entry/libimagentrylink" }
 
 [dependencies.clap]
-version = "^2.29"
+version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 

@@ -20,13 +20,13 @@ is-it-maintained-open-issues      = { repository = "matthiasbeyer/imag" }
 maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
-log = "0.4.0"
-chrono = "0.4"
-filters = "0.3"
-itertools = "0.7"
-prettytable-rs = "0.8"
-kairos  = "0.3"
-failure = "0.1"
+log = "0.4.6"
+chrono = "0.4.7"
+filters = "0.3.0"
+itertools = "0.8.0"
+prettytable-rs = "0.8.0"
+kairos  = "0.3.0"
+failure = "0.1.5"
 
 libimagstore     = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagrt        = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
@@ -35,7 +35,7 @@ libimagtimetrack = { version = "0.10.0", path = "../../../lib/domain/libimagtime
 libimagutil      = { version = "0.10.0", path = "../../../lib/etc/libimagutil" }
 
 [dependencies.clap]
-version = "^2.29"
+version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 

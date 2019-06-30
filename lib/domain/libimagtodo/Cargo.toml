@@ -21,12 +21,12 @@ maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
 task-hookrs = "0.6.0"
-uuid = "0.7"
-toml = "0.5"
-toml-query = "0.9"
-log = "0.4.0"
-serde_json = "1"
-failure = "0.1"
+uuid = "0.7.4"
+toml = "0.5.1"
+toml-query = "0.9.2"
+log = "0.4.6"
+serde_json = "1.0.39"
+failure = "0.1.5"
 
 libimagstore = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }

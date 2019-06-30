@@ -20,14 +20,14 @@ is-it-maintained-open-issues      = { repository = "matthiasbeyer/imag" }
 maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
-log = "0.4.0"
-toml = "0.5"
-vobject    = "0.7"
-handlebars = "1.0"
-walkdir = "2"
-uuid = { version = "0.7", features = ["v4"] }
-serde_json = "1"
-failure = "0.1"
+log = "0.4.6"
+toml = "0.5.1"
+vobject    = "0.7.0"
+handlebars = "1.1.0"
+walkdir = "2.2.8"
+uuid = { version = "0.7.4", features = ["v4"] }
+serde_json = "1.0.39"
+failure = "0.1.5"
 
 libimagrt          = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagstore       = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
@@ -39,11 +39,11 @@ libimaginteraction = { version = "0.10.0", path = "../../../lib/etc/libimaginter
 libimagcontact     = { version = "0.10.0", path = "../../../lib/domain/libimagcontact" }
 
 [dependencies.clap]
-version = "^2.29"
+version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
 [dependencies.toml-query]
-version          = "0.9"
+version          = "0.9.2"
 default-features = false
 features         = ["typed"]

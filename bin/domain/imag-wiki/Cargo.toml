@@ -14,13 +14,13 @@ repository    = "https://github.com/matthiasbeyer/imag"
 homepage      = "http://imag-pim.org"
 
 [dependencies]
-clap = ">=2.17"
-log = "0.4"
-toml = "0.5"
-toml-query = "0.9"
-is-match = "0.1"
-regex = "1"
-filters = "0.3"
+clap = "2.33.0"
+log = "0.4.6"
+toml = "0.5.1"
+toml-query = "0.9.2"
+is-match = "0.1.0"
+regex = "1.1.7"
+filters = "0.3.0"
 
 libimagentryedit     = { version = "0.10.0", path = "../../../lib/entry/libimagentryedit" }
 libimagentrylink     = { version = "0.10.0", path = "../../../lib/entry/libimagentrylink" }
