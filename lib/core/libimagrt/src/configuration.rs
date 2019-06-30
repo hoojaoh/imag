@@ -40,8 +40,6 @@ pub fn fetch_config(searchpath: &PathBuf) -> Result<Option<Value>> {
     use std::io::Write;
     use std::io::stderr;
 
-    use itertools::Itertools;
-
     use libimagutil::variants::generate_variants as gen_vars;
     use libimagerror::trace::trace_error;
 
@@ -65,7 +63,9 @@ pub fn fetch_config(searchpath: &PathBuf) -> Result<Option<Value>> {
             .unwrap_or(vec![]),
     ];
 
-    let config = Itertools::flatten(vals.iter())
+    let config = vals
+        .iter()
+        .flatten()
         .filter(|path| path.exists() && path.is_file())
         .filter_map(|path| {
             let content = {
