@@ -473,12 +473,12 @@ fn show(rt: &Runtime) {
         .map(String::from)
         .unwrap(); // safe by clap
 
-    fn instance_lister_fn(i: &FileLockEntry) -> Vec<String> {
+    fn instance_lister_fn(rt: &Runtime, i: &FileLockEntry) -> Vec<String> {
         use libimagutil::date::date_to_string;
         use libimaghabit::instance::HabitInstance;
 
         let date = date_to_string(&i.get_date().map_err_trace_exit_unwrap());
-        let comm = i.get_comment().map_err_trace_exit_unwrap();
+        let comm = i.get_comment(rt.store()).map_err_trace_exit_unwrap();
 
         vec![date, comm]
     }
@@ -516,7 +516,7 @@ fn show(rt: &Runtime) {
                 .unwrap_or_exit();
 
             let mut empty = true;
-            let _ = habit
+            let iter = habit
                 .linked_instances()
                 .map_err_trace_exit_unwrap()
                 .trace_unwrap_exit()
@@ -524,10 +524,17 @@ fn show(rt: &Runtime) {
                     debug!("Getting: {:?}", instance_id);
                     rt.store().get(instance_id).map_err_trace_exit_unwrap()
                 })
-                .enumerate()
-                .for_each(|(i, e)| {
+                .enumerate();
+
+            // We need to drop here because we iterate over instances and in the
+            // instance_lister_fn() we call instance.get_comment(), which internally tries to
+            // Store::get() the template object.
+            // This would fail because the template is already borrowed.
+            drop(habit);
+
+            iter.for_each(|(i, e)| {
                     let mut v = vec![format!("{}", i)];
-                    let mut instances = instance_lister_fn(&e);
+                    let mut instances = instance_lister_fn(&rt, &e);
 
                     {
                         let _ = rt.report_touched(e.get_location()).unwrap_or_exit();
