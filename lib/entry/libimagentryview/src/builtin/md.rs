@@ -22,7 +22,7 @@ use std::io::Write;
 use libimagstore::store::Entry;
 use libimagrt::runtime::Runtime;
 
-use mdcat::{AnsiTerminal, ResourceAccess, TerminalSize};
+use mdcat::{ResourceAccess, TerminalCapabilities, TerminalSize};
 use pulldown_cmark::Parser;
 use syntect::parsing::SyntaxSet;
 
@@ -57,9 +57,8 @@ impl<'a> Viewer for MarkdownViewer<'a> {
         let base_dir        = self.rt.rtp();
         let syntax_set      = SyntaxSet::load_defaults_newlines();
 
-        let mut term = AnsiTerminal::new(sink);
-
-        ::mdcat::push_tty(&mut term,
+        ::mdcat::push_tty(sink,
+                          TerminalCapabilities::ansi(),
                           self.termsize.clone(),
                           parser,
                           base_dir,
