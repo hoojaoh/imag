@@ -17,9 +17,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use clap::App;
+use clap::{Arg, App};
 
 pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
-    app
+    app.arg(Arg::with_name("more-output")
+             .long("more")
+             .takes_value(false)
+             .required(false)
+             .multiple(false)
+             .help("Show more output."))
 }
 
