@@ -61,3 +61,11 @@ pub fn is_url<A: AsRef<str>>(s: A) -> Result<(), String> {
     Url::parse(s.as_ref()).map(|_| ()).map_err(|_| format!("Not a URL: {}", s.as_ref()))
 }
 
+pub fn is_datetime<A: AsRef<str>>(s: A) -> Result<(), String> {
+    crate::date::datetime_from_string(s).map(|_| ()).map_err(|e| format!("{}", e))
+}
+
+pub fn is_date<A: AsRef<str>>(s: A) -> Result<(), String> {
+    crate::date::date_from_string(s).map(|_| ()).map_err(|e| format!("{}", e))
+}
+
