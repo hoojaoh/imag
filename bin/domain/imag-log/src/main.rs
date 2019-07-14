@@ -161,7 +161,8 @@ fn show(rt: &Runtime) {
 
     let mut output = rt.stdout();
 
-    Itertools::flatten(iters.into_iter())
+    iters.into_iter()
+        .flatten()
         .into_get_iter(rt.store())
         .trace_unwrap_exit()
         .filter_map(|opt| {
