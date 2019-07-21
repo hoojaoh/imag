@@ -57,7 +57,9 @@ pub fn list(rt: &Runtime) {
         .for_each(|id| {
             let _ = rt.report_touched(&id).unwrap_or_exit();
 
-            writeln!(rt.stdout(), "{}", id).to_exit_code().unwrap_or_exit()
+            if !rt.output_is_pipe() {
+                writeln!(rt.stdout(), "{}", id).to_exit_code().unwrap_or_exit()
+            }
         });
 }
 
