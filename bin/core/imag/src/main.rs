@@ -195,7 +195,11 @@ fn main() {
     let enable_logging = app.enable_logging();
     let matches = app.matches();
 
-    let rtp = ::libimagrt::runtime::get_rtp_match(&matches);
+    let rtp = ::libimagrt::runtime::get_rtp_match(&matches)
+        .unwrap_or_else(|e| {
+            trace_error(&e);
+            exit(1)
+        });
     let configpath = matches
         .value_of(Runtime::arg_config_name())
         .map_or_else(|| rtp.clone(), PathBuf::from);
