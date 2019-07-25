@@ -648,17 +648,26 @@ pub fn get_rtp_match<'a>(matches: &ArgMatches<'a>) -> Result<PathBuf> {
         return Ok(p)
     }
 
-    if let Ok(home) = env::var("IMAG_RTP") {
-        return Ok(PathBuf::from(home))
+    match env::var("IMAG_RTP").map(PathBuf::from) {
+        Ok(p) => return Ok(p),
+        Err(env::VarError::NotUnicode(_)) => {
+            return Err(err_msg("Environment variable 'IMAG_RTP' does not contain valid Unicode"))
+        },
+        Err(env::VarError::NotPresent) => { /* passthrough */ }
     }
 
     env::var("HOME")
         .map(PathBuf::from)
         .map(|mut p| { p.push(".imag"); p })
-        .map_err(|_| {
-            err_msg("You seem to be $HOME-less. Please get a $HOME before using this \
-                software. We are sorry for you and hope you have some \
-                accommodation anyways.")
+        .map_err(|e| match e {
+            env::VarError::NotUnicode(_) => {
+                err_msg("Environment variable 'HOME' does not contain valid Unicode")
+            },
+            env::VarError::NotPresent => {
+                err_msg("You seem to be $HOME-less. Please get a $HOME before using this \
+                    software. We are sorry for you and hope you have some \
+                    accommodation anyways.")
+            }
         })
 }
 
