@@ -55,6 +55,7 @@ mod cont;
 mod day;
 mod list;
 mod month;
+mod shell;
 mod start;
 mod stop;
 mod track;
@@ -66,6 +67,7 @@ use crate::cont::cont;
 use crate::day::day;
 use crate::list::{list, list_impl};
 use crate::month::month;
+use crate::shell::shell;
 use crate::start::start;
 use crate::stop::stop;
 use crate::track::track;
@@ -91,6 +93,7 @@ fn main() {
             "day"      => day(&rt),
             "list"     => list(&rt),
             "month"    => month(&rt),
+            "shell"    => shell(&rt),
             "start"    => start(&rt),
             "stop"     => stop(&rt),
             "track"    => track(&rt),

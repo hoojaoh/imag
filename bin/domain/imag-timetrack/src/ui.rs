@@ -183,4 +183,31 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .help("Limit to certain tags"))
                    )
 
+       .subcommand(SubCommand::with_name("shell")
+                   .about("Start a shell and start timetracking, stop when shell exits")
+                   .version("0.1")
+                   .long_about(r#"
+                        Tries to find the current shell via $SHELL. If none is found, this aborts operation and returns 1.
+                        If a shell is found in the environment variables, the time tracking is created and the shell started.
+                        As soon as the shell exits (no matter what exit code), the timetracking is stopped.
+                        The command exits with the exit code of the shell it started. If there is no exit code, this exits with 0.
+                        If there was a failure during setting the end-time, the command exits with the exit code of the shell anyways, but prints error information.
+                        If the command for the shell could not be executed, this fails with 2.
+                   "#)
+
+                   .arg(Arg::with_name("shell")
+                        .long("shell")
+                        .short("s")
+                        .required(false)
+                        .multiple(false)
+                        .takes_value(true)
+                        .help("Shell to start, defaults to $SHELL"))
+
+                   .arg(Arg::with_name("tags")
+                        .index(1)
+                        .required(true)
+                        .multiple(true)
+                        .help("Tags to start"))
+                   )
+
 }
