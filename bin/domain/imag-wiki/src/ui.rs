@@ -30,11 +30,11 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                 .value_name("WIKI")
                 .help("Name of the wiki to use. Defaults to 'default'"))
 
-        .subcommand(SubCommand::with_name("ids")
+        .subcommand(SubCommand::with_name("list")
                    .about("List all ids in this wiki")
                    .version("0.1")
 
-                   .arg(Arg::with_name("ids-full")
+                   .arg(Arg::with_name("list-full")
                         .long("full")
                         .takes_value(false)
                         .required(false)

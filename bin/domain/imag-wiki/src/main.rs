@@ -58,7 +58,7 @@ fn main() {
     trace!("calling = {:?}", rt.cli().subcommand_name());
 
     match rt.cli().subcommand_name() {
-        Some("ids")         => ids(&rt, wiki_name),
+        Some("list")        => list(&rt, wiki_name),
         Some("idof")        => idof(&rt, wiki_name),
         Some("create")      => create(&rt, wiki_name),
         Some("create-wiki") => create_wiki(&rt),
@@ -75,9 +75,9 @@ fn main() {
     } // end match scmd
 } // end main
 
-fn ids(rt: &Runtime, wiki_name: &str) {
-    let scmd   = rt.cli().subcommand_matches("ids").unwrap(); // safed by clap
-    let prefix = if scmd.is_present("ids-full") {
+fn list(rt: &Runtime, wiki_name: &str) {
+    let scmd   = rt.cli().subcommand_matches("list").unwrap(); // safed by clap
+    let prefix = if scmd.is_present("list-full") {
         format!("{}/", rt.store().path().display())
     } else {
         String::from("")
