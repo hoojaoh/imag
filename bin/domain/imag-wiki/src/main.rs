@@ -54,6 +54,8 @@ fn main() {
                                     build_ui);
 
     let wiki_name = rt.cli().value_of("wikiname").unwrap_or("default");
+    trace!("wiki_name = {}", wiki_name);
+    trace!("calling = {:?}", rt.cli().subcommand_name());
 
     match rt.cli().subcommand_name() {
         Some("ids")         => ids(&rt, wiki_name),
