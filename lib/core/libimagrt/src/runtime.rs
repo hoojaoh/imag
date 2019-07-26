@@ -81,7 +81,7 @@ impl<'a> Runtime<'a> {
 
         let rtp = get_rtp_match(&matches)?;
 
-        let configpath = matches.value_of(Runtime::arg_config_name())
+        let configpath = matches.value_of("config")
                                 .map_or_else(|| rtp.clone(), PathBuf::from);
 
         debug!("Config path = {:?}", configpath);
@@ -124,7 +124,7 @@ impl<'a> Runtime<'a> {
 
         let rtp = get_rtp_match(&matches)?;
 
-        let storepath = matches.value_of(Runtime::arg_storepath_name())
+        let storepath = matches.value_of("storepath")
                                 .map_or_else(|| {
                                     let mut spath = rtp.clone();
                                     spath.push("store");
@@ -144,7 +144,7 @@ impl<'a> Runtime<'a> {
 
         let has_output_pipe = !atty::is(atty::Stream::Stdout);
         let has_input_pipe  = !atty::is(atty::Stream::Stdin);
-        let ignore_ids      = matches.is_present(Runtime::arg_ignore_ids_name());
+        let ignore_ids      = matches.is_present("ignore-ids");
 
         debug!("has output pipe = {}", has_output_pipe);
         debug!("has input pipe  = {}", has_input_pipe);
@@ -187,7 +187,7 @@ impl<'a> Runtime<'a> {
             .author("Matthias Beyer <mail@beyermatthias.de>")
             .about(about)
             .settings(&[AppSettings::AllowExternalSubcommands])
-            .arg(Arg::with_name(Runtime::arg_verbosity_name())
+            .arg(Arg::with_name("verbosity")
                 .short("v")
                 .long("verbose")
                 .help("Set log level")
@@ -196,118 +196,58 @@ impl<'a> Runtime<'a> {
                 .possible_values(&["trace", "debug", "info", "warn", "error"])
                 .value_name("LOGLEVEL"))
 
-            .arg(Arg::with_name(Runtime::arg_debugging_name())
+            .arg(Arg::with_name("debugging")
                 .long("debug")
                 .help("Enables debugging output. Shortcut for '--verbose debug'")
                 .required(false)
                 .takes_value(false))
 
-            .arg(Arg::with_name(Runtime::arg_no_color_output_name())
+            .arg(Arg::with_name("no-color-output")
                 .long("no-color")
                 .help("Disable color output")
                 .required(false)
                 .takes_value(false))
 
-            .arg(Arg::with_name(Runtime::arg_config_name())
+            .arg(Arg::with_name("config")
                 .long("config")
                 .help("Path to alternative config file")
                 .required(false)
                 .validator(::libimagutil::cli_validators::is_existing_path)
                 .takes_value(true))
 
-            .arg(Arg::with_name(Runtime::arg_config_override_name())
+            .arg(Arg::with_name("config-override")
                  .long("override-config")
                  .help("Override a configuration settings. Use 'key=value' pairs, where the key is a path in the TOML configuration. The value must be present in the configuration and be convertible to the type of the configuration setting. If the argument does not contain a '=', it gets ignored. Setting Arrays and Tables is not yet supported.")
                  .required(false)
                  .takes_value(true))
 
-            .arg(Arg::with_name(Runtime::arg_runtimepath_name())
+            .arg(Arg::with_name("runtimepath")
                 .long("rtp")
                 .help("Alternative runtimepath")
                 .required(false)
                 .validator(::libimagutil::cli_validators::is_directory)
                 .takes_value(true))
 
-            .arg(Arg::with_name(Runtime::arg_storepath_name())
+            .arg(Arg::with_name("storepath")
                 .long("store")
                 .help("Alternative storepath. Must be specified as full path, can be outside of the RTP")
                 .required(false)
                 .validator(::libimagutil::cli_validators::is_directory)
                 .takes_value(true))
 
-            .arg(Arg::with_name(Runtime::arg_editor_name())
+            .arg(Arg::with_name("editor")
                 .long("editor")
                 .help("Set editor")
                 .required(false)
                 .takes_value(true))
 
-            .arg(Arg::with_name(Runtime::arg_ignore_ids_name())
-                .long(Runtime::arg_ignore_ids_name())
+            .arg(Arg::with_name("ignore-ids")
+                .long("ignore-ids")
                 .help("Do not assume that the output is a pipe to another imag command. This overrides the default behaviour where imag only prints the IDs of the touched entries to stdout if stdout is a pipe.")
                 .long_help("Without this flag, imag assumes that if stdout is a pipe, the command imag pipes to is also an imag command. Thus, it prints the IDs of the processed entries to stdout and automatically redirects the command output to stderr. By providing this flag, this behaviour gets overridden: The IDs are not printed at all and the normal output is printed to stdout.")
                 .required(false)
                 .takes_value(false))
 
-    }
-
-    /// Get the argument names of the Runtime which are available
-    pub fn arg_names() -> Vec<&'static str> {
-        vec![
-            Runtime::arg_verbosity_name(),
-            Runtime::arg_debugging_name(),
-            Runtime::arg_no_color_output_name(),
-            Runtime::arg_config_name(),
-            Runtime::arg_config_override_name(),
-            Runtime::arg_runtimepath_name(),
-            Runtime::arg_storepath_name(),
-            Runtime::arg_editor_name(),
-            Runtime::arg_ignore_ids_name(),
-        ]
-    }
-
-    /// Get the normal-output argument name for the Runtime
-    pub fn arg_ignore_ids_name() -> &'static str {
-        "ignore-ids"
-    }
-
-    /// Get the verbosity argument name for the Runtime
-    pub fn arg_verbosity_name() -> &'static str {
-        "verbosity"
-    }
-
-    /// Get the debugging argument name for the Runtime
-    pub fn arg_debugging_name() -> &'static str {
-        "debugging"
-    }
-
-    /// Get the argument name for no color output of the Runtime
-    pub fn arg_no_color_output_name() -> &'static str {
-        "no-color-output"
-    }
-
-    /// Get the config argument name for the Runtime
-    pub fn arg_config_name() -> &'static str {
-        "config"
-    }
-
-    /// Get the config-override argument name for the Runtime
-    pub fn arg_config_override_name() -> &'static str {
-        "config-override"
-    }
-
-    /// Get the runtime argument name for the Runtime
-    pub fn arg_runtimepath_name() -> &'static str {
-        "runtimepath"
-    }
-
-    /// Get the storepath argument name for the Runtime
-    pub fn arg_storepath_name() -> &'static str {
-        "storepath"
-    }
-
-    /// Get the editor argument name for the Runtime
-    pub fn arg_editor_name() -> &'static str {
-        "editor"
     }
 
     /// Extract the Store object from the Runtime object, destroying the Runtime object
@@ -642,7 +582,7 @@ pub trait IdPathProvider {
 /// Exported for the `imag` command, you probably do not want to use that.
 pub fn get_rtp_match<'a>(matches: &ArgMatches<'a>) -> Result<PathBuf> {
     if let Some(p) = matches
-        .value_of(Runtime::arg_runtimepath_name())
+        .value_of("runtimepath")
         .map(PathBuf::from)
     {
         return Ok(p)

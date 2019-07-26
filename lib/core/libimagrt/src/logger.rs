@@ -24,8 +24,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::ops::Deref;
 
-use crate::runtime::Runtime;
-
 use failure::ResultExt;
 use failure::Fallible as Result;
 use failure::Error;
@@ -208,13 +206,13 @@ fn match_log_level_str(s: &str) -> Result<Level> {
 fn aggregate_global_loglevel(matches: &ArgMatches, config: Option<&Value>) -> Result<Level>
 {
     fn get_arg_loglevel(matches: &ArgMatches) -> Result<Option<Level>> {
-        if matches.is_present(Runtime::arg_debugging_name()) {
+        if matches.is_present("debugging") {
             return Ok(Some(Level::Debug))
         }
 
-        match matches.value_of(Runtime::arg_verbosity_name()) {
+        match matches.value_of("verbosity") {
             Some(v) => match_log_level_str(v).map(Some),
-            None    => if matches.is_present(Runtime::arg_verbosity_name()) {
+            None    => if matches.is_present("verbosity") {
                 Ok(Some(Level::Info))
             } else {
                 Ok(None)
