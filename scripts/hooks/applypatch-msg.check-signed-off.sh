@@ -13,6 +13,7 @@
 
 . git-sh-setup
 
+GREEN='\e[0;32m'        # Green
 RED='\e[0;31m'      # Red
 YELLOW='\e[0;33m'   # Yellow
 NORMAL='\e[0m'      # Text Reset
@@ -29,5 +30,5 @@ abort() {
 headline=$(head -n 1 $1 | wc -c)
 [[ $headline -gt 50 ]] && warn "Headline of patch longer than 50 chars"
 
-grep "^Signed-off-by" $1 >/dev/null 2>/dev/null && abort "No Signed-off-by line"
+grep -q "^Signed-off-by" $1 || abort "No Signed-off-by line"
 
