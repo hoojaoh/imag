@@ -27,7 +27,7 @@ use failure::ResultExt;
 use failure::Fallible as Result;
 use failure::Error;
 
-#[derive(Eq, PartialOrd, Ord, Hash, Debug, Clone)]
+#[derive(Eq, PartialOrd, Ord, Debug, Clone)]
 pub enum Link {
     Id          { link: StoreId },
     LinkTo   { link: StoreId },
@@ -95,6 +95,17 @@ impl ::std::cmp::PartialEq for Link {
             (&Link::LinkTo   { link: ref a }, &Link::LinkTo   { link: ref b })=> a.eq(&b),
             (&Link::LinkFrom { link: ref a }, &Link::LinkFrom { link: ref b })=> a.eq(&b),
             _ => false,
+        }
+    }
+}
+
+impl std::hash::Hash for Link {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
+        match &self {
+            Link::Id { link: a } => a.hash(state),
+            Link::LinkTo { link: a } => a.hash(state),
+            Link::LinkFrom { link: a } => a.hash(state),
         }
     }
 }
