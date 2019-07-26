@@ -201,7 +201,7 @@ fn main() {
             exit(1)
         });
     let configpath = matches
-        .value_of(Runtime::arg_config_name())
+        .value_of("config")
         .map_or_else(|| rtp.clone(), PathBuf::from);
     debug!("Config path = {:?}", configpath);
     let config = ::libimagrt::configuration::fetch_config(&configpath)
@@ -406,31 +406,14 @@ fn forward_commandline_arguments(m: &ArgMatches, scmd: &mut Vec<String>) {
         }
     };
 
-    push(Some("verbose"),
-         Runtime::arg_verbosity_name(), m , scmd);
-
-    push(Some("debug"),
-         Runtime::arg_debugging_name(), m , scmd);
-
-    push(Some("no-color"),
-         Runtime::arg_no_color_output_name(), m , scmd);
-
-    push(Some("config"),
-         Runtime::arg_config_name(), m , scmd);
-
-    push(Some("override-config"),
-         Runtime::arg_config_override_name(), m , scmd);
-
-    push(Some("rtp"),
-         Runtime::arg_runtimepath_name(), m , scmd);
-
-    push(Some("store"),
-         Runtime::arg_storepath_name(), m , scmd);
-
-    push(Some("editor"),
-         Runtime::arg_editor_name(), m , scmd);
-
-    push(Some("ignore-ids"),
-         Runtime::arg_ignore_ids_name(), m , scmd);
+    push(Some("verbose"), "verbosity", m , scmd);
+    push(Some("debug"), "debugging", m , scmd);
+    push(Some("no-color"), "no-color-output", m , scmd);
+    push(Some("config"), "config", m , scmd);
+    push(Some("override-config"), "config-override", m , scmd);
+    push(Some("rtp"), "runtimepath", m , scmd);
+    push(Some("store"), "storepath", m , scmd);
+    push(Some("editor"), "editor", m , scmd);
+    push(Some("ignore-ids"), "ignore-ids", m , scmd);
 }
 
