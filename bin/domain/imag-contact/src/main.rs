@@ -316,8 +316,6 @@ fn find(rt: &Runtime) {
             .for_each(|(i, (_, card))| {
                 let fmt = if scmd.is_present("find-show") {
                     &show_format
-                } else if scmd.is_present("find-list") {
-                    &list_format
                 } else { // default: find-list
                     &list_format
                 };
