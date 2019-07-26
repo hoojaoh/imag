@@ -66,6 +66,8 @@ use toml_query::read::TomlValueReadExt;
 
 mod ui;
 
+const EPS_CMP: f64 = 1e-10;
+
 fn main() {
     let version = make_imag_version!();
     let rt = generate_runtime_setup("imag-header",
@@ -254,10 +256,10 @@ fn float<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
 
     let filter = ::filters::ops::bool::Bool::new(true)
         .and(|i: &f64| -> bool {
-            implement_compare!(mtch, "header-float-eq", f64, |cmp| *i == cmp)
+            implement_compare!(mtch, "header-float-eq", f64, |cmp: f64| (*i - cmp).abs() < EPS_CMP)
         })
         .and(|i: &f64| -> bool {
-            implement_compare!(mtch, "header-float-neq", f64, |cmp| *i != cmp)
+            implement_compare!(mtch, "header-float-neq", f64, |cmp: f64| (*i - cmp).abs() > EPS_CMP)
         })
         .and(|i: &f64| -> bool {
             implement_compare!(mtch, "header-float-lt", f64, |cmp| *i < cmp)
