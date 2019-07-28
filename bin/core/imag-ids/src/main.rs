@@ -35,7 +35,6 @@
 )]
 
 extern crate clap;
-extern crate filters;
 #[macro_use] extern crate log;
 extern crate toml;
 extern crate toml_query;
@@ -50,8 +49,6 @@ extern crate libimagstore;
 
 use std::io::Write;
 
-use filters::filter::Filter;
-
 use libimagstore::storeid::StoreId;
 use libimagrt::setup::generate_runtime_setup;
 use libimagerror::trace::MapErrTrace;
@@ -59,11 +56,9 @@ use libimagerror::iter::TraceIterator;
 use libimagerror::exit::ExitUnwrap;
 use libimagerror::io::ToExitCode;
 
-mod id_filters;
 mod ui;
 
 use crate::ui::build_ui;
-use crate::id_filters::IsInCollectionsFilter;
 
 fn main() {
     let version = make_imag_version!();
@@ -73,13 +68,6 @@ fn main() {
                                     build_ui);
 
     let print_storepath = rt.cli().is_present("print-storepath");
-
-    let values = rt
-        .cli()
-        .values_of("in-collection-filter")
-        .map(|v| v.collect::<Vec<&str>>());
-
-    let collection_filter = IsInCollectionsFilter::new(values);
 
     let iterator = if rt.ids_from_stdin() {
         debug!("Fetching IDs from stdin...");
@@ -97,7 +85,6 @@ fn main() {
             as Box<Iterator<Item = Result<StoreId, _>>>
     }
     .trace_unwrap_exit()
-    .filter(|id| collection_filter.filter(id))
     .map(|id| if print_storepath {
         (Some(rt.store().path()), id)
     } else {

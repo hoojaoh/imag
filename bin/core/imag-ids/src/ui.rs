@@ -31,15 +31,6 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
              .required(false)
              .multiple(false)
              .help("Print the storepath for each id"))
-
-        .arg(Arg::with_name("in-collection-filter")
-             .long("in-collection")
-             .short("c")
-             .required(false)
-             .takes_value(true)
-             .multiple(true)
-             .value_names(&["COLLECTION"])
-             .help("Filter for ids which are only in these collections"))
 }
 
 pub struct PathProvider;
