@@ -36,9 +36,7 @@
 
 extern crate clap;
 extern crate filters;
-#[macro_use] extern crate nom;
 #[macro_use] extern crate log;
-#[macro_use] extern crate is_match;
 extern crate toml;
 extern crate toml_query;
 #[macro_use] extern crate failure;
@@ -51,7 +49,6 @@ extern crate libimagstore;
 #[macro_use] extern crate libimagrt;
 
 use std::io::Write;
-use std::process::exit;
 
 use filters::filter::Filter;
 
@@ -83,13 +80,6 @@ fn main() {
         .map(|v| v.collect::<Vec<&str>>());
 
     let collection_filter = IsInCollectionsFilter::new(values);
-    let query_filter      : Option<id_filters::header_filter_lang::Query> = rt
-        .cli()
-        .subcommand_matches("where")
-        .map(|matches| {
-            let query = matches.value_of("where-filter").unwrap(); // safe by clap
-            id_filters::header_filter_lang::parse(&query)
-        });
 
     let iterator = if rt.ids_from_stdin() {
         debug!("Fetching IDs from stdin...");
@@ -108,21 +98,6 @@ fn main() {
     }
     .trace_unwrap_exit()
     .filter(|id| collection_filter.filter(id))
-    .filter(|id| match query_filter.as_ref() {
-        None     => true,
-        Some(qf) => {
-            let entry = rt
-                .store()
-                .get(id.clone())
-                .map_err_trace_exit_unwrap()
-                .unwrap_or_else(|| {
-                    error!("Tried to get '{}', but it does not exist!", id);
-                    exit(1)
-                });
-
-            qf.filter(&entry)
-        }
-    })
     .map(|id| if print_storepath {
         (Some(rt.store().path()), id)
     } else {

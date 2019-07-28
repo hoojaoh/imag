@@ -21,11 +21,9 @@ maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
 filters    = "0.3.0"
-nom        = "3.2.0"
 log        = "0.4.6"
 toml       = "0.5.1"
 toml-query = "0.9.2"
-is-match   = "0.1.0"
 failure    = "0.1.5"
 
 libimagstore     = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
