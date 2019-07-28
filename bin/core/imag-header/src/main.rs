@@ -53,6 +53,7 @@ use filters::filter::Filter;
 use failure::Error;
 
 use libimagerror::exit::ExitCode;
+use libimagerror::exit::ExitUnwrap;
 use libimagerror::io::ToExitCode;
 use libimagerror::iter::TraceIterator;
 use libimagerror::trace::MapErrTrace;
@@ -63,6 +64,8 @@ use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreIdIterator;
 
 use toml_query::read::TomlValueReadExt;
+use toml_query::read::TomlValueReadTypeExt;
+
 
 mod ui;
 
@@ -95,8 +98,8 @@ fn main() {
         .trace_unwrap_exit()
         .filter_map(|x| x);
 
-    let exit_code = match rt.cli().subcommand() {
-        ("read", Some(mtch))   => read(&rt, mtch, iter),
+    match rt.cli().subcommand() {
+        ("read", Some(mtch))   => ::std::process::exit(read(&rt, mtch, iter)),
         ("has", Some(mtch))    => has(&rt, mtch, iter),
         ("hasnt", Some(mtch))  => hasnt(&rt, mtch, iter),
         ("int", Some(mtch))    => int(&rt, mtch, iter),
@@ -105,14 +108,14 @@ fn main() {
         ("bool", Some(mtch))   => boolean(&rt, mtch, iter),
         (other, _mtchs) => {
             debug!("Unknown command");
-            rt.handle_unknown_subcommand("imag-header", other, rt.cli())
-                .map_err_trace_exit_unwrap()
-                .code()
-                .unwrap_or(1)
+            ::std::process::exit({
+                rt.handle_unknown_subcommand("imag-header", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .unwrap_or(1)
+            });
         },
-    };
-
-    ::std::process::exit(exit_code)
+    }
 }
 
 fn read<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
@@ -143,47 +146,40 @@ fn read<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
     })
 }
 
-fn has<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
+fn has<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
     where I: Iterator<Item = FileLockEntry<'e>>
 {
     debug!("Processing headers: has value");
     let header_path = get_header_path(mtch, "header-value-path");
-    let mut output = rt.stdout();
 
-    iter.fold(0, |accu, entry| {
+    iter.for_each(|entry| {
         trace!("Processing headers: working on {:?}", entry.get_location());
-        let value = entry.get_header()
+        if entry.get_header()
             .read(header_path)
             .map_err(Error::from)
             .map_err_trace_exit_unwrap()
-            .is_some();
-
-        writeln!(output, "{} - {}", entry.get_location(), value)
-            .to_exit_code()
-            .map(|_| if value { accu } else { 1 })
-            .unwrap_or_else(ExitCode::code)
+            .is_some()
+            {
+                rt.report_touched(entry.get_location()).unwrap_or_exit();
+            }
     })
 }
 
-fn hasnt<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
+fn hasnt<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
     where I: Iterator<Item = FileLockEntry<'e>>
 {
     debug!("Processing headers: hasnt value");
     let header_path = get_header_path(mtch, "header-value-path");
-    let mut output = rt.stdout();
 
-    iter.fold(0, |accu, entry| {
+    iter.for_each(|entry| {
         trace!("Processing headers: working on {:?}", entry.get_location());
-        let value = entry.get_header()
+        if entry.get_header()
             .read(header_path)
             .map_err(Error::from)
             .map_err_trace_exit_unwrap()
-            .is_none();
-
-        writeln!(output, "{} - {}", entry.get_location(), value)
-            .to_exit_code()
-            .map(|_| if value { accu } else { 1 })
-            .unwrap_or_else(ExitCode::code)
+            .is_none() {
+                rt.report_touched(entry.get_location()).unwrap_or_exit();
+            }
     })
 }
 
@@ -200,12 +196,11 @@ macro_rules! implement_compare {
     }}
 }
 
-fn int<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
+fn int<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
     where I: Iterator<Item = FileLockEntry<'e>>
 {
     debug!("Processing headers: int value");
     let header_path = get_header_path(mtch, "header-value-path");
-    let mut output = rt.stdout();
 
     let filter = ::filters::ops::bool::Bool::new(true)
         .and(|i: &i64| -> bool {
@@ -227,32 +222,23 @@ fn int<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
             implement_compare!(mtch, "header-int-gte", i64, |cmp| *i >= cmp)
         });
 
-    iter.fold(0, |accu, entry| {
-        trace!("Processing headers: working on {:?}", entry.get_location());
-        if let Some(v) = entry.get_header()
-            .read(header_path)
+    iter.filter(|entry| if let Some(hdr) = entry.get_header()
+            .read_int(header_path)
             .map_err(Error::from)
             .map_err_trace_exit_unwrap()
         {
-            match v {
-                ::toml::Value::Integer(i) => if filter.filter(&i) {
-                    writeln!(output, "{} - {}", entry.get_location(), i)
-                        .to_exit_code()
-                        .map(|_| accu)
-                        .unwrap_or_else(ExitCode::code)
-                } else { 1 },
-                _ => 1
-            }
-        } else { 1 }
-    })
+            filter.filter(&hdr)
+        } else {
+            false
+        })
+        .for_each(|entry| rt.report_touched(entry.get_location()).unwrap_or_exit())
 }
 
-fn float<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
+fn float<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
     where I: Iterator<Item = FileLockEntry<'e>>
 {
     debug!("Processing headers: float value");
     let header_path = get_header_path(mtch, "header-value-path");
-    let mut output = rt.stdout();
 
     let filter = ::filters::ops::bool::Bool::new(true)
         .and(|i: &f64| -> bool {
@@ -274,32 +260,23 @@ fn float<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
             implement_compare!(mtch, "header-float-gte", f64, |cmp| *i >= cmp)
         });
 
-    iter.fold(0, |accu, entry| {
-        trace!("Processing headers: working on {:?}", entry.get_location());
-        if let Some(v) = entry.get_header()
-            .read(header_path)
+    iter.filter(|entry| if let Some(hdr) = entry.get_header()
+            .read_float(header_path)
             .map_err(Error::from)
             .map_err_trace_exit_unwrap()
         {
-            match v {
-                ::toml::Value::Float(i) => if filter.filter(&i) {
-                    writeln!(output, "{} - {}", entry.get_location(), i)
-                        .to_exit_code()
-                        .map(|_| accu)
-                        .unwrap_or_else(ExitCode::code)
-                } else { 1 },
-                _ => 1
-            }
-        } else { 1 }
-    })
+            filter.filter(&hdr)
+        } else {
+            false
+        })
+        .for_each(|entry| rt.report_touched(entry.get_location()).unwrap_or_exit())
 }
 
-fn string<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
+fn string<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
     where I: Iterator<Item = FileLockEntry<'e>>
 {
     debug!("Processing headers: string value");
     let header_path = get_header_path(mtch, "header-value-path");
-    let mut output = rt.stdout();
 
     let filter = ::filters::ops::bool::Bool::new(true)
         .and(|i: &String| -> bool {
@@ -309,55 +286,38 @@ fn string<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
             implement_compare!(mtch, "header-string-neq", String, |cmp| *i != cmp)
         });
 
-    iter.fold(0, |accu, entry| {
-        trace!("Processing headers: working on {:?}", entry.get_location());
-        if let Some(v) = entry.get_header()
-            .read(header_path)
+    iter.filter(|entry| if let Some(hdr) = entry.get_header()
+            .read_string(header_path)
             .map_err(Error::from)
             .map_err_trace_exit_unwrap()
         {
-            match v {
-                ::toml::Value::String(s) => if filter.filter(&s) {
-                    writeln!(output, "{} - {}", entry.get_location(), s)
-                        .to_exit_code()
-                        .map(|_| accu)
-                        .unwrap_or_else(ExitCode::code)
-                } else { 1 },
-                _ => 1
-            }
-        } else { 1 }
-    })
+            filter.filter(&hdr)
+        } else {
+            false
+        })
+        .for_each(|entry| rt.report_touched(entry.get_location()).unwrap_or_exit())
 }
 
-fn boolean<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
+fn boolean<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
     where I: Iterator<Item = FileLockEntry<'e>>
 {
     debug!("Processing headers: bool value");
     let header_path = get_header_path(mtch, "header-value-path");
-    let mut output = rt.stdout();
 
     let filter = ::filters::ops::bool::Bool::new(true)
         .and(|i: &bool| -> bool { *i })
         .and(|i: &bool| -> bool { *i });
 
-    iter.fold(0, |accu, entry| {
-        trace!("Processing headers: working on {:?}", entry.get_location());
-        if let Some(v) = entry.get_header()
-            .read(header_path)
+    iter.filter(|entry| if let Some(hdr) = entry.get_header()
+            .read_bool(header_path)
             .map_err(Error::from)
             .map_err_trace_exit_unwrap()
         {
-            match v {
-                ::toml::Value::Boolean(b) => if filter.filter(&b) {
-                    writeln!(output, "{} - {}", entry.get_location(), b)
-                        .to_exit_code()
-                        .map(|_| accu)
-                        .unwrap_or_else(ExitCode::code)
-                } else { 1 },
-                _ => 1
-            }
-        } else { 1 }
-    })
+            filter.filter(&hdr)
+        } else {
+            false
+        })
+        .for_each(|entry| rt.report_touched(entry.get_location()).unwrap_or_exit())
 }
 
 
