@@ -9,6 +9,7 @@ members = [
     "bin/core/imag-gps",
     "bin/core/imag-grep",
     "bin/core/imag-header",
+    "bin/core/imag-id-in-collection",
     "bin/core/imag-ids",
     "bin/core/imag-init",
     "bin/core/imag-link",

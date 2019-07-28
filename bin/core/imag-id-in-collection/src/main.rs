@@ -35,10 +35,11 @@
 )]
 
 extern crate clap;
+extern crate filters;
 #[macro_use] extern crate log;
 extern crate toml;
 extern crate toml_query;
-#[macro_use] extern crate failure;
+extern crate failure;
 
 #[cfg(test)]
 extern crate env_logger;
@@ -49,65 +50,71 @@ extern crate libimagstore;
 
 use std::io::Write;
 
+use filters::filter::Filter;
+
 use libimagstore::storeid::StoreId;
 use libimagrt::setup::generate_runtime_setup;
 use libimagerror::trace::MapErrTrace;
-use libimagerror::iter::TraceIterator;
 use libimagerror::exit::ExitUnwrap;
 use libimagerror::io::ToExitCode;
 
 mod ui;
 
-use crate::ui::build_ui;
+pub struct IsInCollectionsFilter<'a, A>(Option<A>, ::std::marker::PhantomData<&'a str>)
+    where A: AsRef<[&'a str]>;
+
+impl<'a, A> IsInCollectionsFilter<'a, A>
+    where A: AsRef<[&'a str]>
+{
+    pub fn new(collections: Option<A>) -> Self {
+        IsInCollectionsFilter(collections, ::std::marker::PhantomData)
+    }
+}
+
+impl<'a, A> Filter<StoreId> for IsInCollectionsFilter<'a, A>
+    where A: AsRef<[&'a str]> + 'a
+{
+    fn filter(&self, sid: &StoreId) -> bool {
+        match self.0 {
+            Some(ref colls) => sid.is_in_collection(colls),
+            None => true,
+        }
+    }
+}
+
 
 fn main() {
     let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-ids",
+    let rt = generate_runtime_setup("imag-id-in-collection",
                                     &version,
-                                    "print all ids",
-                                    build_ui);
+                                    "filter ids by collection",
+                                    crate::ui::build_ui);
+    let values = rt
+        .cli()
+        .values_of("in-collection-filter")
+        .map(|v| v.collect::<Vec<&str>>());
 
-    let print_storepath = rt.cli().is_present("print-storepath");
-
-    let iterator = if rt.ids_from_stdin() {
-        debug!("Fetching IDs from stdin...");
-        let ids = rt
-            .ids::<crate::ui::PathProvider>()
-            .map_err_trace_exit_unwrap()
-            .unwrap_or_else(|| {
-                error!("No ids supplied");
-                ::std::process::exit(1);
-            });
-        Box::new(ids.into_iter().map(Ok))
-            as Box<Iterator<Item = Result<StoreId, _>>>
-    } else {
-        Box::new(rt.store().entries().map_err_trace_exit_unwrap())
-            as Box<Iterator<Item = Result<StoreId, _>>>
-    }
-    .trace_unwrap_exit()
-    .map(|id| if print_storepath {
-        (Some(rt.store().path()), id)
-    } else {
-        (None, id)
-    });
+    let collection_filter = IsInCollectionsFilter::new(values);
 
     let mut stdout = rt.stdout();
     trace!("Got output: {:?}", stdout);
 
-    iterator.for_each(|(storepath, id)| {
-        rt.report_touched(&id).unwrap_or_exit();
-        if !rt.output_is_pipe() {
-            let id = id.to_str().map_err_trace_exit_unwrap();
-            trace!("Writing to {:?}", stdout);
 
-            let result = if let Some(store) = storepath {
-                writeln!(stdout, "{}/{}", store.display(), id)
-            } else {
-                writeln!(stdout, "{}", id)
-            };
-
-            result.to_exit_code().unwrap_or_exit();
-        }
-    })
+    rt.ids::<crate::ui::PathProvider>()
+        .map_err_trace_exit_unwrap()
+        .unwrap_or_else(|| {
+            error!("No ids supplied");
+            ::std::process::exit(1);
+        })
+        .iter()
+        .filter(|id| collection_filter.filter(id))
+        .for_each(|id| {
+            rt.report_touched(&id).unwrap_or_exit();
+            if !rt.output_is_pipe() {
+                let id = id.to_str().map_err_trace_exit_unwrap();
+                trace!("Writing to {:?}", stdout);
+                writeln!(stdout, "{}", id).to_exit_code().unwrap_or_exit();
+            }
+        })
 }
 

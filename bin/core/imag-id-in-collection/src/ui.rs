@@ -17,6 +17,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::path::PathBuf;
+
 use clap::{Arg, ArgMatches, App};
 use failure::Fallible as Result;
 
@@ -25,17 +27,32 @@ use libimagrt::runtime::IdPathProvider;
 
 pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
     app
-        .arg(Arg::with_name("print-storepath")
-             .long("with-storepath")
-             .takes_value(false)
-             .required(false)
+        .arg(Arg::with_name("in-collection-filter")
+             .index(1)
+             .required(true)
+             .takes_value(true)
              .multiple(false)
-             .help("Print the storepath for each id"))
+             .value_name("COLLECTION")
+             .help("Filter for ids which are in this collection"))
+
+        .arg(Arg::with_name("ids")
+             .index(2)
+             .required(false)
+             .takes_value(true)
+             .multiple(true)
+             .value_names(&["IDs"])
+             .help("Ids to filter"))
 }
 
 pub struct PathProvider;
 impl IdPathProvider for PathProvider {
-    fn get_ids(_matches: &ArgMatches) -> Result<Option<Vec<StoreId>>> {
-        Err(format_err!("imag-ids does not get IDs via CLI, only via stdin if applying a filter!"))
+    fn get_ids(matches: &ArgMatches) -> Result<Option<Vec<StoreId>>> {
+        if let Some(ids) = matches.values_of("ids") {
+            ids.map(|i| StoreId::new(PathBuf::from(i)))
+                .collect::<Result<Vec<StoreId>>>()
+                .map(Some)
+        } else {
+            Ok(None)
+        }
     }
 }
