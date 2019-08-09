@@ -1,0 +1,6 @@
+[book]
+authors      = ["Matthias Beyer"]
+language     = "en"
+multilingual = false
+src          = "src"
+title        = "imag-documentation"

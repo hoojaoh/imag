@@ -16,6 +16,18 @@ matrix:
             - bash ./scripts/branch-contains-no-tmp-commits
             - bash ./scripts/version-updated
         - language: rust
+          rust: stable
+          name: userdoc
+          cache:
+            directories:
+              - /home/travis/.cargo
+          before_cache:
+            - rm -rf /home/travis/.cargo/registry
+          install:
+            - cargo install mdbook --force
+          script:
+            - cd doc/user && mdbook build || exit 1
+        - language: rust
           rust: 1.35.0
           cache:
             directories:
