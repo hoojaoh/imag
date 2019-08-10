@@ -27,5 +27,6 @@ pkgs.stdenv.mkDerivation rec {
 
     buildInputs = env ++ dependencies;
 
+    LIBCLANG_PATH="${pkgs.llvmPackages.libclang}/lib";
 }
 
