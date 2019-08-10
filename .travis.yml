@@ -62,6 +62,7 @@ addons:
     packages:
     - libdbus-1-dev
     - pkg-config
+    - libclang-dev
 
 notifications:
   email:
