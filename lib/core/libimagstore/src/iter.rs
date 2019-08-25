@@ -222,6 +222,31 @@ impl<'a> Entries<'a> {
         StoreRetrieveIterator::new(Box::new(self.0.map(|r| r.map(|id| id.without_base()))), self.1)
     }
 
+    /// Find entries where the id contains a substring
+    ///
+    /// This is useful for finding entries if the user supplied only a part of the ID, for example
+    /// if the ID contains a UUID where the user did not specify the full UUID, E.G.:
+    ///
+    /// ```ignore
+    ///     imag foo show 827d8596-fad1-4
+    /// ```
+    ///
+    /// # Note
+    ///
+    /// The substring match is done with `contains()`.
+    ///
+    pub fn find_by_id_substr<'b>(self, id_substr: &'b str) -> FindContains<'a, 'b> {
+        FindContains(self, id_substr)
+    }
+
+    /// Find entries where the id starts with a substring
+    ///
+    /// Same as `Entries::find_by_id_substr()`, but using `starts_with()` rather than `contains`.
+    ///
+    pub fn find_by_id_startswith<'b>(self, id_substr: &'b str) -> FindStartsWith<'a, 'b> {
+        FindStartsWith(self, id_substr)
+    }
+
 }
 
 impl<'a> Iterator for Entries<'a> {
@@ -229,6 +254,42 @@ impl<'a> Iterator for Entries<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|r| r.map(|id| id.without_base()))
+    }
+}
+
+pub struct FindContains<'a, 'b>(Entries<'a>, &'b str);
+
+impl<'a, 'b> Iterator for FindContains<'a, 'b> {
+    type Item = Result<StoreId>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.0.next() {
+                None           => return None,
+                Some(Err(e))   => return Some(Err(e)),
+                Some(Ok(next)) => if next.local().to_string_lossy().contains(self.1) {
+                    return Some(Ok(next))
+                }, // else loop
+            }
+        }
+    }
+}
+
+pub struct FindStartsWith<'a, 'b>(Entries<'a>, &'b str);
+
+impl<'a, 'b> Iterator for FindStartsWith<'a, 'b> {
+    type Item = Result<StoreId>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.0.next() {
+                None           => return None,
+                Some(Err(e))   => return Some(Err(e)),
+                Some(Ok(next)) => if next.local().to_string_lossy().starts_with(self.1) {
+                    return Some(Ok(next))
+                }, // else loop
+            }
+        }
     }
 }
 
