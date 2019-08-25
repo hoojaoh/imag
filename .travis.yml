@@ -16,7 +16,7 @@ matrix:
             - bash ./scripts/branch-contains-no-tmp-commits
             - bash ./scripts/version-updated
         - language: rust
-          rust: 1.34.0
+          rust: 1.35.0
           cache:
             directories:
               - /home/travis/.cargo
@@ -26,7 +26,7 @@ matrix:
             - cargo build --all --all-features -j 1  || exit 1
             - cargo test  --all --all-features -j 1  || exit 1
         - language: rust
-          rust: 1.35.0
+          rust: 1.36.0
           cache:
             directories:
               - /home/travis/.cargo
