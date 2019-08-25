@@ -19,7 +19,6 @@
 
 use std::result::Result;
 
-use regex::Regex;
 use failure::Error;
 
 pub type Tag = String;
@@ -37,9 +36,8 @@ pub fn is_tag_str(s: &String) -> Result<(), Error> {
     let is_lower      = |s: &String| s.chars().all(|c| c.is_lowercase());
     let no_whitespace = |s: &String| s.chars().all(|c| !c.is_whitespace());
     let is_alphanum   = |s: &String| s.chars().all(|c| c.is_alphanumeric());
-    let matches_regex = |s: &String| Regex::new("^[a-zA-Z]([a-zA-Z0-9_-]*)$").unwrap().captures(s).is_some();
 
-    if is_lower.and(no_whitespace).and(is_alphanum).and(matches_regex).filter(s) {
+    if is_lower.and(no_whitespace).and(is_alphanum).filter(s) {
         Ok(())
     } else {
         Err(format_err!("The string '{}' is not a valid tag", s))
