@@ -32,3 +32,4 @@ libimagerror         = { version = "0.10.0", path = "../../../lib/core/libimager
 libimagstore         = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagentrydatetime = { version = "0.10.0", path = "../../../lib/entry/libimagentrydatetime" }
 libimagentrytag      = { version = "0.10.0", path = "../../../lib/entry/libimagentrytag" }
+libimagentryutil      = { version = "0.10.0", path = "../../../lib/entry/libimagentryutil" }

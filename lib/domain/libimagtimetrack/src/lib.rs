@@ -47,8 +47,8 @@ extern crate lazy_static;
 extern crate is_match;
 #[macro_use] extern crate failure;
 
-#[macro_use]
-extern crate libimagstore;
+#[macro_use] extern crate libimagstore;
+#[macro_use] extern crate libimagentryutil;
 extern crate libimagentrydatetime;
 extern crate libimagentrytag;
 extern crate libimagerror;

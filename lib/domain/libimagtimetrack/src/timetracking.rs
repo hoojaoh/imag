@@ -28,6 +28,8 @@ use chrono::naive::NaiveDateTime;
 
 use libimagstore::store::Entry;
 use libimagerror::errors::ErrorMsg as EM;
+use libimagentryutil::isa::Is;
+use libimagentryutil::isa::IsKindHeaderPathProvider;
 
 use crate::tag::TimeTrackingTag as TTT;
 use crate::constants::*;
@@ -40,7 +42,11 @@ use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::Error;
 
+provide_kindflag_path!(pub IsTimeTracking, "timetrack.is_timetracking");
+
 pub trait TimeTracking {
+
+    fn is_timetracking(&self) -> Result<bool>;
 
     fn get_timetrack_tag(&self) -> Result<TTT>;
 
@@ -61,6 +67,10 @@ pub trait TimeTracking {
 }
 
 impl TimeTracking for Entry {
+
+    fn is_timetracking(&self) -> Result<bool> {
+        self.is::<IsTimeTracking>().map_err(From::from)
+    }
 
     fn get_timetrack_tag(&self) -> Result<TTT> {
         self.get_header()

@@ -32,10 +32,11 @@ use failure::Error;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagentrydatetime::datepath::compiler::DatePathCompiler;
+use libimagentryutil::isa::Is;
 
 use crate::constants::*;
 use crate::iter::get::TimeTrackingsGetIterator;
-
+use crate::timetracking::IsTimeTracking;
 use crate::tag::TimeTrackingTag as TTT;
 
 pub trait TimeTrackStore<'a> {
@@ -92,6 +93,9 @@ impl<'a> TimeTrackStore<'a> for Store {
                     .insert(DATE_TIME_START_HEADER_PATH, v)
                     .map_err(Error::from)
                     .map(|_| fle)
+            })
+            .and_then(|mut fle| {
+                fle.set_isflag::<IsTimeTracking>().map(|_| fle)
             })
     }
 
