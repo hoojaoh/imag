@@ -110,7 +110,9 @@ fn main() {
             .map(|mut fle| {
                 let _ = fle.make_log_entry().map_err_trace_exit_unwrap();
                 *fle.get_content_mut() = text;
+                fle
             })
+            .map(|fle| rt.report_touched(fle.get_location()).unwrap_or_exit())
             .map_err_trace_exit_unwrap();
     }
 }
