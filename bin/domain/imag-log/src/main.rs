@@ -266,7 +266,7 @@ fn get_log_text(rt: &Runtime) -> String {
         })
 }
 
-fn do_write_to<'a>(sink: &mut Write, id: DiaryId, entry: &FileLockEntry<'a>, do_remove_newlines: bool) -> RResult<(), ExitCode> {
+fn do_write_to<'a>(sink: &mut dyn Write, id: DiaryId, entry: &FileLockEntry<'a>, do_remove_newlines: bool) -> RResult<(), ExitCode> {
     let text = if do_remove_newlines {
         entry.get_content().trim_end().replace("\n", "")
     } else {

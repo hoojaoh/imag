@@ -27,7 +27,7 @@ use ansi_term::Style;
 pub struct ColorizeBlackHelper;
 
 impl HelperDef for ColorizeBlackHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         colorize(Colour::Black, h, out)
     }
 }
@@ -36,7 +36,7 @@ impl HelperDef for ColorizeBlackHelper {
 pub struct ColorizeBlueHelper;
 
 impl HelperDef for ColorizeBlueHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         colorize(Colour::Blue, h, out)
     }
 }
@@ -45,7 +45,7 @@ impl HelperDef for ColorizeBlueHelper {
 pub struct ColorizeCyanHelper;
 
 impl HelperDef for ColorizeCyanHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         colorize(Colour::Cyan, h, out)
     }
 }
@@ -54,7 +54,7 @@ impl HelperDef for ColorizeCyanHelper {
 pub struct ColorizeGreenHelper;
 
 impl HelperDef for ColorizeGreenHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         colorize(Colour::Green, h, out)
     }
 }
@@ -63,7 +63,7 @@ impl HelperDef for ColorizeGreenHelper {
 pub struct ColorizePurpleHelper;
 
 impl HelperDef for ColorizePurpleHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         colorize(Colour::Purple, h, out)
     }
 }
@@ -72,7 +72,7 @@ impl HelperDef for ColorizePurpleHelper {
 pub struct ColorizeRedHelper;
 
 impl HelperDef for ColorizeRedHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         colorize(Colour::Red, h, out)
     }
 }
@@ -81,7 +81,7 @@ impl HelperDef for ColorizeRedHelper {
 pub struct ColorizeWhiteHelper;
 
 impl HelperDef for ColorizeWhiteHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         colorize(Colour::White, h, out)
     }
 }
@@ -90,13 +90,13 @@ impl HelperDef for ColorizeWhiteHelper {
 pub struct ColorizeYellowHelper;
 
 impl HelperDef for ColorizeYellowHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         colorize(Colour::Yellow, h, out)
     }
 }
 
 #[inline]
-fn colorize(color: Colour, h: &Helper, output: &mut Output) -> Result<(), RenderError> {
+fn colorize(color: Colour, h: &Helper, output: &mut dyn Output) -> Result<(), RenderError> {
     let p = h.param(0).ok_or(RenderError::new("Too few arguments"))?;
 
     output.write(&format!("{}", color.paint(p.value().render())))?;
@@ -107,7 +107,7 @@ fn colorize(color: Colour, h: &Helper, output: &mut Output) -> Result<(), Render
 pub struct UnderlineHelper;
 
 impl HelperDef for UnderlineHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
             let p = h.param(0).ok_or(RenderError::new("Too few arguments"))?;
             let s = Style::new().underline();
             out.write(&format!("{}", s.paint(p.value().render())))?;
@@ -119,7 +119,7 @@ impl HelperDef for UnderlineHelper {
 pub struct BoldHelper;
 
 impl HelperDef for BoldHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
             let p = h.param(0).ok_or(RenderError::new("Too few arguments"))?;
             let s = Style::new().bold();
             out.write(&format!("{}", s.paint(p.value().render())))?;
@@ -131,7 +131,7 @@ impl HelperDef for BoldHelper {
 pub struct BlinkHelper;
 
 impl HelperDef for BlinkHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
             let p = h.param(0).ok_or(RenderError::new("Too few arguments"))?;
             let s = Style::new().blink();
             out.write(&format!("{}", s.paint(p.value().render())))?;
@@ -143,7 +143,7 @@ impl HelperDef for BlinkHelper {
 pub struct StrikethroughHelper;
 
 impl HelperDef for StrikethroughHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
             let p = h.param(0).ok_or(RenderError::new("Too few arguments"))?;
             let s = Style::new().strikethrough();
             out.write(&format!("{}", s.paint(p.value().render())))?;
@@ -162,7 +162,7 @@ fn param_to_number(idx: usize, h: &Helper) -> Result<u64, RenderError> {
 pub struct LeftPadHelper;
 
 impl HelperDef for LeftPadHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         let count = param_to_number(0, h)? as usize;
         let text = h.param(1).ok_or(RenderError::new("Too few arguments"))?;
         let text = format!("{:>width$}", text.value().render(), width = count);
@@ -175,7 +175,7 @@ impl HelperDef for LeftPadHelper {
 pub struct RightPadHelper;
 
 impl HelperDef for RightPadHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         let count = param_to_number(0, h)? as usize;
         let text = h.param(1).ok_or(RenderError::new("Too few arguments"))?;
         let text = format!("{:width$}", text.value().render(), width = count);
@@ -188,7 +188,7 @@ impl HelperDef for RightPadHelper {
 pub struct AbbrevHelper;
 
 impl HelperDef for AbbrevHelper {
-    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut Output) -> Result<(), RenderError> {
+    fn call<'reg: 'rc, 'rc>(&self, h: &Helper<'reg, 'rc>, _r: &'reg Registry, _ctx: &'rc Context, _rc: &mut RenderContext<'reg>, out: &mut dyn Output) -> Result<(), RenderError> {
         let count = param_to_number(0, h)? as usize;
         let text = h.param(1).ok_or(RenderError::new("Too few arguments"))?.value().render();
         out.write(&text.chars().take(count).collect::<String>())?;

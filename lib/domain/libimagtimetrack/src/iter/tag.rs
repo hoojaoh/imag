@@ -27,10 +27,10 @@ use crate::iter::storeid::TagStoreIdIter;
 
 use libimagentrytag::tag::is_tag_str;
 
-pub struct TagIter(Box<Iterator<Item = String>>);
+pub struct TagIter(Box<dyn Iterator<Item = String>>);
 
 impl TagIter {
-    pub fn new(i: Box<Iterator<Item = String>>) -> TagIter {
+    pub fn new(i: Box<dyn Iterator<Item = String>>) -> TagIter {
         TagIter(i)
     }
 

@@ -33,11 +33,11 @@ macro_rules! mk_iterator_mod {
             use crate::store::Store;
             use failure::Fallible as Result;
 
-            pub struct $itername<'a>(Box<Iterator<Item = Result<StoreId>> + 'a>, &'a Store);
+            pub struct $itername<'a>(Box<dyn Iterator<Item = Result<StoreId>> + 'a>, &'a Store);
 
             impl<'a> $itername<'a>
             {
-                pub fn new(inner: Box<Iterator<Item = Result<StoreId>> + 'a>, store: &'a Store) -> Self {
+                pub fn new(inner: Box<dyn Iterator<Item = Result<StoreId>> + 'a>, store: &'a Store) -> Self {
                     $itername(inner, store)
                 }
             }

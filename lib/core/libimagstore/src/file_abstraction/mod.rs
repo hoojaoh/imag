@@ -43,12 +43,12 @@ pub(crate) trait FileAbstraction : Debug {
     fn exists(&self, _: &PathBuf) -> Result<bool>;
     fn is_file(&self, _: &PathBuf) -> Result<bool>;
 
-    fn new_instance(&self, p: PathBuf) -> Box<FileAbstractionInstance>;
+    fn new_instance(&self, p: PathBuf) -> Box<dyn FileAbstractionInstance>;
 
     fn drain(&self) -> Result<Drain>;
     fn fill<'a>(&'a mut self, d: Drain) -> Result<()>;
 
-    fn pathes_recursively<'a>(&self, basepath: PathBuf, storepath: &'a PathBuf, backend: Arc<FileAbstraction>) -> Result<PathIterator<'a>>;
+    fn pathes_recursively<'a>(&self, basepath: PathBuf, storepath: &'a PathBuf, backend: Arc<dyn FileAbstraction>) -> Result<PathIterator<'a>>;
 }
 
 /// An abstraction trait over actions on files

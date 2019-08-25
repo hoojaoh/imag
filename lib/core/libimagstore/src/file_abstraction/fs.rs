@@ -136,7 +136,7 @@ impl FileAbstraction for FSFileAbstraction {
         Ok(path.is_file())
     }
 
-    fn new_instance(&self, p: PathBuf) -> Box<FileAbstractionInstance> {
+    fn new_instance(&self, p: PathBuf) -> Box<dyn FileAbstractionInstance> {
         Box::new(FSFileAbstractionInstance(p))
     }
 
@@ -156,7 +156,7 @@ impl FileAbstraction for FSFileAbstraction {
     fn pathes_recursively<'a>(&self,
                           basepath: PathBuf,
                           storepath: &'a PathBuf,
-                          backend: Arc<FileAbstraction>)
+                          backend: Arc<dyn FileAbstraction>)
         -> Result<PathIterator<'a>>
     {
         trace!("Building PathIterator object");
@@ -170,7 +170,7 @@ pub struct WalkDirPathIterBuilder {
 }
 
 impl PathIterBuilder for WalkDirPathIterBuilder {
-    fn build_iter(&self) -> Box<Iterator<Item = Result<PathBuf>>> {
+    fn build_iter(&self) -> Box<dyn Iterator<Item = Result<PathBuf>>> {
         trace!("Building iterator for {}", self.basepath.display());
         Box::new(WalkDir::new(self.basepath.clone())
             .min_depth(1)

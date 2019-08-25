@@ -62,13 +62,13 @@ enum StoreEntryStatus {
 struct StoreEntry {
     id: StoreId,
     store_base: PathBuf, // small sacrefice over lifetimes on the Store type
-    file: Box<FileAbstractionInstance>,
+    file: Box<dyn FileAbstractionInstance>,
     status: StoreEntryStatus,
 }
 
 impl StoreEntry {
 
-    fn new(store_base: PathBuf, id: StoreId, backend: &Arc<FileAbstraction>) -> Result<StoreEntry> {
+    fn new(store_base: PathBuf, id: StoreId, backend: &Arc<dyn FileAbstraction>) -> Result<StoreEntry> {
         let pb = id.clone().with_base(&store_base).into_pathbuf()?;
 
         #[cfg(feature = "fs-lock")]
@@ -144,7 +144,7 @@ pub struct Store {
     /// The backend to use
     ///
     /// This provides the filesystem-operation functions (or pretends to)
-    backend: Arc<FileAbstraction>,
+    backend: Arc<dyn FileAbstraction>,
 }
 
 impl Store {
@@ -186,7 +186,7 @@ impl Store {
     /// Do not use directly, only for testing purposes.
     pub(crate) fn new_with_backend(location: PathBuf,
                         store_config: &Option<Value>,
-                        backend: Arc<FileAbstraction>) -> Result<Store> {
+                        backend: Arc<dyn FileAbstraction>) -> Result<Store> {
         use crate::configuration::*;
 
         debug!("Building new Store object");
@@ -792,7 +792,7 @@ impl Entry {
 
     /// See `Entry::from_str()`, as this function is used internally. This is just a wrapper for
     /// convenience.
-    pub fn from_reader<S: IntoStoreId>(loc: S, file: &mut Read) -> Result<Entry> {
+    pub fn from_reader<S: IntoStoreId>(loc: S, file: &mut dyn Read) -> Result<Entry> {
         let text = {
             let mut s = String::new();
             file.read_to_string(&mut s).context(EM::IO)?;
