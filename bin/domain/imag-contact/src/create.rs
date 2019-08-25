@@ -76,7 +76,7 @@ mod test {
     }
 }
 
-fn ask_continue(inputstream: &mut Read, outputstream: &mut Write) -> bool {
+fn ask_continue(inputstream: &mut dyn Read, outputstream: &mut dyn Write) -> bool {
     ::libimaginteraction::ask::ask_bool("Edit tempfile", Some(true), inputstream, outputstream)
         .map_err_trace_exit_unwrap()
 }
@@ -97,7 +97,7 @@ pub fn create(rt: &Runtime) {
         .map_err_trace_exit_unwrap();
     // TODO: Refactor the above to libimagutil or libimagrt?
 
-    let (mut dest, location, uuid) : (Box<Write>, Option<PathBuf>, String) = {
+    let (mut dest, location, uuid) : (Box<dyn Write>, Option<PathBuf>, String) = {
         if let Some(mut fl) = scmd.value_of("file-location").map(PathBuf::from) {
             let uuid = if fl.is_file() {
                 error!("File does exist, cannot create/override");
@@ -232,7 +232,7 @@ pub fn create(rt: &Runtime) {
     info!("Ready");
 }
 
-fn parse_toml_into_vcard(output: &mut Write, input: &mut Read, toml: Value, uuid: String) -> Option<Vcard> {
+fn parse_toml_into_vcard(output: &mut dyn Write, input: &mut dyn Read, toml: Value, uuid: String) -> Option<Vcard> {
     let mut vcard = VcardBuilder::new().with_uid(uuid);
 
     { // parse name

@@ -32,11 +32,11 @@ use failure::Fallible as Result;
 
 /// Ask the user for a Yes/No answer. Optionally provide a default value. If none is provided, this
 /// keeps loop{}ing
-pub fn ask_bool(s: &str, default: Option<bool>, input: &mut Read, output: &mut Write) -> Result<bool> {
+pub fn ask_bool(s: &str, default: Option<bool>, input: &mut dyn Read, output: &mut dyn Write) -> Result<bool> {
     ask_bool_(s, default, &mut BufReader::new(input), output)
 }
 
-fn ask_bool_<R: BufRead>(s: &str, default: Option<bool>, input: &mut R, output: &mut Write) -> Result<bool> {
+fn ask_bool_<R: BufRead>(s: &str, default: Option<bool>, input: &mut R, output: &mut dyn Write) -> Result<bool> {
     lazy_static! {
         static ref R_YES: Regex = Regex::new(r"^[Yy](\n?)$").unwrap();
         static ref R_NO: Regex  = Regex::new(r"^[Nn](\n?)$").unwrap();
@@ -68,7 +68,7 @@ fn ask_bool_<R: BufRead>(s: &str, default: Option<bool>, input: &mut R, output: 
 /// trailing questionmark.
 ///
 /// The `nl` parameter can be used to configure whether a newline character should be printed
-pub fn ask_question(question: &str, nl: bool, output: &mut Write) -> Result<()> {
+pub fn ask_question(question: &str, nl: bool, output: &mut dyn Write) -> Result<()> {
     if nl {
         writeln!(output, "[imag]: {}?", Yellow.paint(question))
     } else {

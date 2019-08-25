@@ -248,7 +248,7 @@ macro_rules! module_entry_path_mod {
 }
 
 pub struct StoreIdIterator {
-    iter: Box<Iterator<Item = Result<StoreId>>>,
+    iter: Box<dyn Iterator<Item = Result<StoreId>>>,
 }
 
 impl Debug for StoreIdIterator {
@@ -261,7 +261,7 @@ impl Debug for StoreIdIterator {
 
 impl StoreIdIterator {
 
-    pub fn new(iter: Box<Iterator<Item = Result<StoreId>>>) -> StoreIdIterator {
+    pub fn new(iter: Box<dyn Iterator<Item = Result<StoreId>>>) -> StoreIdIterator {
         StoreIdIterator { iter }
     }
 
@@ -300,7 +300,7 @@ impl<'a> Iterator for StoreIdIteratorWithStore<'a> {
 
 impl<'a> StoreIdIteratorWithStore<'a> {
 
-    pub fn new(iter: Box<Iterator<Item = Result<StoreId>>>, store: &'a Store) -> Self {
+    pub fn new(iter: Box<dyn Iterator<Item = Result<StoreId>>>, store: &'a Store) -> Self {
         StoreIdIteratorWithStore(StoreIdIterator::new(iter), store)
     }
 

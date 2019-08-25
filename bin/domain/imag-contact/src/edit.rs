@@ -113,7 +113,7 @@ fn edit_contact<'a>(rt: &Runtime, contact: &FileLockEntry<'a>, ref_config: &RefC
         .map(|_| ())
 }
 
-fn ask_continue(inputstream: &mut Read, outputstream: &mut Write) -> bool {
+fn ask_continue(inputstream: &mut dyn Read, outputstream: &mut dyn Write) -> bool {
     ::libimaginteraction::ask::ask_bool("Edit vcard", Some(true), inputstream, outputstream)
         .map_err_trace_exit_unwrap()
 }

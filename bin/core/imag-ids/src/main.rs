@@ -79,10 +79,10 @@ fn main() {
                 ::std::process::exit(1);
             });
         Box::new(ids.into_iter().map(Ok))
-            as Box<Iterator<Item = Result<StoreId, _>>>
+            as Box<dyn Iterator<Item = Result<StoreId, _>>>
     } else {
         Box::new(rt.store().entries().map_err_trace_exit_unwrap())
-            as Box<Iterator<Item = Result<StoreId, _>>>
+            as Box<dyn Iterator<Item = Result<StoreId, _>>>
     }
     .trace_unwrap_exit()
     .map(|id| if print_storepath {

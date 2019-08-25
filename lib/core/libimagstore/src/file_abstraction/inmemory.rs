@@ -164,7 +164,7 @@ impl FileAbstraction for InMemoryFileAbstraction {
         self.exists(pb)
     }
 
-    fn new_instance(&self, p: PathBuf) -> Box<FileAbstractionInstance> {
+    fn new_instance(&self, p: PathBuf) -> Box<dyn FileAbstractionInstance> {
         Box::new(InMemoryFileAbstractionInstance::new(self.backend().clone(), p))
     }
 
@@ -187,7 +187,7 @@ impl FileAbstraction for InMemoryFileAbstraction {
         Ok(())
     }
 
-    fn pathes_recursively<'a>(&self, _basepath: PathBuf, storepath: &'a PathBuf, backend: Arc<FileAbstraction>) -> Result<PathIterator<'a>> {
+    fn pathes_recursively<'a>(&self, _basepath: PathBuf, storepath: &'a PathBuf, backend: Arc<dyn FileAbstraction>) -> Result<PathIterator<'a>> {
         trace!("Building PathIterator object (inmemory implementation)");
         let keys : Vec<PathBuf> = self
             .backend()
@@ -207,7 +207,7 @@ impl FileAbstraction for InMemoryFileAbstraction {
 pub struct InMemPathIterBuilder(Vec<PathBuf>);
 
 impl PathIterBuilder for InMemPathIterBuilder {
-    fn build_iter(&self) -> Box<Iterator<Item = Result<PathBuf>>> {
+    fn build_iter(&self) -> Box<dyn Iterator<Item = Result<PathBuf>>> {
         Box::new(self.0.clone().into_iter().map(Ok))
     }
 

@@ -36,7 +36,7 @@ pub trait EntryCategory {
 
     fn set_category(&mut self, s: &str) -> Result<()>;
 
-    fn set_category_checked(&mut self, register: &CategoryStore, s: &str) -> Result<()>;
+    fn set_category_checked(&mut self, register: &dyn CategoryStore, s: &str) -> Result<()>;
 
     fn get_category(&self) -> Result<String>;
 
@@ -61,7 +61,7 @@ impl EntryCategory for Entry {
     /// Check whether a category exists before setting it.
     ///
     /// This function should be used by default over EntryCategory::set_category()!
-    fn set_category_checked(&mut self, register: &CategoryStore, s: &str) -> Result<()> {
+    fn set_category_checked(&mut self, register: &dyn CategoryStore, s: &str) -> Result<()> {
         trace!("Setting category '{}' checked", s);
         let mut category = register
             .get_category_by_name(s)?

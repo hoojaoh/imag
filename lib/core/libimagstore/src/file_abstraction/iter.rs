@@ -28,7 +28,7 @@ use crate::file_abstraction::FileAbstraction;
 
 /// See documentation for PathIterator
 pub(crate) trait PathIterBuilder : Debug {
-    fn build_iter(&self) -> Box<Iterator<Item = Result<PathBuf>>>;
+    fn build_iter(&self) -> Box<dyn Iterator<Item = Result<PathBuf>>>;
     fn in_collection(&mut self, c: &str) -> Result<()>;
 }
 
@@ -47,17 +47,17 @@ pub(crate) trait PathIterBuilder : Debug {
 /// This means quite a few allocations down the road, as the PathIterator itself is not generic, but
 /// this seems to be the best way to implement this.
 pub(crate) struct PathIterator<'a> {
-    iter_builder: Box<PathIterBuilder>,
-    iter:         Box<Iterator<Item = Result<PathBuf>>>,
+    iter_builder: Box<dyn PathIterBuilder>,
+    iter:         Box<dyn Iterator<Item = Result<PathBuf>>>,
     storepath:    &'a PathBuf,
-    backend:      Arc<FileAbstraction>,
+    backend:      Arc<dyn FileAbstraction>,
 }
 
 impl<'a> PathIterator<'a> {
 
-    pub fn new(iter_builder: Box<PathIterBuilder>,
+    pub fn new(iter_builder: Box<dyn PathIterBuilder>,
                storepath: &'a PathBuf,
-               backend: Arc<FileAbstraction>)
+               backend: Arc<dyn FileAbstraction>)
         -> PathIterator<'a>
     {
         trace!("Generating iterator object with PathIterBuilder: {:?}", iter_builder);
@@ -81,7 +81,7 @@ impl<'a> PathIterator<'a> {
     ///
     /// Revisit whether this can be done in a cleaner way. See commit message for why this is
     /// needed.
-    pub(crate) fn into_inner(self) -> Box<Iterator<Item = Result<PathBuf>>> {
+    pub(crate) fn into_inner(self) -> Box<dyn Iterator<Item = Result<PathBuf>>> {
         self.iter
     }
 
