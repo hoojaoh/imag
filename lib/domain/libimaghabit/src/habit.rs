@@ -160,7 +160,7 @@ impl HabitTemplate for Entry {
         debug!("Increment is {:?}", increment);
 
         let until = self.habit_until_date()?.map(|s| -> Result<_> {
-            r#try!(date_from_s(s))
+            date_from_s(s)?
                 .calculate()?
                 .get_moment()
                 .map(Clone::clone)
@@ -349,10 +349,10 @@ pub mod builder {
             debug!("Success: Date valid");
 
             let comment   = self.comment.unwrap_or_else(|| String::new());
-            let sid       = r#try!(build_habit_template_sid(&name));
+            let sid       = build_habit_template_sid(&name)?;
 
             debug!("Creating entry in store for: {:?}", sid);
-            let mut entry = r#try!(store.create(sid));
+            let mut entry = store.create(sid)?;
 
             let _ = entry.set_isflag::<IsHabitTemplate>()?;
             {
@@ -365,7 +365,7 @@ pub mod builder {
 
             if let Some(until) = self.untildate {
                 let until = date_to_string(&until);
-                r#try!(entry.get_header_mut().insert("habit.template.until", Value::String(until)));
+                entry.get_header_mut().insert("habit.template.until", Value::String(until))?;
             }
 
             debug!("Success: Created entry in store and set headers");
