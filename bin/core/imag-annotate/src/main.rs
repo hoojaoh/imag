@@ -77,22 +77,20 @@ fn main() {
                                     "Add annotations to entries",
                                     ui::build_ui);
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            match name {
-                "add"    => add(&rt),
-                "remove" => remove(&rt),
-                "list"   => list(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-annotation", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        match name {
+            "add"    => add(&rt),
+            "remove" => remove(&rt),
+            "list"   => list(&rt),
+            other    => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-annotation", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        }
+    }
 }
 
 fn add(rt: &Runtime) {
