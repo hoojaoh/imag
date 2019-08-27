@@ -137,7 +137,6 @@ impl IdPathProvider for PathProvider {
         fn get_id_paths(subm: &ArgMatches) -> Result<Option<Vec<StoreId>>> {
             subm.values_of("ID")
                 .map(|v| v
-                     .into_iter()
                      .map(PathBuf::from)
                      .map(|pb| pb.into_storeid())
                      .collect::<Result<Vec<_>>>()

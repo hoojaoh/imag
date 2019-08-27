@@ -121,7 +121,7 @@ fn deref(rt: &Runtime) {
                     .and_then(|s| writeln!(outlock, "{}", s).map_err(Error::from))
                     .map_err_trace_exit_unwrap();
 
-                    let _ = rt.report_touched(&id).unwrap_or_exit();
+                    rt.report_touched(&id).unwrap_or_exit();
                 },
                 None => {
                     error!("No entry for id '{}' found", id);
@@ -159,7 +159,7 @@ fn remove(rt: &Runtime) {
                         ask_bool(&format!("Delete ref from entry '{}'", id), None, &mut input, &mut output)
                             .map_err_trace_exit_unwrap()
                     {
-                        let _ = entry.as_ref_with_hasher_mut::<DefaultHasher>()
+                        entry.as_ref_with_hasher_mut::<DefaultHasher>()
                             .remove_ref()
                             .map_err_trace_exit_unwrap();
                     } else {
@@ -208,7 +208,7 @@ fn list_dead(rt: &Runtime) {
                             .map_err(Error::from)
                             .map_err_trace_exit_unwrap();
 
-                            let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                            rt.report_touched(entry.get_location()).unwrap_or_exit();
                         }
                     }
                 }
