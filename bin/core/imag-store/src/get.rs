@@ -34,10 +34,10 @@ pub fn get(rt: &Runtime) {
     let path  = StoreId::new(path).map_err_trace_exit_unwrap();
     debug!("path = {:?}", path);
 
-    let _ = match rt.store().get(path.clone()).map_err_trace_exit_unwrap() {
+    match rt.store().get(path.clone()).map_err_trace_exit_unwrap() {
         Some(entry) => {
             print_entry(rt, scmd, entry);
-            let _ = rt.report_touched(&path).unwrap_or_exit();
+            rt.report_touched(&path).unwrap_or_exit();
         },
         None        => info!("No entry found"),
     };

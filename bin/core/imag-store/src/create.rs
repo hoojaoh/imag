@@ -63,7 +63,7 @@ pub fn create(rt: &Runtime) {
     }
     .map_err_trace_exit_unwrap();
 
-    let _ = rt.report_touched(&path).unwrap_or_exit();
+    rt.report_touched(&path).unwrap_or_exit();
 }
 
 fn create_from_cli_spec(rt: &Runtime, matches: &ArgMatches, path: &StoreId) -> Result<()> {
@@ -84,7 +84,7 @@ fn create_from_cli_spec(rt: &Runtime, matches: &ArgMatches, path: &StoreId) -> R
     debug!("Got content with len = {}", content.len());
 
     let header = matches.subcommand_matches("entry")
-        .map_or_else(|| Entry::default_header(),
+        .map_or_else(Entry::default_header,
             |entry_matches| build_toml_header(entry_matches, Entry::default_header()));
 
     create_with_content_and_header(rt, path, content, header)

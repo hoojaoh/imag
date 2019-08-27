@@ -29,7 +29,7 @@ use libimagutil::key_value_split::IntoKeyValue;
 pub fn build_toml_header(matches: &ArgMatches, mut header: Value) -> Value {
     debug!("Building header from cli spec");
     if let Some(headerspecs) = matches.values_of("header") {
-        let kvs = headerspecs.into_iter()
+        let kvs = headerspecs
                             .filter_map(|hs| {
                                 debug!("- Processing: '{}'", hs);
                                 let kv = String::from(hs).into_kv();

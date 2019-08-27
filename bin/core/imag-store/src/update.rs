@@ -49,7 +49,7 @@ pub fn update(rt: &Runtime) {
                 debug!("New header set");
             }
 
-            let _ = rt.report_touched(locked_e.get_location()).unwrap_or_exit();
+            rt.report_touched(locked_e.get_location()).unwrap_or_exit();
         });
 }
 
