@@ -99,7 +99,7 @@ pub fn stop(rt: &Runtime) -> i32 {
                 }
                 Ok(_) => {
                     debug!("Setting end time worked: {:?}", elem);
-                    let _ = rt.report_touched(elem.get_location()).unwrap_or_exit();
+                    rt.report_touched(elem.get_location()).unwrap_or_exit();
                     acc
                 }
             }

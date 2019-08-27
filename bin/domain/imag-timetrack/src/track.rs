@@ -30,8 +30,8 @@ use libimagerror::exit::ExitUnwrap;
 use libimagtimetrack::tag::TimeTrackingTag;
 use libimagtimetrack::store::TimeTrackStore;
 
-const DATE_TIME_PARSE_FMT : &'static str    = "%Y-%m-%dT%H:%M:%S";
-const DATE_PARSE_FMT : &'static str         = "%Y-%m-%d";
+const DATE_TIME_PARSE_FMT : &str    = "%Y-%m-%dT%H:%M:%S";
+const DATE_PARSE_FMT : &str         = "%Y-%m-%d";
 
 pub fn track(rt: &Runtime) -> i32 {
     let (_, cmd) = rt.cli().subcommand();
@@ -87,7 +87,7 @@ pub fn track(rt: &Runtime) -> i32 {
                 1
             },
             Ok(entry) => {
-                let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                rt.report_touched(entry.get_location()).unwrap_or_exit();
                 acc
             }
         })

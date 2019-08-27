@@ -57,7 +57,7 @@ pub fn shell(rt: &Runtime) -> i32 {
             mkshell(s.to_owned())
         } else {
             env::var("SHELL")
-                .map(|s| mkshell(s))
+                .map(mkshell)
                 .map_err(|e| match e {
                     env::VarError::NotPresent => {
                         error!("No $SHELL variable in environment, cannot work!");
@@ -76,7 +76,7 @@ pub fn shell(rt: &Runtime) -> i32 {
         match rt.store().create_timetracking_at(&start, tag) {
             Err(e) => trace_error(&e),
             Ok(entry) => {
-                let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                rt.report_touched(entry.get_location()).unwrap_or_exit();
             }
         }
     }
@@ -101,7 +101,7 @@ pub fn shell(rt: &Runtime) -> i32 {
             trace_error(&e)
         } else {
             debug!("Setting end time worked: {:?}", elem);
-            let _ = rt.report_touched(elem.get_location()).unwrap_or_exit();
+            rt.report_touched(elem.get_location()).unwrap_or_exit();
         });
 
     ::std::process::exit(exit_code)

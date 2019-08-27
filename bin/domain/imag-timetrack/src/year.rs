@@ -79,7 +79,7 @@ pub fn year(rt: &Runtime) -> i32 {
 
         let tags = cmd
             .values_of("tags")
-            .map(|ts| ts.into_iter().map(String::from).map(TimeTrackingTag::from).collect());
+            .map(|ts| ts.map(String::from).map(TimeTrackingTag::from).collect());
 
         let start_time_filter = has_start_time_where(move |dt: &NaiveDateTime| {
             start <= *dt
@@ -117,7 +117,7 @@ pub fn year(rt: &Runtime) -> i32 {
             let end   = e.get_end_datetime()?;
             debug!(" -> end = {:?}", end);
 
-            let _ = rt.report_touched(e.get_location()).unwrap_or_exit();
+            rt.report_touched(e.get_location()).unwrap_or_exit();
 
             Ok((tag, start, end))
         })

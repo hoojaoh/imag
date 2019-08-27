@@ -67,7 +67,6 @@ pub fn cont(rt: &Runtime) -> i32 {
             let (k2, _) = *t2;
             Ord::cmp(&k1, &k2)
         })
-        .into_iter()
 
         // get the last one, which should be the highest one
         .last() // -> Option<_>
@@ -88,7 +87,7 @@ pub fn cont(rt: &Runtime) -> i32 {
                              .map(|_| 0)
                              .map_err_trace();
 
-                         let _ = rt.report_touched(tracking.get_location()).unwrap_or_exit();
+                         rt.report_touched(tracking.get_location()).unwrap_or_exit();
 
                          val
                      })
