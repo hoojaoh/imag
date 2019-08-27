@@ -180,8 +180,8 @@ fn delete(rt: &Runtime) {
         .trace_unwrap_exit()
         .map(|sid| (sid.clone(), rt.store().get(sid).map_err_trace_exit_unwrap())) // get the FileLockEntry
         .filter(|&(_, ref habit)| match habit { // filter for name of habit == name we look for
-            &Some(ref h) => h.habit_name().map_err_trace_exit_unwrap() == name,
-            &None => false,
+            Some(ref h) => h.habit_name().map_err_trace_exit_unwrap() == name,
+            None => false,
         })
         .filter_map(|(a, o)| o.map(|x| (a, x))) // map: (a, Option<b>) -> Option<(a, b)> -> (a, b)
         .map(|(sid, fle)| {
@@ -610,7 +610,7 @@ fn done(rt: &Runtime) {
 }
 
 /// Helper function for `Iterator::filter_map()`ing `all_habit_templates()` and `Store::get` them.
-fn get_from_store<'a>(store: &'a Store, id: StoreId) -> Option<FileLockEntry<'a>> {
+fn get_from_store(store: &Store, id: StoreId) -> Option<FileLockEntry<'_>> {
     match store.get(id.clone()) {
         Ok(Some(h)) => Some(h),
         Ok(None) => {
