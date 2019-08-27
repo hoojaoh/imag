@@ -207,12 +207,10 @@ mod tests {
         let link = match link_entry.get_header().read_string("url.uri") {
             Ok(Some(s)) => s,
             Ok(None) => {
-                assert!(false);
                 unreachable!()
             },
             Err(e) => {
                 error!("{:?}", e);
-                assert!(false);
                 unreachable!()
             },
         };
@@ -236,7 +234,6 @@ mod tests {
         let urls = match urls {
             Err(e) => {
                 debug!("Error: {:?}", e);
-                assert!(false);
                 unreachable!()
             },
             Ok(urls) => urls.collect::<Vec<_>>(),

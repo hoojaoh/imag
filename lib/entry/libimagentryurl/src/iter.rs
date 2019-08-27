@@ -98,7 +98,7 @@ impl OnlyUrlIter {
         OnlyUrlIter(UrlFilterIter(li, true))
     }
 
-    pub fn urls<'a>(self, store: &'a Store) -> UrlIter<'a> {
+    pub fn urls(self, store: &Store) -> UrlIter<'_> {
         UrlIter(self, store)
     }
 }

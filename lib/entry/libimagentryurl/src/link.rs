@@ -136,7 +136,7 @@ mod tests {
 
         match url {
             Value::String(ref s) => assert_eq!("http://google.de/", s),
-            _ => assert!(false),
+            _ => panic!(),
         }
     }
 
