@@ -39,7 +39,7 @@ impl TagStoreIdIter {
         TagStoreIdIter { inner, datetime }
     }
 
-    pub fn create_entries<'a>(self, store: &'a Store) -> CreateTimeTrackIter<'a> {
+    pub fn create_entries(self, store: &Store) -> CreateTimeTrackIter<'_> {
         CreateTimeTrackIter::new(self, store)
     }
 
@@ -56,7 +56,7 @@ impl Iterator for TagStoreIdIter {
                 let id_str = format!("{}-{}", dt, tag.as_str());
                 crate::module_path::new_id(id_str)
                     .map_err(Error::from)
-                    .map(|id| (id, self.datetime.clone()))
+                    .map(|id| (id, self.datetime))
             }))
     }
 }
