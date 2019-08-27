@@ -35,19 +35,19 @@ impl<'a, T: 'a + ?Sized> ImagTrace<'a, T> {
 impl<'a> Display for ImagTrace<'a, Error>
 {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
-        let _ = writeln!(fmt, "{}: {}", Red.blink().paint("ERROR[   0]"), self.0)?;
+        writeln!(fmt, "{}: {}", Red.blink().paint("ERROR[   0]"), self.0)?;
 
         {
             for (i, cause) in self.0.iter_causes().enumerate() {
-                let _ = writeln!(fmt,
+                writeln!(fmt,
                                  "{prefix}: {error}",
                                  prefix = Red.blink().paint(format!("ERROR[{:>4}]", i + 1)),
                                  error = cause)?;
             }
         }
 
-        let _ = writeln!(fmt, "{}", Red.paint("--- BACKTRACE ---"))?;
-        let _ = writeln!(fmt, "{:?}", self.0.backtrace())?;
+        writeln!(fmt, "{}", Red.paint("--- BACKTRACE ---"))?;
+        writeln!(fmt, "{:?}", self.0.backtrace())?;
 
         Ok(())
     }
