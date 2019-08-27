@@ -102,8 +102,7 @@ fn help_text(cmds: Vec<String>) -> String {
             .into_iter()
             .map(|cmd| format!("\t{}\n", cmd))
             .fold(String::new(), |s, c| {
-                let s = s + c.as_str();
-                s
+                s + c.as_str()
             }))
 }
 
@@ -270,74 +269,70 @@ fn main() {
         }
     };
 
-    // Matches any subcommand given
-    match matches.subcommand() {
-        (subcommand, Some(scmd)) => {
-            // Get all given arguments and further subcommands to pass to
-            // the imag-<> binary
-            // Providing no arguments is OK, and is therefore ignored here
-            let mut subcommand_args : Vec<String> = match scmd.values_of("") {
-                Some(values) => values.map(String::from).collect(),
-                None => Vec::new()
-            };
+    // Matches any subcommand given, except calling for example 'imag --versions', as this option
+    // does not exit. There's nothing to do in such a case
+    if let (subcommand, Some(scmd)) = matches.subcommand() {
+        // Get all given arguments and further subcommands to pass to
+        // the imag-<> binary
+        // Providing no arguments is OK, and is therefore ignored here
+        let mut subcommand_args : Vec<String> = match scmd.values_of("") {
+            Some(values) => values.map(String::from).collect(),
+            None => Vec::new()
+        };
 
-            debug!("Processing forwarding of commandline arguments");
-            forward_commandline_arguments(&matches, &mut subcommand_args);
+        debug!("Processing forwarding of commandline arguments");
+        forward_commandline_arguments(&matches, &mut subcommand_args);
 
-            let subcommand = String::from(subcommand);
-            let subcommand = aliases.get(&subcommand).cloned().unwrap_or(subcommand);
+        let subcommand = String::from(subcommand);
+        let subcommand = aliases.get(&subcommand).cloned().unwrap_or(subcommand);
 
-            debug!("Calling 'imag-{}' with args: {:?}", subcommand, subcommand_args);
+        debug!("Calling 'imag-{}' with args: {:?}", subcommand, subcommand_args);
 
-            // Create a Command, and pass it the gathered arguments
-            match Command::new(format!("imag-{}", subcommand))
-                .stdin(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .args(&subcommand_args[..])
-                .spawn()
-                .and_then(|mut c| c.wait())
-            {
-                Ok(exit_status) => {
-                    if !exit_status.success() {
-                        debug!("imag-{} exited with non-zero exit code: {:?}", subcommand, exit_status);
-                        eprintln!("imag-{} exited with non-zero exit code", subcommand);
-                        exit(exit_status.code().unwrap_or(1));
-                    }
-                    debug!("Successful exit!");
-                },
+        // Create a Command, and pass it the gathered arguments
+        match Command::new(format!("imag-{}", subcommand))
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .args(&subcommand_args[..])
+            .spawn()
+            .and_then(|mut c| c.wait())
+        {
+            Ok(exit_status) => {
+                if !exit_status.success() {
+                    debug!("imag-{} exited with non-zero exit code: {:?}", subcommand, exit_status);
+                    eprintln!("imag-{} exited with non-zero exit code", subcommand);
+                    exit(exit_status.code().unwrap_or(1));
+                }
+                debug!("Successful exit!");
+            },
 
-                Err(e) => {
-                    debug!("Error calling the subcommand");
-                    match e.kind() {
-                        ErrorKind::NotFound => {
-                            writeln!(out, "No such command: 'imag-{}'", subcommand)
-                                .to_exit_code()
-                                .unwrap_or_exit();
-                            writeln!(out, "See 'imag --help' for available subcommands")
-                                .to_exit_code()
-                                .unwrap_or_exit();
-                            exit(1);
-                        },
-                        ErrorKind::PermissionDenied => {
-                            writeln!(out, "No permission to execute: 'imag-{}'", subcommand)
-                                .to_exit_code()
-                                .unwrap_or_exit();
-                            exit(1);
-                        },
-                        _ => {
-                            writeln!(out, "Error spawning: {:?}", e)
-                                .to_exit_code()
-                                .unwrap_or_exit();
-                            exit(1);
-                        }
+            Err(e) => {
+                debug!("Error calling the subcommand");
+                match e.kind() {
+                    ErrorKind::NotFound => {
+                        writeln!(out, "No such command: 'imag-{}'", subcommand)
+                            .to_exit_code()
+                            .unwrap_or_exit();
+                        writeln!(out, "See 'imag --help' for available subcommands")
+                            .to_exit_code()
+                            .unwrap_or_exit();
+                        exit(1);
+                    },
+                    ErrorKind::PermissionDenied => {
+                        writeln!(out, "No permission to execute: 'imag-{}'", subcommand)
+                            .to_exit_code()
+                            .unwrap_or_exit();
+                        exit(1);
+                    },
+                    _ => {
+                        writeln!(out, "Error spawning: {:?}", e)
+                            .to_exit_code()
+                            .unwrap_or_exit();
+                        exit(1);
                     }
                 }
             }
-        },
-        // Calling for example 'imag --versions' will lead here, as this option does not exit.
-        // There's nothing to do in such a case
-        _ => {},
+        }
     }
 }
 
@@ -353,14 +348,14 @@ fn fetch_aliases(config: Option<&Value>) -> Result<BTreeMap<String, String>, Str
             let mut alias_mappings = BTreeMap::new();
 
             for (k, v) in tbl {
-                match v {
-                    &Value::String(ref alias)      => {
+                match *v {
+                    Value::String(ref alias)      => {
                         alias_mappings.insert(alias.clone(), k.clone());
                     },
-                    &Value::Array(ref aliases) => {
+                    Value::Array(ref aliases) => {
                         for alias in aliases {
-                            match alias {
-                                &Value::String(ref s) => {
+                            match *alias {
+                                Value::String(ref s) => {
                                     alias_mappings.insert(s.clone(), k.clone());
                                 },
                                 _ => {
