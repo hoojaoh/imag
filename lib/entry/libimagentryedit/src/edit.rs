@@ -57,7 +57,7 @@ impl EditHeader for Entry {
 
     fn edit_header(&mut self, rt: &Runtime) -> Result<()> {
         let mut header = ::toml::ser::to_string_pretty(self.get_header())?;
-        let _          = edit_in_tmpfile(rt, &mut header)?;
+        edit_in_tmpfile(rt, &mut header)?;
         let header     = ::toml::de::from_str(&header)?;
         *self.get_header_mut() = header;
         Ok(())
@@ -65,7 +65,7 @@ impl EditHeader for Entry {
 
     fn edit_header_and_content(&mut self, rt: &Runtime) -> Result<()> {
         let mut header_and_content = self.to_str()?;
-        let _                      = edit_in_tmpfile(rt, &mut header_and_content)?;
+        edit_in_tmpfile(rt, &mut header_and_content)?;
         self.replace_from_buffer(&header_and_content)
             .context("Failed to replace header and content from buffer")
             .map_err(Error::from)
@@ -79,7 +79,7 @@ pub fn edit_in_tmpfile(rt: &Runtime, s: &mut String) -> Result<()> {
     let editor = rt
         .editor()
         .context(err_msg("No editor"))?
-        .ok_or_else(|| Error::from(err_msg("No editor")))?;
+        .ok_or_else(|| err_msg("No editor"))?;
 
     edit_in_tmpfile_with_command(editor, s)
         .context(EM::IO)
