@@ -104,11 +104,11 @@ fn main() {
 
         debug!("Writing to '{}': {}", diary_name, text);
 
-        let _ = rt
+        rt
             .store()
             .new_entry_now(&diary_name)
             .map(|mut fle| {
-                let _ = fle.make_log_entry().map_err_trace_exit_unwrap();
+                fle.make_log_entry().map_err_trace_exit_unwrap();
                 *fle.get_content_mut() = text;
                 fle
             })
@@ -177,7 +177,6 @@ fn show(rt: &Runtime) {
         .filter(|e| e.is_log().map_err_trace_exit_unwrap())
         .map(|entry| (entry.diary_id().map_err_trace_exit_unwrap(), entry))
         .sorted_by_key(|tpl| tpl.0.get_date_representation())
-        .into_iter()
         .map(|tpl| { debug!("Found entry: {:?}", tpl.1); tpl })
         .map(|(id, entry)| {
             if let Some(wrap_limit) = do_wrap {
@@ -186,20 +185,20 @@ fn show(rt: &Runtime) {
                 // 10 + 4 + 2 + 2 + 2 + 2 + 6 + 4 = 32
                 // plus text, which we assume to be 120 characters... lets allocate 256 bytes.
                 let mut buffer = Cursor::new(Vec::with_capacity(256));
-                let _ = do_write_to(&mut buffer, id, &entry, do_remove_newlines).unwrap_or_exit();
+                do_write_to(&mut buffer, id, &entry, do_remove_newlines).unwrap_or_exit();
                 let buffer = String::from_utf8(buffer.into_inner())
                     .map_err(Error::from)
                     .map_err_trace_exit_unwrap();
 
                 // now lets wrap
                 for line in ::textwrap::wrap(&buffer, wrap_limit).iter() {
-                    let _ = writeln!(&mut output, "{}", line).to_exit_code()?;
+                    writeln!(&mut output, "{}", line).to_exit_code()?;
                 }
             } else {
-                let _ = do_write_to(&mut output, id, &entry, do_remove_newlines).unwrap_or_exit();
+                do_write_to(&mut output, id, &entry, do_remove_newlines).unwrap_or_exit();
             }
 
-            let _ = rt
+            rt
                 .report_touched(entry.get_location())
                 .unwrap_or_exit();
             Ok(())
@@ -214,24 +213,24 @@ fn get_diary_name(rt: &Runtime) -> String {
 
     let cfg = rt
         .config()
-        .ok_or_else(|| Error::from(err_msg("Configuration not present, cannot continue")))
+        .ok_or_else(|| err_msg("Configuration not present, cannot continue"))
         .map_err_trace_exit_unwrap();
 
     let current_log = cfg
         .read_string("log.default")
         .map_err(Error::from)
         .map_err_trace_exit_unwrap()
-        .ok_or_else(|| Error::from(err_msg("Configuration missing: 'log.default'")))
+        .ok_or_else(|| err_msg("Configuration missing: 'log.default'"))
         .map_err_trace_exit_unwrap();
 
     if cfg
         .read("log.logs")
         .map_err(Error::from)
         .map_err_trace_exit_unwrap()
-        .ok_or_else(|| Error::from(err_msg("Configuration missing: 'log.logs'")))
+        .ok_or_else(|| err_msg("Configuration missing: 'log.logs'"))
         .map_err_trace_exit_unwrap()
         .as_array()
-        .ok_or_else(|| Error::from(err_msg("Configuration 'log.logs' is not an Array")))
+        .ok_or_else(|| err_msg("Configuration 'log.logs' is not an Array"))
         .map_err_trace_exit_unwrap()
         .iter()
         .map(|e| if !is_match!(e, &Value::String(_)) {
@@ -250,7 +249,7 @@ fn get_diary_name(rt: &Runtime) -> String {
         error!("'log.logs' does not contain 'log.default'");
         ::std::process::exit(1)
     } else {
-        current_log.into()
+        current_log
     }
 }
 
