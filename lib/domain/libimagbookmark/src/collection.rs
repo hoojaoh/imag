@@ -51,6 +51,7 @@ pub trait BookmarkCollectionStore<'a> {
 
 impl<'a> BookmarkCollectionStore<'a> for Store {
 
+    #[allow(clippy::new_ret_no_self)]
     fn new(&'a self, name: &str) -> Result<FileLockEntry<'a>> {
         crate::module_path::new_id(name)
             .and_then(|id| self.create(id)
@@ -94,6 +95,7 @@ impl BookmarkCollection for Entry {
         self.get_urls(store)
     }
 
+    #[allow(clippy::redundant_closure)]
     fn link_entries(&self) -> Result<Vec<StoreLink>> {
         use libimagentryurl::util::is_external_link_storeid;
         self.links().map(|v| v.filter(|id| is_external_link_storeid(id)).collect())

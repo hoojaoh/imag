@@ -228,6 +228,7 @@ mod tests {
     fn test_set_date() {
         let store = get_store();
 
+        #[allow(clippy::zero_prefixed_literal)]
         let date = {
             let date = NaiveDate::from_ymd(2000, 01, 02);
             let time = NaiveTime::from_hms(03, 04, 05);
@@ -260,6 +261,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)]
     fn test_read_date() {
         use chrono::Datelike;
         use chrono::Timelike;
@@ -300,6 +302,7 @@ mod tests {
     fn test_delete_date() {
         let store = get_store();
 
+        #[allow(clippy::zero_prefixed_literal)]
         let date = {
             let date = NaiveDate::from_ymd(2000, 01, 02);
             let time = NaiveTime::from_hms(03, 04, 05);

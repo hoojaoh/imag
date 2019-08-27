@@ -383,6 +383,7 @@ mod test {
     }
 
     #[test]
+    #[clippy::cognitive_complexity = "49"]
     fn test_multiple_links() {
         setup_logging();
         let store = get_store();

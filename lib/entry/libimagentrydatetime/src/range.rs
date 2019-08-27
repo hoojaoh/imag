@@ -56,11 +56,13 @@ mod tests {
 
     #[test]
     fn test_new_returns_error_if_start_after_end_date() {
+        #[allow(clippy::zero_prefixed_literal)]
         let start = NaiveDateTime::new(
             NaiveDate::from_ymd(2000, 02, 02),
             NaiveTime::from_hms(12, 00, 02)
         );
 
+        #[allow(clippy::zero_prefixed_literal)]
         let end = NaiveDateTime::new(
             NaiveDate::from_ymd(2000, 02, 02),
             NaiveTime::from_hms(12, 00, 01)
@@ -73,11 +75,13 @@ mod tests {
 
     #[test]
     fn test_new_returns_ok_if_start_is_before_end() {
+        #[allow(clippy::zero_prefixed_literal)]
         let start = NaiveDateTime::new(
             NaiveDate::from_ymd(2000, 02, 02),
             NaiveTime::from_hms(12, 00, 01)
         );
 
+        #[allow(clippy::zero_prefixed_literal)]
         let end = NaiveDateTime::new(
             NaiveDate::from_ymd(2000, 02, 02),
             NaiveTime::from_hms(12, 00, 02)

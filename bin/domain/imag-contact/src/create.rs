@@ -232,6 +232,7 @@ pub fn create(rt: &Runtime) {
     info!("Ready");
 }
 
+#[clippy::cognitive_complexity = "71"]
 fn parse_toml_into_vcard(output: &mut dyn Write, input: &mut dyn Read, toml: Value, uuid: String) -> Option<Vcard> {
     let mut vcard = VcardBuilder::new().with_uid(uuid);
 
