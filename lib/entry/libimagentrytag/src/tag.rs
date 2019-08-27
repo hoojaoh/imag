@@ -29,15 +29,15 @@ pub fn is_tag(s: String) -> Result<(), String> {
     is_tag_str(&s).map_err(|_| format!("The string '{}' is not a valid tag", s))
 }
 
-pub fn is_tag_str(s: &String) -> Result<(), Error> {
+pub fn is_tag_str(s: &str) -> Result<(), Error> {
     use filters::filter::Filter;
     trace!("Checking whether '{}' is a valid tag", s);
 
-    let is_lower      = |s: &String| s.chars().all(|c| c.is_lowercase());
-    let no_whitespace = |s: &String| s.chars().all(|c| !c.is_whitespace());
-    let is_alphanum   = |s: &String| s.chars().all(|c| c.is_alphanumeric());
+    let is_lower      = |s: &&str| s.chars().all(|c| c.is_lowercase());
+    let no_whitespace = |s: &&str| s.chars().all(|c| !c.is_whitespace());
+    let is_alphanum   = |s: &&str| s.chars().all(|c| c.is_alphanumeric());
 
-    if is_lower.and(no_whitespace).and(is_alphanum).filter(s) {
+    if is_lower.and(no_whitespace).and(is_alphanum).filter(&s) {
         Ok(())
     } else {
         Err(format_err!("The string '{}' is not a valid tag", s))

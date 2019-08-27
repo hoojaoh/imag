@@ -62,7 +62,7 @@ impl Tagable for Entry {
             .map(|header| {
                 header.values
                     .iter()
-                    .map(is_tag_str)
+                    .map(|val| is_tag_str(val))
                     .collect::<Result<_>>()?;
 
                 Ok(header.values)
@@ -73,7 +73,7 @@ impl Tagable for Entry {
     fn set_tags(&mut self, ts: &[Tag]) -> Result<()> {
         let _ = ts
             .iter()
-            .map(is_tag_str)
+            .map(|val| is_tag_str(val))
             .collect::<Result<Vec<_>>>()?;
 
         let header = TagHeader {
