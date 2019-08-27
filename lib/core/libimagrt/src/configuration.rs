@@ -56,11 +56,11 @@ pub fn fetch_config(searchpath: &PathBuf) -> Result<Option<Value>> {
 
         env::var("HOME")
             .map(|home| gen_vars(&PathBuf::from(home), variants.iter(), &modifier))
-            .unwrap_or(vec![]),
+            .unwrap_or_else(|_| vec![]),
 
         xdg_basedir::get_data_home()
             .map(|data_dir| gen_vars(&data_dir, variants.iter(), &modifier))
-            .unwrap_or(vec![]),
+            .unwrap_or_else(|_| vec![]),
     ];
 
     let config = vals

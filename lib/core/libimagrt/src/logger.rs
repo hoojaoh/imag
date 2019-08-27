@@ -138,17 +138,17 @@ impl Log for ImagLogger {
             .render(&format!("{}", record.level()), &data)
             .unwrap_or_else(|e| format!("Failed rendering logging data: {:?}\n", e));
 
-        let log_to_destination = |d: &LogDestination| match d {
-            &LogDestination::Stderr => {
-                let _ = write!(stderr(), "{}\n", logtext);
+        let log_to_destination = |d: &LogDestination| match *d {
+            LogDestination::Stderr => {
+                let _ = writeln!(stderr(), "{}", logtext);
             },
-            &LogDestination::File(ref arc_mutex_logdest) => {
+            LogDestination::File(ref arc_mutex_logdest) => {
                 // if there is an error in the lock, we cannot do anything. So we ignore it here.
                 let _ = arc_mutex_logdest
                     .deref()
                     .lock()
                     .map(|mut logdest| {
-                        write!(logdest, "{}\n", logtext)
+                        writeln!(logdest, "{}", logtext)
                     });
             }
         };
@@ -169,10 +169,12 @@ impl Log for ImagLogger {
                     module_setting.level.unwrap_or(self.global_loglevel) >= record.level();
 
                 if set {
-                    module_setting.destinations.as_ref().map(|destinations| for d in destinations {
-                        // If there's an error, we cannot do anything, can we?
-                        log_to_destination(&d);
-                    });
+                    if let Some(destinations) = &module_setting.destinations {
+                        for d in destinations {
+                            // If there's an error, we cannot do anything, can we?
+                            log_to_destination(&d);
+                        }
+                    }
 
                     for d in self.global_destinations.iter() {
                         // If there's an error, we cannot do anything, can we?
@@ -225,7 +227,7 @@ fn aggregate_global_loglevel(matches: &ArgMatches, config: Option<&Value>) -> Re
             .read_string("imag.logging.level")
             .map_err(Error::from)
             .context(EM::TomlQueryError)?
-            .ok_or(err_msg("Global log level config missing"))
+            .ok_or_else(|| err_msg("Global log level config missing"))
             .and_then(|s| match_log_level_str(&s))?;
 
         if let Some(cli_loglevel) = get_arg_loglevel(matches)? {
@@ -262,7 +264,7 @@ fn translate_destination(raw: &str) -> Result<LogDestination> {
 }
 
 
-fn translate_destinations(raw: &Vec<Value>) -> Result<Vec<LogDestination>> {
+fn translate_destinations(raw: &[Value]) -> Result<Vec<LogDestination>> {
     raw.iter()
         .map(|val| {
             val.as_str()
@@ -289,7 +291,7 @@ fn aggregate_global_destinations(config: Option<&Value>)
                 let msg = "Type error at 'imag.logging.destinations', expected 'Array'";
                 err_msg(msg)
             })
-            .and_then(translate_destinations),
+            .and_then(|val| translate_destinations(val)),
     }
 }
 

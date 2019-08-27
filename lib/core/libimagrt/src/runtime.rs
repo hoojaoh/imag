@@ -388,7 +388,7 @@ impl<'a> Runtime<'a> {
                         None    => Ok(None),
                     })
             })
-            .or(env::var("EDITOR"))
+            .or_else(|_| env::var("EDITOR"))
             .map_err(|_| Error::from(EM::IO))
             .map_dbg(|s| format!("Editing with '{}'", s))
             .and_then(|s| {
@@ -624,6 +624,6 @@ fn get_override_specs(matches: &ArgMatches) -> Vec<String> {
              .map(String::from)
              .collect()
         })
-        .unwrap_or(vec![])
+        .unwrap_or_else(|| vec![])
 }
 
