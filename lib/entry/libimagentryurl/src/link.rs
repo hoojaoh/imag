@@ -70,7 +70,7 @@ impl Link for Entry {
             .context(format_err!("Error reading header 'url.uri' from '{}'", self.get_location()))
             .context(EM::EntryHeaderReadError)
             .map_err(Error::from)?
-            .unwrap_or_else(|| Default::default());
+            .unwrap_or_else(Default::default);
 
         debug!("Partial deserialized: {:?}", partial);
 
