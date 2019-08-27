@@ -201,7 +201,7 @@ mod tests {
 
         match header_field {
             Some(ref s) => assert_eq!(category_name, s),
-            None        => assert!(false, "Header field not present"),
+            None        => panic!("Header field not present"),
         }
     }
 }
