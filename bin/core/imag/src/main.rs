@@ -111,14 +111,14 @@ fn help_text(cmds: Vec<String>) -> String {
 fn get_commands(out: &mut Stdout) -> Vec<String> {
     let mut v = match env::var("PATH") {
         Err(e) => {
-            let _ = writeln!(out, "PATH error: {:?}", e)
+            writeln!(out, "PATH error: {:?}", e)
                 .to_exit_code()
                 .unwrap_or_exit();
             exit(1)
         },
 
         Ok(path) => path
-            .split(":")
+            .split(':')
             .flat_map(|elem| {
                 WalkDir::new(elem)
                     .max_depth(1)
@@ -131,7 +131,7 @@ fn get_commands(out: &mut Stdout) -> Vec<String> {
                     .filter_map(|path| path
                         .file_name()
                        .to_str()
-                       .and_then(|s| s.splitn(2, "-").nth(1).map(String::from))
+                       .and_then(|s| s.splitn(2, '-').nth(1).map(String::from))
                     )
             })
             .filter(|path| if cfg!(debug_assertions) {
@@ -185,7 +185,7 @@ fn main() {
     {
         let print_help = app.clone().get_matches().subcommand_name().map(|h| h == "help").unwrap_or(false);
         if print_help {
-            let _ = writeln!(out, "{}", long_help)
+            writeln!(out, "{}", long_help)
                 .to_exit_code()
                 .unwrap_or_exit();
             exit(0)
@@ -220,7 +220,7 @@ fn main() {
 
     if matches.is_present("version") {
         debug!("Showing version");
-        let _ = writeln!(out, "imag {}", env!("CARGO_PKG_VERSION"))
+        writeln!(out, "imag {}", env!("CARGO_PKG_VERSION"))
             .to_exit_code()
             .unwrap_or_exit();
         exit(0);
@@ -248,7 +248,7 @@ fn main() {
             })
             .fold((), |_, line| {
                 // The amount of newlines may differ depending on the subprocess
-                let _ = writeln!(out, "{}", line.trim())
+                writeln!(out, "{}", line.trim())
                     .to_exit_code()
                     .unwrap_or_exit();
             });
@@ -259,11 +259,11 @@ fn main() {
     let aliases = match fetch_aliases(config.as_ref()) {
         Ok(aliases) => aliases,
         Err(e)      => {
-            let _ = writeln!(out, "Error while fetching aliases from configuration file")
+            writeln!(out, "Error while fetching aliases from configuration file")
                 .to_exit_code()
                 .unwrap_or_exit();
             debug!("Error = {:?}", e);
-            let _ = writeln!(out, "Aborting")
+            writeln!(out, "Aborting")
                 .to_exit_code()
                 .unwrap_or_exit();
             exit(1);
@@ -311,22 +311,22 @@ fn main() {
                     debug!("Error calling the subcommand");
                     match e.kind() {
                         ErrorKind::NotFound => {
-                            let _ = writeln!(out, "No such command: 'imag-{}'", subcommand)
+                            writeln!(out, "No such command: 'imag-{}'", subcommand)
                                 .to_exit_code()
                                 .unwrap_or_exit();
-                            let _ = writeln!(out, "See 'imag --help' for available subcommands")
+                            writeln!(out, "See 'imag --help' for available subcommands")
                                 .to_exit_code()
                                 .unwrap_or_exit();
                             exit(1);
                         },
                         ErrorKind::PermissionDenied => {
-                            let _ = writeln!(out, "No permission to execute: 'imag-{}'", subcommand)
+                            writeln!(out, "No permission to execute: 'imag-{}'", subcommand)
                                 .to_exit_code()
                                 .unwrap_or_exit();
                             exit(1);
                         },
                         _ => {
-                            let _ = writeln!(out, "Error spawning: {:?}", e)
+                            writeln!(out, "Error spawning: {:?}", e)
                                 .to_exit_code()
                                 .unwrap_or_exit();
                             exit(1);
@@ -391,7 +391,7 @@ fn forward_commandline_arguments(m: &ArgMatches, scmd: &mut Vec<String>) {
                flag = flag, val_name = val_name, matches = m, v = v);
 
         if m.is_present(val_name) {
-            let _ = m
+            m
                 .value_of(val_name)
                 .map(|val| {
                     debug!("Found '{:?}' = {:?}", val_name, val);
