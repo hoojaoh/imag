@@ -112,12 +112,12 @@ fn main() {
             let viewer = rt
                 .cli()
                 .value_of("in")
-                .ok_or_else(|| Error::from(err_msg("No viewer given")))
+                .ok_or_else(|| err_msg("No viewer given"))
                 .map_err_trace_exit_unwrap();
 
             let config = rt
                 .config()
-                .ok_or_else(|| Error::from(err_msg("No configuration, cannot continue")))
+                .ok_or_else(|| err_msg("No configuration, cannot continue"))
                 .map_err_trace_exit_unwrap();
 
             let query = format!("view.viewers.{}", viewer);
@@ -134,7 +134,7 @@ fn main() {
             let mut handlebars = Handlebars::new();
             handlebars.register_escape_fn(::handlebars::no_escape);
 
-            let _ = handlebars
+            handlebars
                 .register_template_string("template", viewer_template)
                 .map_err(Error::from)
                 .map_err_trace_exit_unwrap();
@@ -156,7 +156,7 @@ fn main() {
             let mut elems = call.split_whitespace();
             let command_string = elems
                 .next()
-                .ok_or_else(|| Error::from(err_msg("No command")))
+                .ok_or_else(|| err_msg("No command"))
                 .map_err_trace_exit_unwrap();
             let mut cmd = Command::new(command_string);
 
@@ -204,9 +204,8 @@ fn main() {
                 .enumerate()
                 .for_each(|(n, entry)| {
                     if n != 0 {
-                        seperator
-                            .as_ref()
-                            .map(|s| writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit());
+                        if let Some(s) = seperator
+                            .as_ref() { writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit() }
                     }
 
                     if let Err(e) = viewer.view_entry(&entry, &mut outlock) {
@@ -238,9 +237,8 @@ fn main() {
                 .enumerate()
                 .for_each(|(n, entry)| {
                     if n != 0 {
-                        seperator
-                            .as_ref()
-                            .map(|s| writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit());
+                        if let Some(s) = seperator
+                            .as_ref() { writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit() }
                     }
 
                     if let Err(e) = viewer.view_entry(&entry, &mut outlock) {
@@ -279,7 +277,7 @@ fn create_tempfile_for<'a>(entry: &FileLockEntry<'a>, view_header: bool, hide_co
         .path()
         .to_str()
         .map(String::from)
-        .ok_or_else(|| Error::from(err_msg("Cannot build path")))
+        .ok_or_else(|| err_msg("Cannot build path"))
         .map_err_trace_exit_unwrap();
 
     (tmpfile, file_path)
