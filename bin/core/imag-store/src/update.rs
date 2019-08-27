@@ -39,11 +39,10 @@ pub fn update(rt: &Runtime) {
             {
                 let e = locked_e.deref_mut();
 
-                scmd.value_of("content")
-                    .map(|new_content| {
-                        *e.get_content_mut() = String::from(new_content);
-                        debug!("New content set");
-                    });
+                if let Some(new_content) = scmd.value_of("content") {
+                    *e.get_content_mut() = String::from(new_content);
+                    debug!("New content set");
+                }
 
                 *e.get_header_mut() = build_toml_header(scmd, e.get_header().clone());
                 debug!("New header set");
