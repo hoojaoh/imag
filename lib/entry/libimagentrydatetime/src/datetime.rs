@@ -44,10 +44,10 @@ pub trait EntryDate {
 
 }
 
-const DATE_HEADER_LOCATION : &'static str              = "datetime.value";
-const DATE_RANGE_START_HEADER_LOCATION : &'static str  = "datetime.range.start";
-const DATE_RANGE_END_HEADER_LOCATION : &'static str    = "datetime.range.end";
-const DATE_FMT : &'static str                          = "%Y-%m-%dT%H:%M:%S";
+const DATE_HEADER_LOCATION : &str              = "datetime.value";
+const DATE_RANGE_START_HEADER_LOCATION : &str  = "datetime.range.start";
+const DATE_RANGE_END_HEADER_LOCATION : &str    = "datetime.range.end";
+const DATE_FMT : &str                          = "%Y-%m-%dT%H:%M:%S";
 
 impl EntryDate for Entry {
 
@@ -114,7 +114,7 @@ impl EntryDate for Entry {
     /// header in an inconsistent state.
     ///
     fn delete_date_range(&mut self) -> Result<()> {
-        let _ = self
+        self
              .get_header_mut()
             .delete(&DATE_RANGE_START_HEADER_LOCATION)
             .map(|_| ())

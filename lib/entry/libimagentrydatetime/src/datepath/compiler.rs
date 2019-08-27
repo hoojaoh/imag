@@ -38,8 +38,8 @@ impl DatePathCompiler {
 
     pub fn new(accuracy: Accuracy, format: Format) -> DatePathCompiler {
         DatePathCompiler {
-            accuracy : accuracy,
-            format   : format,
+            accuracy,
+            format,
         }
     }
 
