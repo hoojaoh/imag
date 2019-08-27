@@ -116,20 +116,16 @@ fn main() {
     debug!("Adding args = {:?}", args);
     command.args(&args);
 
-    match rt.cli().subcommand() {
-        (external, Some(ext_m)) => {
-            command.arg(external);
-            let args = ext_m
-                .values_of("")
-                .map(|vs| vs.map(String::from).collect())
-                .unwrap_or_else(|| vec![]);
+    if let (external, Some(ext_m)) = rt.cli().subcommand() {
+        command.arg(external);
+        let args = ext_m
+            .values_of("")
+            .map(|vs| vs.map(String::from).collect())
+            .unwrap_or_else(|| vec![]);
 
-            debug!("Adding subcommand '{}' and args = {:?}", external, args);
-            command.args(&args);
-        },
-        _ => {},
+        debug!("Adding subcommand '{}' and args = {:?}", external, args);
+        command.args(&args);
     }
-
     let mut out = rt.stdout();
 
     debug!("Calling: {:?}", command);
