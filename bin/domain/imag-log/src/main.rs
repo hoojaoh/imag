@@ -242,8 +242,7 @@ fn get_diary_name(rt: &Runtime) -> String {
         .map(Value::as_str)
         .map(Option::unwrap) // safe by map from above
         .map(String::from)
-        .filter(|log| log == &current_log)
-        .next()
+        .find(|log| log == &current_log)
         .is_none()
     {
         error!("'log.logs' does not contain 'log.default'");
