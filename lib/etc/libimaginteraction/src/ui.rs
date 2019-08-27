@@ -52,7 +52,7 @@ pub fn get_id(matches: &ArgMatches) -> Result<Vec<StoreId>> {
         .values_of(id_argument_name())
         .ok_or(err_msg("CLI error"))
         .and_then(|vals| {
-            vals.into_iter()
+            vals
                 .fold(Ok(vec![]), |acc, elem| {
                     acc.and_then(|mut v| {
                         let elem = StoreId::new(PathBuf::from(String::from(elem)))?;

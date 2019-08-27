@@ -111,7 +111,7 @@ mod test {
         let answers  = "n";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(false == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(!ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
     #[test]
@@ -121,7 +121,7 @@ mod test {
         let answers  = "n\n";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(false == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(!ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
     #[test]
@@ -131,7 +131,7 @@ mod test {
         let answers  = "n";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(false == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(!ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
     #[test]
@@ -141,7 +141,7 @@ mod test {
         let answers  = "n\n";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(false == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(!ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
     #[test]
@@ -151,7 +151,7 @@ mod test {
         let answers  = "y";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(true == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
     #[test]
@@ -161,7 +161,7 @@ mod test {
         let answers  = "y\n";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(true == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
     #[test]
@@ -171,7 +171,7 @@ mod test {
         let answers  = "n";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(false == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(!ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
     #[test]
@@ -181,7 +181,7 @@ mod test {
         let answers  = "y";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(true == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
     #[test]
@@ -191,7 +191,7 @@ mod test {
         let answers  = "\n";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(false == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(!ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
     #[test]
@@ -201,7 +201,7 @@ mod test {
         let answers  = "\n";
         let mut sink: Vec<u8> = vec![];
 
-        assert!(true == ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
+        assert!(ask_bool_(question, default, &mut BufReader::new(answers.as_bytes()), &mut sink).unwrap());
     }
 
 }
