@@ -92,9 +92,9 @@ impl Diagnostic {
                     Some(_) => "Non-String type in 'imag.version'".to_owned(),
                     None => "No version".to_owned(),
                 })
-                .unwrap_or("Error reading version".to_owned()),
+                .unwrap_or_else(|_| "Error reading version".to_owned()),
             header_sections: match entry.get_header() {
-                &Value::Table(ref map) => map.keys().count(),
+                Value::Table(ref map) => map.keys().count(),
                 _ => 0
             },
             bytecount_content: entry.get_content().as_str().len(),
@@ -258,7 +258,7 @@ fn get_config(rt: &Runtime, s: &'static str) -> Option<String> {
             .map_err(Error::from)
             .map_err_trace_exit_unwrap()
             .map(|opt| match opt {
-                &Value::String(ref s) => s.to_owned(),
+                Value::String(ref s) => s.to_owned(),
                 _ => {
                     error!("Config type wrong: 'rt.progressbar_style' should be a string");
                     ::std::process::exit(1)
