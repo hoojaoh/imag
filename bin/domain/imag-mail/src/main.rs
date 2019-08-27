@@ -211,7 +211,7 @@ fn list(rt: &Runtime) {
             ).to_exit_code().unwrap_or_exit();
         }
 
-        let _ = rt.report_touched(m.get_location()).unwrap_or_exit();
+        rt.report_touched(m.get_location()).unwrap_or_exit();
     }
 
     if rt.ids_from_stdin() {
