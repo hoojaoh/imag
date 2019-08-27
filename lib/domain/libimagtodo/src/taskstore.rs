@@ -141,7 +141,7 @@ impl<'a> TaskStore<'a> for Store {
                 // Here we check if the status of a task is deleted and if yes, we delete it
                 // from the store.
                 if *ttask.status() == TaskStatus::Deleted {
-                    let _ = self.delete_task_by_uuid(*ttask.uuid())?;
+                    self.delete_task_by_uuid(*ttask.uuid())?;
                     info!("Deleted task {}", *ttask.uuid());
                 }
             }
@@ -154,7 +154,7 @@ impl<'a> TaskStore<'a> for Store {
     }
 
     fn all_tasks(&self) -> Result<TaskIdIterator> {
-        self.entries().map(|i| TaskIdIterator::new(i))
+        self.entries().map(TaskIdIterator::new)
     }
 
     fn new_from_twtask(&'a self, task: TTask) -> Result<FileLockEntry<'a>> {
