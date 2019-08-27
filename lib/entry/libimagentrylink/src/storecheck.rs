@@ -102,9 +102,9 @@ impl StoreLinkConsistentExt for Store {
 
         // Helper function to create a SLCECD::OneDirectionalLink error object
         let mk_one_directional_link_err = |src: StoreId, target: StoreId| -> Error {
-            Error::from(format_err!("Dead link: {} -> {}",
+            format_err!("Dead link: {} -> {}",
                                     src.local_display_string(),
-                                    target.local_display_string()))
+                                    target.local_display_string())
         };
 
         // Helper lambda to check whether the _incoming_ links of each entry actually also
