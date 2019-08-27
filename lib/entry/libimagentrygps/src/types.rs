@@ -88,17 +88,17 @@ impl FromValue for GPSValue {
             Value::Table(ref map) => {
                 Ok(GPSValue::new(
                     map.get("degree")
-                        .ok_or_else(|| Error::from(err_msg("Degree missing")))
+                        .ok_or_else(|| err_msg("Degree missing"))
                         .and_then(&int_to_appropriate_width)?,
 
                     map
                         .get("minutes")
-                        .ok_or_else(|| Error::from(err_msg("Minutes missing")))
+                        .ok_or_else(|| err_msg("Minutes missing"))
                         .and_then(&int_to_appropriate_width)?,
 
                     map
                         .get("seconds")
-                        .ok_or_else(|| Error::from(err_msg("Seconds missing")))
+                        .ok_or_else(|| err_msg("Seconds missing"))
                         .and_then(&int_to_appropriate_width)?
                 ))
             }
@@ -156,7 +156,7 @@ impl FromValue for Coordinates {
             .and_then(|t| {
                 let get = |m: &Map<_, _>, what: &'static str, ek| -> Result<GPSValue> {
                     m.get(what)
-                        .ok_or_else(|| Error::from(err_msg(ek)))
+                        .ok_or_else(|| err_msg(ek))
                         .and_then(GPSValue::from_value)
                 };
 
