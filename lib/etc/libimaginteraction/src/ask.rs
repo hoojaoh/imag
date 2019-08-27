@@ -57,8 +57,8 @@ fn ask_bool_<R: BufRead>(s: &str, default: Option<bool>, input: &mut R, output: 
             return Ok(true)
         } else if R_NO.is_match(&s[..]) {
             return Ok(false)
-        } else if default.is_some() {
-            return Ok(default.unwrap())
+        } else if let Some(default) = default {
+            return Ok(default)
         }
         // else again...
     }

@@ -50,7 +50,7 @@ pub fn id_argument_long() -> &'static str {
 pub fn get_id(matches: &ArgMatches) -> Result<Vec<StoreId>> {
     matches
         .values_of(id_argument_name())
-        .ok_or(err_msg("CLI error"))
+        .ok_or_else(|| err_msg("CLI error"))
         .and_then(|vals| {
             vals
                 .fold(Ok(vec![]), |acc, elem| {
