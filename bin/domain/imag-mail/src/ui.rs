@@ -87,7 +87,7 @@ impl IdPathProvider for PathProvider {
                  .map(|pb| pb.into_storeid())
                  .collect::<Result<Vec<_>>>()
             )
-            .unwrap_or(Ok(Vec::new()))
+            .unwrap_or_else(|| Ok(Vec::new()))
             .map(Some)
     }
 }
