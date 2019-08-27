@@ -57,18 +57,18 @@ impl Link {
     #[cfg(test)]
     pub(crate) fn eq_store_id(&self, id: &StoreId) -> bool {
         match self {
-            &Link::Id { link: ref s }             => s.eq(id),
-            &Link::LinkTo   { ref link }          => link.eq(id),
-            &Link::LinkFrom { ref link }          => link.eq(id),
+            Link::Id { link: ref s }             => s.eq(id),
+            Link::LinkTo   { ref link }          => link.eq(id),
+            Link::LinkFrom { ref link }          => link.eq(id),
         }
     }
 
     /// Get the StoreId inside the Link, which is always present
     pub fn get_store_id(&self) -> &StoreId {
         match self {
-            &Link::Id { link: ref s }             => s,
-            &Link::LinkTo   { ref link }          => link,
-            &Link::LinkFrom { ref link }          => link,
+            Link::Id { link: ref s }             => s,
+            Link::LinkTo   { ref link }          => link,
+            Link::LinkFrom { ref link }          => link,
         }
     }
 
@@ -140,9 +140,9 @@ impl IntoStoreId for Link {
 impl AsRef<StoreId> for Link {
     fn as_ref(&self) -> &StoreId {
         match self {
-            &Link::Id { ref link }            => &link,
-            &Link::LinkTo   { ref link }      => &link,
-            &Link::LinkFrom { ref link }      => &link,
+            Link::Id { ref link }            => &link,
+            Link::LinkTo   { ref link }      => &link,
+            Link::LinkFrom { ref link }      => &link,
         }
     }
 }
