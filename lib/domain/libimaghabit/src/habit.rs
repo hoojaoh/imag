@@ -55,7 +55,7 @@ pub trait HabitTemplate : Sized {
     ///
     /// It uses `Store::retrieve()` underneath. So if there is already an instance for the day
     /// passed, this will simply return the instance.
-    fn create_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate)
+    fn create_instance_with_date<'a>(&mut self, store: &'a Store, date: NaiveDate)
         -> Result<FileLockEntry<'a>>;
 
     /// Shortcut for calling `Self::create_instance_with_date()` with an instance of
@@ -63,7 +63,7 @@ pub trait HabitTemplate : Sized {
     fn create_instance_today<'a>(&mut self, store: &'a Store) -> Result<FileLockEntry<'a>>;
 
     /// Same as `HabitTemplate::create_instance_with_date()` but uses `Store::retrieve` internally.
-    fn retrieve_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate)
+    fn retrieve_instance_with_date<'a>(&mut self, store: &'a Store, date: NaiveDate)
         -> Result<FileLockEntry<'a>>;
 
     /// Same as `HabitTemplate::create_instance_today()` but uses `Store::retrieve` internally.
@@ -87,17 +87,17 @@ pub trait HabitTemplate : Sized {
     fn habit_comment(&self) -> Result<String>;
     fn habit_until_date(&self) -> Result<Option<String>>;
 
-    fn instance_exists_for_date(&self, date: &NaiveDate) -> Result<bool>;
+    fn instance_exists_for_date(&self, date: NaiveDate) -> Result<bool>;
 
     /// Create a StoreId for a habit name and a date the habit should be instantiated for
-    fn instance_id_for(habit_name: &String, habit_date: &NaiveDate) -> Result<StoreId>;
+    fn instance_id_for(habit_name: &String, habit_date: NaiveDate) -> Result<StoreId>;
 }
 
 provide_kindflag_path!(pub IsHabitTemplate, "habit.template.is_habit_template");
 
 impl HabitTemplate for Entry {
 
-    fn create_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate) -> Result<FileLockEntry<'a>> {
+    fn create_instance_with_date<'a>(&mut self, store: &'a Store, date: NaiveDate) -> Result<FileLockEntry<'a>> {
         let name    = self.habit_name()?;
         let date    = date_to_string(date);
         let id      = instance_id_for_name_and_datestr(&name, &date)?;
@@ -108,10 +108,10 @@ impl HabitTemplate for Entry {
     }
 
     fn create_instance_today<'a>(&mut self, store: &'a Store) -> Result<FileLockEntry<'a>> {
-        self.create_instance_with_date(store, &Local::today().naive_local())
+        self.create_instance_with_date(store, Local::today().naive_local())
     }
 
-    fn retrieve_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate) -> Result<FileLockEntry<'a>> {
+    fn retrieve_instance_with_date<'a>(&mut self, store: &'a Store, date: NaiveDate) -> Result<FileLockEntry<'a>> {
         let name    = self.habit_name()?;
         let date    = date_to_string(date);
         let id      = instance_id_for_name_and_datestr(&name, &date)?;
@@ -122,7 +122,7 @@ impl HabitTemplate for Entry {
     }
 
     fn retrieve_instance_today<'a>(&mut self, store: &'a Store) -> Result<FileLockEntry<'a>> {
-        self.retrieve_instance_with_date(store, &Local::today().naive_local())
+        self.retrieve_instance_with_date(store, Local::today().naive_local())
     }
 
     fn linked_instances(&self) -> Result<HabitInstanceStoreIdIterator> {
@@ -233,7 +233,7 @@ impl HabitTemplate for Entry {
             .map(|os| os.map(String::from))
     }
 
-    fn instance_exists_for_date(&self, date: &NaiveDate) -> Result<bool> {
+    fn instance_exists_for_date(&self, date: NaiveDate) -> Result<bool> {
         let name = self.habit_name()?;
         let date = date_to_string(date);
 
@@ -246,10 +246,10 @@ impl HabitTemplate for Entry {
             }
         }
 
-        return Ok(false);
+        Ok(false)
     }
 
-    fn instance_id_for(habit_name: &String, habit_date: &NaiveDate) -> Result<StoreId> {
+    fn instance_id_for(habit_name: &String, habit_date: NaiveDate) -> Result<StoreId> {
         instance_id_for_name_and_datestr(habit_name, &date_to_string(habit_date))
     }
 
@@ -345,7 +345,7 @@ pub mod builder {
                 debug!("Kairos failed: {:?}", e);
                 return Err(e)
             }
-            let date      = date_to_string(&dateobj);
+            let date      = date_to_string(dateobj);
             debug!("Success: Date valid");
 
             let comment   = self.comment.unwrap_or_else(|| String::new());
@@ -364,7 +364,7 @@ pub mod builder {
             }
 
             if let Some(until) = self.untildate {
-                let until = date_to_string(&until);
+                let until = date_to_string(until);
                 entry.get_header_mut().insert("habit.template.until", Value::String(until))?;
             }
 
