@@ -40,8 +40,8 @@ impl<'a> CreateTimeTrackIter<'a>
 {
     pub fn new(inner: TagStoreIdIter, store: &'a Store) -> CreateTimeTrackIter<'a> {
         CreateTimeTrackIter {
-            inner: inner,
-            store: store,
+            inner,
+            store,
         }
     }
 

@@ -19,7 +19,7 @@
 
 use chrono::naive::NaiveDateTime as NDT;
 use failure::Fallible as Result;
-use failure::Error;
+
 use failure::err_msg;
 
 use crate::tag::TimeTrackingTag as TTT;
@@ -48,7 +48,7 @@ impl Iterator for TagIter {
             .map(|t| if is_tag_str(&t).is_ok() {
                 Ok(TTT::from(t))
             } else {
-                Err(Error::from(err_msg("Error in Tag format")))
+                Err(err_msg("Error in Tag format"))
             })
     }
 }
