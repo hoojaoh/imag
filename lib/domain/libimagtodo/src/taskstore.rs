@@ -59,7 +59,7 @@ impl<'a> TaskStore<'a> for Store {
             .context(err_msg("Error importing"))
             .map_err(Error::from)
             .and_then(|t| {
-                let uuid = t.uuid().clone();
+                let uuid = *t.uuid();
                 self.new_from_twtask(t).map(|t| (t, line, uuid))
             })
     }
@@ -87,7 +87,7 @@ impl<'a> TaskStore<'a> for Store {
         import_task(s.as_str())
             .context(err_msg("Import error"))
             .map_err(Error::from)
-            .map(|t| t.uuid().clone())
+            .map(|t| *t.uuid())
             .and_then(|uuid| self.get_task_from_uuid(uuid))
             .and_then(|o| match o {
                 None    => Ok(Err(s)),
