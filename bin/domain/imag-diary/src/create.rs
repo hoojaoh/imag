@@ -46,7 +46,7 @@ pub fn create(rt: &Runtime) {
 
     let mut entry = create_entry(rt.store(), &diaryname, rt);
 
-    let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+    rt.report_touched(entry.get_location()).unwrap_or_exit();
 
     let res = if rt.cli().subcommand_matches("create").unwrap().is_present("no-edit") {
         debug!("Not editing new diary entry");
@@ -56,7 +56,7 @@ pub fn create(rt: &Runtime) {
         entry.edit_content(rt).context(err_msg("Diary edit error")).map_err(Error::from)
     };
 
-    let _ = res.map_err_trace_exit_unwrap();
+    res.map_err_trace_exit_unwrap();
     info!("Ok!");
 }
 

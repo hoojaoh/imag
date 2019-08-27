@@ -45,7 +45,7 @@ pub fn view(rt: &Runtime) {
         }));
 
     let entries = entries.map(|e| {
-        let _ = rt.report_touched(e.get_location()).unwrap_or_exit();
+        rt.report_touched(e.get_location()).unwrap_or_exit();
 
         e
     });
