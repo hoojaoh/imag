@@ -59,7 +59,7 @@ impl StoreId {
         }
     }
 
-    pub(crate) fn with_base<'a>(self, base: &'a PathBuf) -> StoreIdWithBase<'a> {
+    pub(crate) fn with_base(self, base: &PathBuf) -> StoreIdWithBase<'_> {
         StoreIdWithBase(base, self.0)
     }
 
@@ -265,7 +265,7 @@ impl StoreIdIterator {
         StoreIdIterator { iter }
     }
 
-    pub fn with_store<'a>(self, store: &'a Store) -> StoreIdIteratorWithStore<'a> {
+    pub fn with_store(self, store: &Store) -> StoreIdIteratorWithStore<'_> {
         StoreIdIteratorWithStore(self, store)
     }
 

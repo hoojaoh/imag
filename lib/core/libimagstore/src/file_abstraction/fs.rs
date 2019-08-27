@@ -108,7 +108,7 @@ impl FileAbstraction for FSFileAbstraction {
         if let Some(p) = to.parent() {
             if !p.exists() {
                 debug!("Creating: {:?}", p);
-                let _ = create_dir_all(&p).context(EM::DirNotCreated)?;
+                create_dir_all(&p).context(EM::DirNotCreated)?;
             }
         } else {
             debug!("Failed to find parent. This looks like it will fail now");
@@ -204,8 +204,8 @@ impl PathIterBuilder for WalkDirPathIterBuilder {
 fn open_file<A: AsRef<Path>>(p: A) -> ::std::io::Result<Option<File>> {
     match OpenOptions::new().write(true).read(true).open(p) {
         Err(e) => match e.kind() {
-            ::std::io::ErrorKind::NotFound => return Ok(None),
-            _ => return Err(e),
+            ::std::io::ErrorKind::NotFound => Ok(None),
+            _ => Err(e),
         },
         Ok(file) => Ok(Some(file))
     }
@@ -216,7 +216,7 @@ fn create_file<A: AsRef<Path>>(p: A) -> ::std::io::Result<File> {
         trace!("'{}' is directory = {}", parent.display(), parent.is_dir());
         if !parent.is_dir() {
             trace!("Implicitely creating directory: {:?}", parent);
-            let _ = create_dir_all(parent)?;
+            create_dir_all(parent)?;
         }
     }
     OpenOptions::new().write(true).read(true).create(true).open(p)

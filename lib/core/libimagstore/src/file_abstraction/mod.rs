@@ -46,7 +46,7 @@ pub(crate) trait FileAbstraction : Debug {
     fn new_instance(&self, p: PathBuf) -> Box<dyn FileAbstractionInstance>;
 
     fn drain(&self) -> Result<Drain>;
-    fn fill<'a>(&'a mut self, d: Drain) -> Result<()>;
+    fn fill(&mut self, d: Drain) -> Result<()>;
 
     fn pathes_recursively<'a>(&self, basepath: PathBuf, storepath: &'a PathBuf, backend: Arc<dyn FileAbstraction>) -> Result<PathIterator<'a>>;
 }
@@ -74,7 +74,7 @@ impl Drain {
         Drain::new(HashMap::new())
     }
 
-    pub fn iter<'a>(&'a mut self) -> DrainIter<'a> {
+    pub fn iter(&mut self) -> DrainIter<'_> {
         DrainIter(self.0.drain())
     }
 

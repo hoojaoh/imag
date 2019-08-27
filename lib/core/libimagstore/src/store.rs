@@ -148,7 +148,6 @@ pub struct Store {
 }
 
 impl Store {
-
     /// Create a new Store object
     ///
     /// This opens a Store in `location`. The store_config is used to check whether creating the
@@ -210,7 +209,7 @@ impl Store {
         let store = Store {
             location: location.clone(),
             entries: Arc::new(RwLock::new(HashMap::new())),
-            backend: backend,
+            backend,
         };
 
         debug!("Store building succeeded");
@@ -491,7 +490,7 @@ impl Store {
         }
 
         debug!("Seems like {:?} is on the FS", pb);
-        let _ = self
+        self
             .backend
             .remove_file(&pb)
             .context(EM::FileError)
@@ -608,7 +607,7 @@ impl Store {
             }
             debug!("New entry does not yet exist on filesystem. Good.");
 
-            let _ = self
+            self
                 .backend
                 .rename(&old_id_pb, &new_id_pb)
                 .context({
@@ -621,12 +620,14 @@ impl Store {
 
             // assert enforced through check hsmap.contains_key(&new_id) above.
             // Should therefor never fail
-            assert!(hsmap
-                    .remove(&old_id)
-                    .and_then(|mut entry| {
-                        entry.id = new_id.clone().into();
-                        hsmap.insert(new_id.clone().into(), entry)
-                    }).is_none())
+            let hsmap_does_not_have_key = hsmap
+                .remove(&old_id)
+                .and_then(|mut entry| {
+                    entry.id = new_id.clone();
+                    hsmap.insert(new_id.clone(), entry)
+                })
+                .is_none();
+            assert!(hsmap_does_not_have_key);
         }
 
         debug!("Moved");
@@ -642,7 +643,7 @@ impl Store {
     }
 
     /// Check whether the store has the Entry pointed to by the StoreId `id`
-    pub fn exists<'a>(&'a self, id: StoreId) -> Result<bool> {
+    pub fn exists(&self, id: StoreId) -> Result<bool> {
         let cache_has_entry = |id: &StoreId|
             self.entries
                 .read()
@@ -660,7 +661,6 @@ impl Store {
     pub fn path(&self) -> &PathBuf {
         &self.location
     }
-
 }
 
 impl Debug for Store {
@@ -986,13 +986,13 @@ mod test {
         assert!(has_imag_version_in_main_section(&Value::Table(map)).is_err());
     }
 
-    static TEST_ENTRY : &'static str = "---
+    static TEST_ENTRY : &str = "---
 [imag]
 version = '0.0.3'
 ---
 Hai";
 
-    static TEST_ENTRY_TNL : &'static str = "---
+    static TEST_ENTRY_TNL : &str = "---
 [imag]
 version = '0.0.3'
 ---
@@ -1129,14 +1129,12 @@ mod store_tests {
 
         for n in 1..100 {
             let s = format!("test-{}", n % 50);
-            store.create(PathBuf::from(s.clone()))
-                .ok()
-                .map(|entry| {
-                    assert!(entry.verify().is_ok());
-                    let loc = entry.get_location().clone().with_base(store.path()).into_pathbuf().unwrap();
-                    assert!(loc.starts_with("/"));
-                    assert!(loc.ends_with(s));
-                });
+            if let Ok(entry) = store.create(PathBuf::from(s.clone())) {
+                assert!(entry.verify().is_ok());
+                let loc = entry.get_location().clone().with_base(store.path()).into_pathbuf().unwrap();
+                assert!(loc.starts_with("/"));
+                assert!(loc.ends_with(s));
+            }
         }
     }
 
@@ -1176,8 +1174,8 @@ mod store_tests {
 
         for n in 1..100 {
             match store.get(PathBuf::from(format!("test-{}", n))) {
-                Ok(None) => assert!(true),
-                _        => assert!(false),
+                Ok(None) => {},
+                _        => panic!(),
             }
         }
     }
@@ -1188,8 +1186,8 @@ mod store_tests {
 
         for n in 1..100 {
             match store.delete(PathBuf::from(format!("test-{}", n))) {
-                Err(_) => assert!(true),
-                _      => assert!(false),
+                Err(_) => {},
+                _      => panic!(),
             }
         }
     }
@@ -1237,4 +1235,3 @@ mod store_tests {
     }
 
 }
-

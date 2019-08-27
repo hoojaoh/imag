@@ -55,11 +55,11 @@ pub fn entry_buffer_to_header_content(buf: &str) -> Result<(Value, String)> {
             header_consumed = true;
             // do not further process the line
         } else if !header_consumed {
-            let _ = writeln!(header, "{}", line).context(EM::FormatError)?;
+            writeln!(header, "{}", line).context(EM::FormatError)?;
         } else if iter.peek().is_some() {
-            let _ = writeln!(content, "{}", line).context(EM::FormatError)?;
+            writeln!(content, "{}", line).context(EM::FormatError)?;
         } else {
-            let _ = write!(content, "{}", line).context(EM::FormatError)?;
+            write!(content, "{}", line).context(EM::FormatError)?;
         }
     }
 
