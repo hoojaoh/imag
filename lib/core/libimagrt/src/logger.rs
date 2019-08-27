@@ -90,18 +90,18 @@ impl ImagLogger {
 
         {
             use self::log_lvl_aggregate::*;
-            let _ = aggregate::<Trace>(&mut handlebars, config, "TRACE")?;
-            let _ = aggregate::<Debug>(&mut handlebars, config, "DEBUG")?;
-            let _ = aggregate::<Info>(&mut handlebars, config, "INFO")?;
-            let _ = aggregate::<Warn>(&mut handlebars, config, "WARN")?;
-            let _ = aggregate::<Error>(&mut handlebars, config, "ERROR")?;
+            aggregate::<Trace>(&mut handlebars, config, "TRACE")?;
+            aggregate::<Debug>(&mut handlebars, config, "DEBUG")?;
+            aggregate::<Info>(&mut handlebars, config, "INFO")?;
+            aggregate::<Warn>(&mut handlebars, config, "WARN")?;
+            aggregate::<Error>(&mut handlebars, config, "ERROR")?;
         }
 
         Ok(ImagLogger {
             global_loglevel     : aggregate_global_loglevel(matches, config)?,
             global_destinations : aggregate_global_destinations(config)?,
             module_settings     : aggregate_module_settings(matches, config)?,
-            handlebars          : handlebars,
+            handlebars,
         })
     }
 
@@ -171,12 +171,12 @@ impl Log for ImagLogger {
                 if set {
                     module_setting.destinations.as_ref().map(|destinations| for d in destinations {
                         // If there's an error, we cannot do anything, can we?
-                        let _ = log_to_destination(&d);
+                        log_to_destination(&d);
                     });
 
                     for d in self.global_destinations.iter() {
                         // If there's an error, we cannot do anything, can we?
-                        let _ = log_to_destination(&d);
+                        log_to_destination(&d);
                     }
                 }
             })
@@ -185,7 +185,7 @@ impl Log for ImagLogger {
                 // Yes, we log
                 for d in self.global_destinations.iter() {
                     // If there's an error, we cannot do anything, can we?
-                    let _ = log_to_destination(&d);
+                    log_to_destination(&d);
                 }
             }
         });
@@ -199,7 +199,7 @@ fn match_log_level_str(s: &str) -> Result<Level> {
         "info"  => Ok(Level::Info),
         "warn"  => Ok(Level::Warn),
         "error" => Ok(Level::Error),
-        lvl     => return Err(format_err!("Invalid logging level: {}", lvl)),
+        lvl     => Err(format_err!("Invalid logging level: {}", lvl)),
     }
 }
 
@@ -287,7 +287,7 @@ fn aggregate_global_destinations(config: Option<&Value>)
             .as_array()
             .ok_or_else(|| {
                 let msg = "Type error at 'imag.logging.destinations', expected 'Array'";
-                Error::from(err_msg(msg))
+                err_msg(msg)
             })
             .and_then(translate_destinations),
     }

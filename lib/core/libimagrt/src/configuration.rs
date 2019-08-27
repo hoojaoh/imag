@@ -121,10 +121,10 @@ pub fn override_config(val: &mut Value, v: Vec<String>) -> Result<()> {
         .map(|(k, v)| {
             let value = val.read_mut(&k)
                 .context(EM::TomlQueryError)?
-                .ok_or_else(|| Error::from(err_msg("No config value there, cannot override.")))?;
+                .ok_or_else(|| err_msg("No config value there, cannot override."))?;
 
             let new_value = into_value(value, v)
-                .ok_or_else(|| Error::from(err_msg("Config override type not matching")))?;
+                .ok_or_else(|| err_msg("Config override type not matching"))?;
 
             info!("Successfully overridden: {} = {}", k, new_value);
             *value = new_value;
