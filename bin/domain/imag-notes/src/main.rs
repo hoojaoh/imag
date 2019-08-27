@@ -74,24 +74,22 @@ fn main() {
                                     "Note taking helper",
                                     build_ui);
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            debug!("Call: {}", name);
-            match name {
-                "create" => create(&rt),
-                "delete" => delete(&rt),
-                "edit"   => edit(&rt),
-                "list"   => list(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-notes", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            };
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        debug!("Call: {}", name);
+        match name {
+            "create" => create(&rt),
+            "delete" => delete(&rt),
+            "edit"   => edit(&rt),
+            "list"   => list(&rt),
+            other    => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-notes", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        };
+    }
 }
 
 fn name_from_cli(rt: &Runtime, subcmd: &str) -> String {
