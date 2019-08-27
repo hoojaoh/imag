@@ -103,7 +103,7 @@ fn set(rt: &Runtime) {
         })
         .into_iter();
 
-    StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
+    StoreIdIterator::new(Box::new(sids.map(Ok)))
         .into_get_iter(rt.store())
         .trace_unwrap_exit()
         .map(|o| o.unwrap_or_else(|| {
@@ -111,7 +111,7 @@ fn set(rt: &Runtime) {
             ::std::process::exit(1)
         }))
         .for_each(|mut entry| {
-            let _ = entry
+            entry
                 .set_category_checked(rt.store(), &name)
                 .map_err_trace_exit_unwrap();
         })
@@ -129,7 +129,7 @@ fn get(rt: &Runtime) {
         })
         .into_iter();
 
-    StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
+    StoreIdIterator::new(Box::new(sids.map(Ok)))
         .into_get_iter(rt.store())
         .trace_unwrap_exit()
         .map(|o| o.unwrap_or_else(|| {
@@ -138,7 +138,7 @@ fn get(rt: &Runtime) {
         }))
         .map(|entry| entry.get_category().map_err_trace_exit_unwrap())
         .for_each(|name| {
-            let _ = writeln!(outlock, "{}", name).to_exit_code().unwrap_or_exit();
+            writeln!(outlock, "{}", name).to_exit_code().unwrap_or_exit();
         })
 }
 
@@ -190,7 +190,7 @@ fn delete_category(rt: &Runtime) {
 
     if answer {
         info!("Deleting category '{}'", name);
-        let _ = rt
+        rt
             .store()
             .delete_category(&name)
             .map_err_trace_exit_unwrap();
