@@ -95,9 +95,9 @@ fn main() {
         .count();
 
     if opts.count {
-        let _ = writeln!(rt.stdout(), "{}", count).to_exit_code().unwrap_or_exit();
+        writeln!(rt.stdout(), "{}", count).to_exit_code().unwrap_or_exit();
     } else if !opts.files_with_matches {
-        let _ = writeln!(rt.stdout(), "Processed {} files, {} matches, {} nonmatches",
+        writeln!(rt.stdout(), "Processed {} files, {} matches, {} nonmatches",
                  overall_count,
                  count,
                  overall_count - count)
@@ -108,23 +108,23 @@ fn main() {
 
 fn show(rt: &Runtime, e: &Entry, re: &Regex, opts: &Options, count: &mut usize) {
     if opts.files_with_matches {
-        let _ = writeln!(rt.stdout(), "{}", e.get_location()).to_exit_code().unwrap_or_exit();
+        writeln!(rt.stdout(), "{}", e.get_location()).to_exit_code().unwrap_or_exit();
     } else if opts.count {
         *count += 1;
     } else {
-        let _ = writeln!(rt.stdout(), "{}:", e.get_location()).to_exit_code().unwrap_or_exit();
+        writeln!(rt.stdout(), "{}:", e.get_location()).to_exit_code().unwrap_or_exit();
         for capture in re.captures_iter(e.get_content()) {
             for mtch in capture.iter() {
                 if let Some(m) = mtch {
-                    let _ = writeln!(rt.stdout(), " '{}'", m.as_str()).to_exit_code().unwrap_or_exit();
+                    writeln!(rt.stdout(), " '{}'", m.as_str()).to_exit_code().unwrap_or_exit();
                 }
             }
         }
 
-        let _ = writeln!(rt.stdout(), "").to_exit_code().unwrap_or_exit();
+        writeln!(rt.stdout()).to_exit_code().unwrap_or_exit();
         *count += 1;
     }
 
-    let _ = rt.report_touched(e.get_location()).unwrap_or_exit();
+    rt.report_touched(e.get_location()).unwrap_or_exit();
 }
 
