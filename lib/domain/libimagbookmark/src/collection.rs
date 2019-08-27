@@ -119,7 +119,6 @@ impl BookmarkCollection for Entry {
 pub mod iter {
     use crate::link::Link;
     use failure::Fallible as Result;
-    use failure::Error;
     use regex::Regex;
 
     use libimagentryurl::iter::UrlIter;
@@ -162,7 +161,7 @@ pub mod iter {
             loop {
                 let n = match self.0.next() {
                     Some(Ok(n))  => n,
-                    Some(Err(e)) => return Some(Err(Error::from(e))),
+                    Some(Err(e)) => return Some(Err(e)),
                     None         => return None,
                 };
 
