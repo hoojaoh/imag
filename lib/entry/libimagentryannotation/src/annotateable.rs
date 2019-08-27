@@ -54,10 +54,10 @@ impl Annotateable for Entry {
         store.retrieve(crate::module_path::new_id(ann_name.clone())?)
             .and_then(|mut anno| {
                 {
-                    let _ = anno.set_isflag::<IsAnnotation>()?;
+                    anno.set_isflag::<IsAnnotation>()?;
                     let _ = anno
                         .get_header_mut()
-                        .insert("annotation.name", Value::String(String::from(ann_name)))?;
+                        .insert("annotation.name", Value::String(ann_name))?;
                 }
                 Ok(anno)
             })
@@ -74,7 +74,7 @@ impl Annotateable for Entry {
     // exist.
     fn denotate<'a>(&mut self, store: &'a Store, ann_name: &str) -> Result<Option<FileLockEntry<'a>>> {
         if let Some(mut annotation) = store.get(crate::module_path::new_id(ann_name)?)? {
-            let _ = self.remove_link(&mut annotation)?;
+            self.remove_link(&mut annotation)?;
             Ok(Some(annotation))
         } else {
             // error: annotation does not exist
