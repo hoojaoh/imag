@@ -93,9 +93,8 @@ fn main() {
         })
         .into_iter();
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| match name {
+    if let Some(name) = rt.cli().subcommand_name() {
+        match name {
             "list" => for id in ids {
                 list(id, &rt)
             },
@@ -118,7 +117,8 @@ fn main() {
                     .code()
                     .map(::std::process::exit);
             },
-        });
+        }
+    }
 }
 
 fn alter(rt: &Runtime, path: StoreId, add: Option<Vec<Tag>>, rem: Option<Vec<Tag>>) {
@@ -126,21 +126,21 @@ fn alter(rt: &Runtime, path: StoreId, add: Option<Vec<Tag>>, rem: Option<Vec<Tag
         Ok(Some(mut e)) => {
             debug!("Entry header now = {:?}", e.get_header());
 
-            add.map(|tags| {
-                    debug!("Adding tags = '{:?}'", tags);
-                    for tag in tags {
-                        debug!("Adding tag '{:?}'", tag);
-                        if let Err(e) = e.add_tag(tag) {
-                            trace_error(&e);
-                        } else {
-                            debug!("Adding tag worked");
-                        }
+            if let Some(tags) = add {
+                debug!("Adding tags = '{:?}'", tags);
+                for tag in tags {
+                    debug!("Adding tag '{:?}'", tag);
+                    if let Err(e) = e.add_tag(tag) {
+                        trace_error(&e);
+                    } else {
+                        debug!("Adding tag worked");
                     }
-                }); // it is okay to ignore a None here
+                }
+            } // it is okay to ignore a None here
 
             debug!("Entry header now = {:?}", e.get_header());
 
-            rem.map(|tags| {
+            if let Some(tags) = rem {
                 debug!("Removing tags = '{:?}'", tags);
                 for tag in tags {
                     debug!("Removing tag '{:?}'", tag);
@@ -148,7 +148,7 @@ fn alter(rt: &Runtime, path: StoreId, add: Option<Vec<Tag>>, rem: Option<Vec<Tag
                         trace_error(&e);
                     }
                 }
-            }); // it is okay to ignore a None here
+            } // it is okay to ignore a None here
 
             debug!("Entry header now = {:?}", e.get_header());
 
@@ -285,7 +285,7 @@ mod tests {
         entry.get_header().read(&"tag.values".to_owned()).map_err(Error::from)
     }
 
-    fn tags_toml_value<'a, I: IntoIterator<Item = &'static str>>(tags: I) -> Value {
+    fn tags_toml_value<I: IntoIterator<Item = &'static str>>(tags: I) -> Value {
         Value::Array(tags.into_iter().map(|s| Value::String(s.to_owned())).collect())
     }
 
