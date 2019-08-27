@@ -53,7 +53,7 @@ pub fn list(rt: &Runtime) -> i32 {
                         ::std::process::exit(1)
                     });
 
-                    Some(dt.clone())
+                    Some(*dt)
                 },
                 Err(e) => {
                     error!("Failed to calculate date from '{}': {:?}",

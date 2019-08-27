@@ -67,7 +67,7 @@ pub fn day(rt: &Runtime) -> i32 {
 
         let tags = cmd
             .values_of("tags")
-            .map(|ts| ts.map(String::from).map(TimeTrackingTag::from).collect());
+            .map(|ts| ts.map(String::from).map(TimeTrackingTag::from).collect::<Vec<_>>());
 
         let start_time_filter = has_start_time_where(move |dt: &NaiveDateTime| {
             start <= *dt
@@ -78,7 +78,7 @@ pub fn day(rt: &Runtime) -> i32 {
         });
 
         let tags_filter = move |fle: &FileLockEntry| {
-            match tags {
+            match &tags {
                 Some(ref tags) => has_one_of_tags(&tags).filter(fle),
                 None => true,
             }

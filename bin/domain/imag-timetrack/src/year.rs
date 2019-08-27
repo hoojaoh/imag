@@ -79,7 +79,7 @@ pub fn year(rt: &Runtime) -> i32 {
 
         let tags = cmd
             .values_of("tags")
-            .map(|ts| ts.map(String::from).map(TimeTrackingTag::from).collect());
+            .map(|ts| ts.map(String::from).map(TimeTrackingTag::from).collect::<Vec<_>>());
 
         let start_time_filter = has_start_time_where(move |dt: &NaiveDateTime| {
             start <= *dt
