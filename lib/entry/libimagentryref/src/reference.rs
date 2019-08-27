@@ -288,11 +288,8 @@ impl<'a, H> MutRef for MutRefWithHasher<'a, H>
             let _ = header.delete("ref.relpath").context("Removing ref.relpath")?;
 
             if let Some(hash_tbl) = header.read_mut("ref.hash")? {
-                match hash_tbl {
-                    Value::Table(ref mut tbl) => *tbl = Map::new(),
-                    _ => {
-                        // should not happen
-                    }
+                if let Value::Table(ref mut tbl) = hash_tbl {
+                    *tbl = Map::new();
                 }
             }
 
