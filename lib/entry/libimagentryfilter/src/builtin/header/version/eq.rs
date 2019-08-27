@@ -31,7 +31,7 @@ pub struct VersionEq {
 impl VersionEq {
 
     pub fn new(version: Version) -> VersionEq {
-        VersionEq { version: version }
+        VersionEq { version }
     }
 
 }

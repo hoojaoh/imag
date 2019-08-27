@@ -47,7 +47,7 @@ impl<P: Predicate> FieldPredicate<P> {
     pub fn new(path: FieldPath, predicate: Box<P>) -> FieldPredicate<P> {
         FieldPredicate {
             header_field_path: path,
-            predicate: predicate,
+            predicate,
         }
     }
 

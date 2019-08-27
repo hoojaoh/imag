@@ -32,7 +32,7 @@ impl HasTag {
 
     pub fn new(tag: Tag) -> HasTag {
         HasTag {
-            tag: tag,
+            tag,
         }
     }
 
@@ -56,7 +56,7 @@ impl HasAllTags {
 
     pub fn new(tags: Vec<Tag>) -> HasAllTags {
         HasAllTags {
-            tags: tags,
+            tags,
         }
     }
 
@@ -80,7 +80,7 @@ impl HasAnyTags {
 
     pub fn new(tags: Vec<Tag>) -> HasAnyTags {
         HasAnyTags {
-            tags: tags,
+            tags,
         }
     }
 
