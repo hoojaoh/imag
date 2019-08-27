@@ -73,7 +73,7 @@ fn main() {
         })
         .into_iter();
 
-    StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
+    StoreIdIterator::new(Box::new(sids.map(Ok)))
         .into_get_iter(rt.store())
         .trace_unwrap_exit()
         .map(|o| o.unwrap_or_else(|| {
@@ -82,15 +82,15 @@ fn main() {
         }))
         .for_each(|mut entry| {
             if edit_header {
-                let _ = entry
+                entry
                     .edit_header_and_content(&rt)
                     .map_err_trace_exit_unwrap();
             } else if edit_header_only {
-                let _ = entry
+                entry
                     .edit_header(&rt)
                     .map_err_trace_exit_unwrap();
             } else {
-                let _ = entry
+                entry
                     .edit_content(&rt)
                     .map_err_trace_exit_unwrap();
             }
