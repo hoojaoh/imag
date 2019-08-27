@@ -48,7 +48,7 @@ use std::io::Write;
 use std::process::exit;
 use std::str::FromStr;
 
-use failure::Error;
+
 use failure::err_msg;
 
 use libimagstore::storeid::StoreId;
@@ -100,11 +100,11 @@ fn add(rt: &Runtime) {
     let c = {
         let parse = |value: &str| -> (i64, i64, i64) {
             debug!("Parsing '{}' into degree, minute and second", value);
-            let ary = value.split(".")
+            let ary = value.split('.')
                 .map(|v| {debug!("Parsing = {}", v); v})
                 .map(FromStr::from_str)
                 .map(|elem| {
-                    elem.or_else(|_| Err(Error::from(err_msg("Error while converting number"))))
+                    elem.or_else(|_| Err(err_msg("Error while converting number")))
                         .map_err_trace_exit_unwrap()
                 })
                 .collect::<Vec<i64>>();
@@ -146,7 +146,7 @@ fn add(rt: &Runtime) {
                 .set_coordinates(c.clone())
                 .map_err_trace_exit_unwrap();
 
-            let _ = rt.report_touched(&id).unwrap_or_exit();
+            rt.report_touched(&id).unwrap_or_exit();
         });
 }
 
@@ -177,10 +177,10 @@ fn remove(rt: &Runtime) {
                 .map_err_trace_exit_unwrap(); // The parsing of the deleted values failed
 
             if print_removed {
-                let _ = writeln!(rt.stdout(), "{}", removed_value).to_exit_code().unwrap_or_exit();
+                writeln!(rt.stdout(), "{}", removed_value).to_exit_code().unwrap_or_exit();
             }
 
-            let _ = rt.report_touched(&id).unwrap_or_exit();
+            rt.report_touched(&id).unwrap_or_exit();
         });
 }
 
@@ -205,9 +205,9 @@ fn get(rt: &Runtime) {
                     exit(1)
                 });
 
-            let _ = writeln!(stdout, "{}", value).to_exit_code().unwrap_or_exit();
+            writeln!(stdout, "{}", value).to_exit_code().unwrap_or_exit();
 
-            let _ = rt.report_touched(&id).unwrap_or_exit();
+            rt.report_touched(&id).unwrap_or_exit();
         })
 
 }
