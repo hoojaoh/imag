@@ -147,7 +147,7 @@ fn main() {
         .into_get_iter()
         .map(|e| {
             e.map_err_trace_exit_unwrap()
-                .ok_or_else(|| Error::from(err_msg("Unable to get entry".to_owned())))
+                .ok_or_else(|| err_msg("Unable to get entry".to_owned()))
                 .map_err_trace_exit_unwrap()
         })
         .map(|e| {
