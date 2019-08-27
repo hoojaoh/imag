@@ -70,25 +70,23 @@ fn main() {
                                     "Add a category to entries and manage categories",
                                     ui::build_ui);
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            match name {
-                "set"               => set(&rt),
-                "get"               => get(&rt),
-                "list-category"     => list_category(&rt),
-                "create-category"   => create_category(&rt),
-                "delete-category"   => delete_category(&rt),
-                "list-categories"   => list_categories(&rt),
-                other               => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-category", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        match name {
+            "set"               => set(&rt),
+            "get"               => get(&rt),
+            "list-category"     => list_category(&rt),
+            "create-category"   => create_category(&rt),
+            "delete-category"   => delete_category(&rt),
+            "list-categories"   => list_categories(&rt),
+            other               => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-category", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        }
+    }
 }
 
 fn set(rt: &Runtime) {
