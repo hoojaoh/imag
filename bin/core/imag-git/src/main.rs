@@ -151,19 +151,19 @@ fn main() {
             debug!("Error calling git");
             match e.kind() {
                 ErrorKind::NotFound => {
-                    let _ = writeln!(out, "Cannot find 'git' executable")
+                    writeln!(out, "Cannot find 'git' executable")
                         .to_exit_code()
                         .unwrap_or_exit();
                     ::std::process::exit(1);
                 },
                 ErrorKind::PermissionDenied => {
-                    let _ = writeln!(out, "No permission to execute: 'git'")
+                    writeln!(out, "No permission to execute: 'git'")
                         .to_exit_code()
                         .unwrap_or_exit();
                     ::std::process::exit(1);
                 },
                 _ => {
-                    let _ = writeln!(out, "Error spawning: {:?}", e)
+                    writeln!(out, "Error spawning: {:?}", e)
                         .to_exit_code()
                         .unwrap_or_exit();
                     ::std::process::exit(1);
