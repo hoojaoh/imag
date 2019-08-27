@@ -61,7 +61,7 @@ impl<'a, 'b> Wiki<'a, 'b> {
             .get(sid)
             .context("Cannot get ID from store")
             .map_err(Error::from)?
-            .ok_or_else(|| Error::from(err_msg("Missing index")))
+            .ok_or_else(|| err_msg("Missing index"))
     }
 
     pub fn get_entry<EN: AsRef<str>>(&self, entry_name: EN) -> Result<Option<FileLockEntry<'a>>> {
