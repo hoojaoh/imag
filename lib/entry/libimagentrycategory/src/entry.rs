@@ -65,10 +65,10 @@ impl EntryCategory for Entry {
         trace!("Setting category '{}' checked", s);
         let mut category = register
             .get_category_by_name(s)?
-            .ok_or_else(|| Error::from(err_msg("Category does not exist")))?;
+            .ok_or_else(|| err_msg("Category does not exist"))?;
 
-        let _ = self.set_category(s)?;
-        let _ = self.add_link(&mut category)?;
+        self.set_category(s)?;
+        self.add_link(&mut category)?;
 
         Ok(())
     }
@@ -77,7 +77,7 @@ impl EntryCategory for Entry {
         trace!("Getting category from '{}'", self.get_location());
         self.get_header()
             .read_string("category.value")?
-            .ok_or_else(|| Error::from(err_msg("Category name missing")))
+            .ok_or_else(|| err_msg("Category name missing"))
     }
 
     fn has_category(&self) -> Result<bool> {

@@ -52,7 +52,7 @@ impl Category for Entry {
             .read_string(CATEGORY_REGISTER_NAME_FIELD_PATH)
             .context(format_err!("Failed to read header at '{}'", CATEGORY_REGISTER_NAME_FIELD_PATH))
             .map_err(Error::from)?
-            .ok_or_else(|| Error::from(err_msg("Category name missing")))
+            .ok_or_else(|| err_msg("Category name missing"))
     }
 
     fn get_entries<'a>(&self, store: &'a Store) -> Result<CategoryEntryIterator<'a>> {

@@ -103,7 +103,7 @@ impl<'a> Iterator for CategoryEntryIterator<'a> {
                     let getter = |next| -> Result<(String, FileLockEntry<'a>)> {
                         let entry = self.0
                             .get(next)?
-                            .ok_or_else(|| Error::from(err_msg("Store read error")))?;
+                            .ok_or_else(|| err_msg("Store read error"))?;
                         Ok((entry.get_category()?, entry))
                     };
 

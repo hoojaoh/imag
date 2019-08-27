@@ -34,7 +34,7 @@ use failure::err_msg;
 use crate::iter::CategoryNameIter;
 use crate::category::IsCategory;
 
-pub const CATEGORY_REGISTER_NAME_FIELD_PATH : &'static str = "category.register.name";
+pub const CATEGORY_REGISTER_NAME_FIELD_PATH : &str = "category.register.name";
 
 /// Extension on the Store to make it a register for categories
 ///
@@ -92,12 +92,12 @@ impl CategoryStore for Store {
 
         {
             let mut category = self.get(sid.clone())?
-                .ok_or_else(|| Error::from(err_msg("Category does not exist")))
+                .ok_or_else(|| err_msg("Category does not exist"))
                 .map_err(Error::from)?;
 
             for entry in category.get_entries(self)? {
                 let mut entry = entry?;
-                let _         = category.remove_link(&mut entry)?;
+                category.remove_link(&mut entry)?;
             }
         }
 
