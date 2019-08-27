@@ -255,7 +255,7 @@ mod tests {
 
         match *hdr_field {
             Value::String(ref s) => assert_eq!("2000-01-02T03:04:05", s),
-            _ => assert!(false, "Wrong header type"),
+            _ => panic!("Wrong header type"),
         }
     }
 
