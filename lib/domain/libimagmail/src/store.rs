@@ -70,7 +70,7 @@ impl<'a> MailStore<'a> for Store {
         let new_sid    = crate::module_path::new_id(message_id.clone())?;
 
         let mut entry = self.create(new_sid)?;
-        let _         = entry
+        entry
             .as_ref_with_hasher_mut::<MailHasher>()
             .make_ref(p, collection_name, config, false)?;
 
@@ -122,7 +122,7 @@ impl<'a> MailStore<'a> for Store {
             .get_header_mut()
             .insert("mail.message-id", Value::String(message_id))?;
 
-        let _ = entry
+        entry
             .as_ref_with_hasher_mut::<DefaultHasher>()
             .make_ref(p, collection_name, config, false)?;
 
