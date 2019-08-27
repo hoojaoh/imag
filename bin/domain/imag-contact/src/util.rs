@@ -107,7 +107,7 @@ pub fn find_contact_by_hash<'a, H: AsRef<str>>(rt: &'a Runtime, hash: H)
                 .unwrap() // exited above
                 .starts_with(hash.as_ref())
             {
-                let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                rt.report_touched(entry.get_location()).unwrap_or_exit();
                 Some(entry)
             } else {
                 None

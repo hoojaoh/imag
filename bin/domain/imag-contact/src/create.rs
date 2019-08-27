@@ -56,14 +56,14 @@ use libimagerror::trace::trace_error;
 use libimagerror::exit::ExitUnwrap;
 use libimagutil::warn_result::WarnResult;
 
-const TEMPLATE : &'static str = include_str!("../static/new-contact-template.toml");
+const TEMPLATE : &str = include_str!("../static/new-contact-template.toml");
 
 #[cfg(test)]
 mod test {
     use toml::Value;
     use super::TEMPLATE;
 
-    const TEMPLATE_WITH_DATA : &'static str = include_str!("../static/new-contact-template-test.toml");
+    const TEMPLATE_WITH_DATA : &str = include_str!("../static/new-contact-template-test.toml");
 
     #[test]
     fn test_validity_template_toml() {
@@ -203,7 +203,7 @@ pub fn create(rt: &Runtime) {
                 }
 
                 let vcard_string = write_component(&vcard);
-                let _ = dest
+                dest
                     .write_all(&vcard_string.as_bytes())
                     .map_err(Error::from)
                     .map_err_trace_exit_unwrap();
@@ -219,7 +219,7 @@ pub fn create(rt: &Runtime) {
                 .create_from_path(&location, &ref_config, &collection_name)
                 .map_err_trace_exit_unwrap();
 
-            let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+            rt.report_touched(entry.get_location()).unwrap_or_exit();
 
             info!("Created entry in store");
         } else {
@@ -578,7 +578,7 @@ mod test_parsing {
     use std::io::empty;
 
     // TODO
-    const TEMPLATE : &'static str = include_str!("../static/new-contact-template-test.toml");
+    const TEMPLATE : &str = include_str!("../static/new-contact-template-test.toml");
 
     #[test]
     fn test_template_names() {
