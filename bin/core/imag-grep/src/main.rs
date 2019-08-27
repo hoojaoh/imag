@@ -90,8 +90,12 @@ fn main() {
         .map_err_trace_exit_unwrap()
         .into_get_iter()
         .filter_map(|res| res.map_err_trace_exit_unwrap())
-        .filter(|entry| pattern.is_match(entry.get_content()))
-        .map(|entry| show(&rt, &entry, &pattern, &opts, &mut count))
+        .filter_map(|entry| if pattern.is_match(entry.get_content()) {
+            show(&rt, &entry, &pattern, &opts, &mut count);
+            Some(())
+        } else {
+            None
+        })
         .count();
 
     if opts.count {
