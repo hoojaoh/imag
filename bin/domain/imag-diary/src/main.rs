@@ -79,25 +79,23 @@ fn main() {
                                     "Personal Diary/Diaries",
                                     ui::build_ui);
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            debug!("Call {}", name);
-            match name {
-                "diaries" => diaries(&rt),
-                "create" => create(&rt),
-                "delete" => delete(&rt),
-                "list" => list(&rt),
-                "view" => view(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-diary", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        debug!("Call {}", name);
+        match name {
+            "diaries" => diaries(&rt),
+            "create" => create(&rt),
+            "delete" => delete(&rt),
+            "list" => list(&rt),
+            "view" => view(&rt),
+            other    => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-diary", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        }
+    }
 }
 
 fn diaries(rt: &Runtime) {

@@ -126,7 +126,7 @@ fn create_id_from_clispec(create: &ArgMatches, timed_type: Timed) -> NaiveDateTi
                         .map_err(|_| warn!("Could not parse minute: '{}'", s))
                         .ok()
                 })
-                .unwrap_or(ndt.minute());
+                .unwrap_or_else(|| ndt.minute());
 
             ndt.with_minute(min)
                 .unwrap_or_else(|| {
@@ -146,7 +146,7 @@ fn create_id_from_clispec(create: &ArgMatches, timed_type: Timed) -> NaiveDateTi
                         .map_err(|_| warn!("Could not parse minute: '{}'", s))
                         .ok()
                 })
-                .unwrap_or(ndt.minute());
+                .unwrap_or_else(|| ndt.minute());
 
             let sec = create
                 .value_of("second")
@@ -156,7 +156,7 @@ fn create_id_from_clispec(create: &ArgMatches, timed_type: Timed) -> NaiveDateTi
                         .map_err(|_| warn!("Could not parse second: '{}'", s))
                         .ok()
                 })
-                .unwrap_or(ndt.second());
+                .unwrap_or_else(|| ndt.second());
 
             ndt.with_minute(min)
                 .unwrap_or_else(|| {
