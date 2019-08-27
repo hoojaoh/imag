@@ -97,7 +97,7 @@ fn list(rt: &Runtime, wiki_name: &str) {
         .map_err_trace_exit_unwrap()
         .trace_unwrap_exit()
         .for_each(|id| {
-            let _ = writeln!(outlock, "{}{}", prefix, id)
+            writeln!(outlock, "{}{}", prefix, id)
                 .to_exit_code()
                 .unwrap_or_exit();
         });
@@ -114,7 +114,7 @@ fn idof(rt: &Runtime, wiki_name: &str) {
     let out      = rt.stdout();
     let mut lock = out.lock();
 
-    let _ = rt.store()
+    rt.store()
         .get_wiki(wiki_name)
         .map_err_trace_exit_unwrap()
         .unwrap_or_else(|| {
@@ -159,16 +159,16 @@ fn create(rt: &Runtime, wiki_name: &str) {
 
     if !scmd.is_present("create-noedit") {
         if scmd.is_present("create-editheader") {
-            let _ = entry.edit_header_and_content(rt).map_err_trace_exit_unwrap();
+            entry.edit_header_and_content(rt).map_err_trace_exit_unwrap();
         } else {
-            let _ = entry.edit_content(rt).map_err_trace_exit_unwrap();
+            entry.edit_content(rt).map_err_trace_exit_unwrap();
         }
     }
 
-    let _ = entry.autolink(rt.store())
+    entry.autolink(rt.store())
         .map_warn_err_str("Linking has failed. Trying to safe the entry now. Please investigate by hand if this succeeds.")
         .map_err(|e| {
-            let _ = rt.store().update(&mut entry).map_err_trace_exit_unwrap();
+            rt.store().update(&mut entry).map_err_trace_exit_unwrap();
             e
         })
         .map_warn_err_str("Safed entry")
@@ -183,7 +183,7 @@ fn create(rt: &Runtime, wiki_name: &str) {
         writeln!(lock, "{}", id).to_exit_code().unwrap_or_exit()
     }
 
-    let _ = rt.report_touched(&id).unwrap_or_exit();
+    rt.report_touched(&id).unwrap_or_exit();
 }
 
 fn create_wiki(rt: &Runtime) {
@@ -191,7 +191,7 @@ fn create_wiki(rt: &Runtime) {
     let wiki_name  = String::from(scmd.value_of("create-wiki-name").unwrap()); // safe by clap
     let (_, index) = rt.store().create_wiki(&wiki_name).map_err_trace_exit_unwrap();
 
-    let _ = rt.report_touched(index.get_location()).unwrap_or_exit();
+    rt.report_touched(index.get_location()).unwrap_or_exit();
 }
 
 fn show(rt: &Runtime, wiki_name: &str) {
@@ -249,7 +249,7 @@ fn show(rt: &Runtime, wiki_name: &str) {
                 .to_exit_code()
                 .unwrap_or_exit();
 
-        let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+        rt.report_touched(entry.get_location()).unwrap_or_exit();
     }
 }
 
@@ -280,7 +280,7 @@ fn delete(rt: &Runtime, wiki_name: &str) {
             .map_err_trace_exit_unwrap();
     }
 
-    let _ = wiki
+    wiki
         .delete_entry(&name)
         .map_err_trace_exit_unwrap();
 }
