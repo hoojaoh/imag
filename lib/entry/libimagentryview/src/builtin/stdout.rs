@@ -60,7 +60,7 @@ impl Viewer for StdoutViewer {
         where W: Write
     {
         if self.view_header {
-            let header = to_string(e.get_header()).unwrap_or(String::from("TOML Parser error"));
+            let header = to_string(e.get_header()).unwrap_or_else(|_| String::from("TOML Parser error"));
             writeln!(sink, "{}", header)?;
         }
 
