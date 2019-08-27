@@ -106,17 +106,17 @@ fn create(rt: &Runtime) {
         .map_err_trace_exit_unwrap();
 
     if rt.cli().subcommand_matches("create").unwrap().is_present("edit") {
-        let _ = note
+        note
             .edit_content(rt)
             .map_warn_err_str("Editing failed")
             .map_err_trace_exit_unwrap();
     }
 
-    let _ = rt.report_touched(note.get_location()).unwrap_or_exit();
+    rt.report_touched(note.get_location()).unwrap_or_exit();
 }
 
 fn delete(rt: &Runtime) {
-    let _ = rt.store()
+    rt.store()
         .delete_note(name_from_cli(rt, "delete"))
         .map_info_str("Ok")
         .map_err_trace_exit_unwrap();
@@ -124,17 +124,17 @@ fn delete(rt: &Runtime) {
 
 fn edit(rt: &Runtime) {
     let name = name_from_cli(rt, "edit");
-    let _ = rt
+    rt
         .store()
         .get_note(name.clone())
         .map_err_trace_exit_unwrap()
         .map(|mut note| {
-            let _ = note
+            note
                 .edit_content(rt)
                 .map_warn_err_str("Editing failed")
                 .map_err_trace_exit_unwrap();
 
-            let _ = rt.report_touched(note.get_location()).unwrap_or_exit();
+            rt.report_touched(note.get_location()).unwrap_or_exit();
         })
         .unwrap_or_else(|| {
             error!("Cannot find note with name '{}'", name);
@@ -144,7 +144,7 @@ fn edit(rt: &Runtime) {
 fn list(rt: &Runtime) {
     use std::cmp::Ordering;
 
-    let _ = rt
+    rt
         .store()
         .all_notes()
         .map_err_trace_exit_unwrap()
@@ -155,17 +155,17 @@ fn list(rt: &Runtime) {
             exit(1)
         }))
         .sorted_by(|note_a, note_b| if let (Ok(a), Ok(b)) = (note_a.get_name(), note_b.get_name()) {
-            return a.cmp(&b)
+            a.cmp(&b)
         } else {
-            return Ordering::Greater;
+            Ordering::Greater
         })
         .for_each(|note| {
             let name = note.get_name().map_err_trace_exit_unwrap();
-            let _ = writeln!(rt.stdout(), "{}", name)
+            writeln!(rt.stdout(), "{}", name)
                 .to_exit_code()
                 .unwrap_or_exit();
 
-            let _ = rt.report_touched(note.get_location()).unwrap_or_exit();
+            rt.report_touched(note.get_location()).unwrap_or_exit();
         });
 }
 
