@@ -95,26 +95,24 @@ fn main() {
                                     build_ui);
 
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            debug!("Call {}", name);
-            match name {
-                "list"   => list(&rt),
-                "import" => import(&rt),
-                "show"   => show(&rt),
-                "edit"   => edit(&rt),
-                "find"   => find(&rt),
-                "create" => create(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-contact", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        debug!("Call {}", name);
+        match name {
+            "list"   => list(&rt),
+            "import" => import(&rt),
+            "show"   => show(&rt),
+            "edit"   => edit(&rt),
+            "find"   => find(&rt),
+            "create" => create(&rt),
+            other    => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-contact", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        }
+    }
 }
 
 fn list(rt: &Runtime) {
