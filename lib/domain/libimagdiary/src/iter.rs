@@ -27,7 +27,7 @@ use libimagstore::storeid::StoreId;
 
 use crate::is_in_diary::IsInDiary;
 use failure::Fallible as Result;
-use failure::Error;
+
 use failure::err_msg;
 
 /// A iterator for iterating over diary entries
@@ -54,7 +54,7 @@ impl DiaryEntryIterator {
     pub fn new(diaryname: String, iter: StoreIdIterator) -> DiaryEntryIterator {
         DiaryEntryIterator {
             name: diaryname,
-            iter: iter,
+            iter,
 
             year: None,
             month: None,
@@ -149,8 +149,8 @@ impl Iterator for DiaryNameIterator {
                         .and_then(|s| {
                             s.split("diary/")
                                 .nth(1)
-                                .and_then(|n| n.split("/").nth(0).map(String::from))
-                                .ok_or_else(|| Error::from(err_msg("Error finding diary name")))
+                                .and_then(|n| n.split('/').nth(0).map(String::from))
+                                .ok_or_else(|| err_msg("Error finding diary name"))
                         }));
                 },
             }
