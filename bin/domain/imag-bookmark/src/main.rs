@@ -76,24 +76,22 @@ fn main() {
                                     "Bookmark collection tool",
                                     build_ui);
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            debug!("Call {}", name);
-            match name {
-                "add"        => add(&rt),
-                "collection" => collection(&rt),
-                "list"       => list(&rt),
-                "remove"     => remove(&rt),
-                other        => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-bookmark", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        debug!("Call {}", name);
+        match name {
+            "add"        => add(&rt),
+            "collection" => collection(&rt),
+            "list"       => list(&rt),
+            "remove"     => remove(&rt),
+            other        => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-bookmark", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        }
+    }
 }
 
 fn add(rt: &Runtime) {
@@ -143,7 +141,7 @@ fn collection(rt: &Runtime) {
                 .map_err_trace_exit_unwrap();
         }
 
-        if let Ok(_) = BookmarkCollectionStore::delete(rt.store(), &name) {
+        if BookmarkCollectionStore::delete(rt.store(), &name).is_ok() {
             info!("Deleted: {}", name);
         } else {
             warn!("Deleting collection {} failed", name);
