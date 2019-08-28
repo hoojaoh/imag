@@ -41,7 +41,7 @@ impl WikiStore for Store {
 
     /// get a wiki by its name
     fn get_wiki<'a, 'b>(&'a self, name: &'b str) -> Result<Option<Wiki<'a, 'b>>> {
-        if self.exists(wiki_path(name.as_ref())?)? {
+        if self.exists(wiki_path(name)?)? {
             debug!("Building Wiki object");
             Ok(Some(Wiki::new(self, name)))
         } else {

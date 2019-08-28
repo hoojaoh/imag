@@ -59,7 +59,7 @@ extern crate libimagutil;
 use std::io::Write;
 use std::path::PathBuf;
 
-use failure::Error;
+
 use failure::err_msg;
 
 use libimagentryurl::linker::UrlLinker;
@@ -102,7 +102,7 @@ fn main() {
         ::std::process::exit(exit_code);
     }
 
-    let _ = rt.cli()
+    rt.cli()
         .subcommand_name()
         .map(|name| {
             match name {
@@ -120,12 +120,13 @@ fn main() {
         })
         .or_else(|| {
             if let (Some(from), Some(to)) = (rt.cli().value_of("from"), rt.cli().values_of("to")) {
-                Some(link_from_to(&rt, from, to))
+                link_from_to(&rt, from, to);
+                Some(())
             } else {
                 warn_exit("No commandline call", 1)
             }
         })
-        .ok_or_else(|| Error::from(err_msg("No commandline call".to_owned())))
+        .ok_or_else(|| err_msg("No commandline call".to_owned()))
         .map_err_trace_exit_unwrap();
 }
 
@@ -150,7 +151,7 @@ fn link_from_to<'a, I>(rt: &'a Runtime, from: &'a str, to: I)
 
     for entry in to {
         debug!("Handling 'to' entry: {:?}", entry);
-        if !rt.store().get(PathBuf::from(entry)).map_err_trace_exit_unwrap().is_some() {
+        if rt.store().get(PathBuf::from(entry)).map_err_trace_exit_unwrap().is_none() {
             debug!("Linking externally: {:?} -> {:?}", from, entry);
             let url = Url::parse(entry).unwrap_or_else(|e| {
                 error!("Error parsing URL: {:?}", e);
@@ -162,7 +163,7 @@ fn link_from_to<'a, I>(rt: &'a Runtime, from: &'a str, to: I)
                 .map_err_trace_exit_unwrap()
                 .into_iter();
 
-            let _ = rt.report_all_touched(iter).unwrap_or_exit();
+            rt.report_all_touched(iter).unwrap_or_exit();
         } else {
             debug!("Linking internally: {:?} -> {:?}", from, entry);
 
@@ -181,18 +182,18 @@ fn link_from_to<'a, I>(rt: &'a Runtime, from: &'a str, to: I)
                     ::std::process::exit(1)
                 },
             };
-            let _ = from_entry
+            from_entry
                 .add_link(&mut to_entry)
                 .map_err_trace_exit_unwrap();
 
-            let _ = rt.report_touched(to_entry.get_location()).unwrap_or_exit();
+            rt.report_touched(to_entry.get_location()).unwrap_or_exit();
         }
 
 
         info!("Ok: {} -> {}", from, entry);
     }
 
-    let _ = rt.report_touched(from_entry.get_location()).unwrap_or_exit();
+    rt.report_touched(from_entry.get_location()).unwrap_or_exit();
 }
 
 fn remove_linking(rt: &Runtime) {
@@ -221,11 +222,11 @@ fn remove_linking(rt: &Runtime) {
         .for_each(|id| match rt.store().get(id.clone()) {
             Err(e) => trace_error(&e),
             Ok(Some(mut to_entry)) => {
-                let _ = to_entry
+                to_entry
                     .remove_link(&mut from)
                     .map_err_trace_exit_unwrap();
 
-                let _ = rt.report_touched(to_entry.get_location()).unwrap_or_exit();
+                rt.report_touched(to_entry.get_location()).unwrap_or_exit();
             },
             Ok(None) => {
                 // looks like this is not an entry, but a filesystem URI and therefor an
@@ -247,7 +248,7 @@ fn remove_linking(rt: &Runtime) {
             }
         });
 
-    let _ = rt.report_touched(from.get_location()).unwrap_or_exit();
+    rt.report_touched(from.get_location()).unwrap_or_exit();
 }
 
 fn unlink(rt: &Runtime) {
@@ -270,7 +271,7 @@ fn unlink(rt: &Runtime) {
                 .unlink(rt.store())
                 .map_err_trace_exit_unwrap();
 
-            let _ = rt.report_touched(&id).unwrap_or_exit();
+            rt.report_touched(&id).unwrap_or_exit();
         });
 }
 
@@ -304,7 +305,7 @@ fn list_linkings(rt: &Runtime) {
 
                         if let Some(link) = link {
                             if list_plain {
-                                let _ = writeln!(rt.stdout(), "{: <3}: {}", i, link)
+                                writeln!(rt.stdout(), "{: <3}: {}", i, link)
                                     .to_exit_code()
                                     .unwrap_or_exit();
                             } else {
@@ -323,7 +324,7 @@ fn list_linkings(rt: &Runtime) {
                                     .into_string();
 
                                 if list_plain {
-                                    let _ = writeln!(rt.stdout(), "{: <3}: {}", i, link)
+                                    writeln!(rt.stdout(), "{: <3}: {}", i, link)
                                         .to_exit_code()
                                         .unwrap_or_exit();
                                 } else {
@@ -332,14 +333,14 @@ fn list_linkings(rt: &Runtime) {
                             })
                     }
 
-                    let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                    rt.report_touched(entry.get_location()).unwrap_or_exit();
 
                 },
                 Ok(None)        => warn!("Not found: {}", id),
                 Err(e)          => trace_error(&e),
             }
 
-            let _ = rt.report_touched(&id).unwrap_or_exit();
+            rt.report_touched(&id).unwrap_or_exit();
         });
 
     if !list_plain {
@@ -409,7 +410,7 @@ mod tests {
         }
     }
 
-    fn links_toml_value<'a, I: IntoIterator<Item = &'static str>>(links: I) -> Value {
+    fn links_toml_value<I: IntoIterator<Item = &'static str>>(links: I) -> Value {
         Value::Array(links
                          .into_iter()
                          .map(|s| Value::String(s.to_owned()))

@@ -102,8 +102,7 @@ fn help_text(cmds: Vec<String>) -> String {
             .into_iter()
             .map(|cmd| format!("\t{}\n", cmd))
             .fold(String::new(), |s, c| {
-                let s = s + c.as_str();
-                s
+                s + c.as_str()
             }))
 }
 
@@ -111,14 +110,14 @@ fn help_text(cmds: Vec<String>) -> String {
 fn get_commands(out: &mut Stdout) -> Vec<String> {
     let mut v = match env::var("PATH") {
         Err(e) => {
-            let _ = writeln!(out, "PATH error: {:?}", e)
+            writeln!(out, "PATH error: {:?}", e)
                 .to_exit_code()
                 .unwrap_or_exit();
             exit(1)
         },
 
         Ok(path) => path
-            .split(":")
+            .split(':')
             .flat_map(|elem| {
                 WalkDir::new(elem)
                     .max_depth(1)
@@ -131,7 +130,7 @@ fn get_commands(out: &mut Stdout) -> Vec<String> {
                     .filter_map(|path| path
                         .file_name()
                        .to_str()
-                       .and_then(|s| s.splitn(2, "-").nth(1).map(String::from))
+                       .and_then(|s| s.splitn(2, '-').nth(1).map(String::from))
                     )
             })
             .filter(|path| if cfg!(debug_assertions) {
@@ -185,7 +184,7 @@ fn main() {
     {
         let print_help = app.clone().get_matches().subcommand_name().map(|h| h == "help").unwrap_or(false);
         if print_help {
-            let _ = writeln!(out, "{}", long_help)
+            writeln!(out, "{}", long_help)
                 .to_exit_code()
                 .unwrap_or_exit();
             exit(0)
@@ -220,7 +219,7 @@ fn main() {
 
     if matches.is_present("version") {
         debug!("Showing version");
-        let _ = writeln!(out, "imag {}", env!("CARGO_PKG_VERSION"))
+        writeln!(out, "imag {}", env!("CARGO_PKG_VERSION"))
             .to_exit_code()
             .unwrap_or_exit();
         exit(0);
@@ -248,7 +247,7 @@ fn main() {
             })
             .fold((), |_, line| {
                 // The amount of newlines may differ depending on the subprocess
-                let _ = writeln!(out, "{}", line.trim())
+                writeln!(out, "{}", line.trim())
                     .to_exit_code()
                     .unwrap_or_exit();
             });
@@ -259,85 +258,81 @@ fn main() {
     let aliases = match fetch_aliases(config.as_ref()) {
         Ok(aliases) => aliases,
         Err(e)      => {
-            let _ = writeln!(out, "Error while fetching aliases from configuration file")
+            writeln!(out, "Error while fetching aliases from configuration file")
                 .to_exit_code()
                 .unwrap_or_exit();
             debug!("Error = {:?}", e);
-            let _ = writeln!(out, "Aborting")
+            writeln!(out, "Aborting")
                 .to_exit_code()
                 .unwrap_or_exit();
             exit(1);
         }
     };
 
-    // Matches any subcommand given
-    match matches.subcommand() {
-        (subcommand, Some(scmd)) => {
-            // Get all given arguments and further subcommands to pass to
-            // the imag-<> binary
-            // Providing no arguments is OK, and is therefore ignored here
-            let mut subcommand_args : Vec<String> = match scmd.values_of("") {
-                Some(values) => values.map(String::from).collect(),
-                None => Vec::new()
-            };
+    // Matches any subcommand given, except calling for example 'imag --versions', as this option
+    // does not exit. There's nothing to do in such a case
+    if let (subcommand, Some(scmd)) = matches.subcommand() {
+        // Get all given arguments and further subcommands to pass to
+        // the imag-<> binary
+        // Providing no arguments is OK, and is therefore ignored here
+        let mut subcommand_args : Vec<String> = match scmd.values_of("") {
+            Some(values) => values.map(String::from).collect(),
+            None => Vec::new()
+        };
 
-            debug!("Processing forwarding of commandline arguments");
-            forward_commandline_arguments(&matches, &mut subcommand_args);
+        debug!("Processing forwarding of commandline arguments");
+        forward_commandline_arguments(&matches, &mut subcommand_args);
 
-            let subcommand = String::from(subcommand);
-            let subcommand = aliases.get(&subcommand).cloned().unwrap_or(subcommand);
+        let subcommand = String::from(subcommand);
+        let subcommand = aliases.get(&subcommand).cloned().unwrap_or(subcommand);
 
-            debug!("Calling 'imag-{}' with args: {:?}", subcommand, subcommand_args);
+        debug!("Calling 'imag-{}' with args: {:?}", subcommand, subcommand_args);
 
-            // Create a Command, and pass it the gathered arguments
-            match Command::new(format!("imag-{}", subcommand))
-                .stdin(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .args(&subcommand_args[..])
-                .spawn()
-                .and_then(|mut c| c.wait())
-            {
-                Ok(exit_status) => {
-                    if !exit_status.success() {
-                        debug!("imag-{} exited with non-zero exit code: {:?}", subcommand, exit_status);
-                        eprintln!("imag-{} exited with non-zero exit code", subcommand);
-                        exit(exit_status.code().unwrap_or(1));
-                    }
-                    debug!("Successful exit!");
-                },
+        // Create a Command, and pass it the gathered arguments
+        match Command::new(format!("imag-{}", subcommand))
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .args(&subcommand_args[..])
+            .spawn()
+            .and_then(|mut c| c.wait())
+        {
+            Ok(exit_status) => {
+                if !exit_status.success() {
+                    debug!("imag-{} exited with non-zero exit code: {:?}", subcommand, exit_status);
+                    eprintln!("imag-{} exited with non-zero exit code", subcommand);
+                    exit(exit_status.code().unwrap_or(1));
+                }
+                debug!("Successful exit!");
+            },
 
-                Err(e) => {
-                    debug!("Error calling the subcommand");
-                    match e.kind() {
-                        ErrorKind::NotFound => {
-                            let _ = writeln!(out, "No such command: 'imag-{}'", subcommand)
-                                .to_exit_code()
-                                .unwrap_or_exit();
-                            let _ = writeln!(out, "See 'imag --help' for available subcommands")
-                                .to_exit_code()
-                                .unwrap_or_exit();
-                            exit(1);
-                        },
-                        ErrorKind::PermissionDenied => {
-                            let _ = writeln!(out, "No permission to execute: 'imag-{}'", subcommand)
-                                .to_exit_code()
-                                .unwrap_or_exit();
-                            exit(1);
-                        },
-                        _ => {
-                            let _ = writeln!(out, "Error spawning: {:?}", e)
-                                .to_exit_code()
-                                .unwrap_or_exit();
-                            exit(1);
-                        }
+            Err(e) => {
+                debug!("Error calling the subcommand");
+                match e.kind() {
+                    ErrorKind::NotFound => {
+                        writeln!(out, "No such command: 'imag-{}'", subcommand)
+                            .to_exit_code()
+                            .unwrap_or_exit();
+                        writeln!(out, "See 'imag --help' for available subcommands")
+                            .to_exit_code()
+                            .unwrap_or_exit();
+                        exit(1);
+                    },
+                    ErrorKind::PermissionDenied => {
+                        writeln!(out, "No permission to execute: 'imag-{}'", subcommand)
+                            .to_exit_code()
+                            .unwrap_or_exit();
+                        exit(1);
+                    },
+                    _ => {
+                        writeln!(out, "Error spawning: {:?}", e)
+                            .to_exit_code()
+                            .unwrap_or_exit();
+                        exit(1);
                     }
                 }
             }
-        },
-        // Calling for example 'imag --versions' will lead here, as this option does not exit.
-        // There's nothing to do in such a case
-        _ => {},
+        }
     }
 }
 
@@ -353,14 +348,14 @@ fn fetch_aliases(config: Option<&Value>) -> Result<BTreeMap<String, String>, Str
             let mut alias_mappings = BTreeMap::new();
 
             for (k, v) in tbl {
-                match v {
-                    &Value::String(ref alias)      => {
+                match *v {
+                    Value::String(ref alias)      => {
                         alias_mappings.insert(alias.clone(), k.clone());
                     },
-                    &Value::Array(ref aliases) => {
+                    Value::Array(ref aliases) => {
                         for alias in aliases {
-                            match alias {
-                                &Value::String(ref s) => {
+                            match *alias {
+                                Value::String(ref s) => {
                                     alias_mappings.insert(s.clone(), k.clone());
                                 },
                                 _ => {
@@ -391,7 +386,7 @@ fn forward_commandline_arguments(m: &ArgMatches, scmd: &mut Vec<String>) {
                flag = flag, val_name = val_name, matches = m, v = v);
 
         if m.is_present(val_name) {
-            let _ = m
+            m
                 .value_of(val_name)
                 .map(|val| {
                     debug!("Found '{:?}' = {:?}", val_name, val);

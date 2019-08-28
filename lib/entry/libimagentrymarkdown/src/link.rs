@@ -38,7 +38,7 @@ impl Link {
     /// Translate a `Link` into a `UrlLink`
     pub fn into_urllink(self) -> Result<UrlLink> {
         Url::parse(&self.link[..])
-            .map(move |link| UrlLink { title: self.title, link: link, })
+            .map(move |link| UrlLink { title: self.title, link, })
             .context(err_msg("Link parsing error"))
             .map_err(Error::from)
     }
@@ -85,7 +85,7 @@ impl Render for LinkExtractor {
 
         match (link, content) {
             (Some(link), Some(content)) => {
-                self.links.push(Link { link: link, title: content });
+                self.links.push(Link { link, title: content });
                 false
             },
 

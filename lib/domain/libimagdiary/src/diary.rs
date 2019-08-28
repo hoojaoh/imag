@@ -68,7 +68,7 @@ impl Diary for Store {
         let id  = DiaryId::new(String::from(diary_name), ndt.year(), ndt.month(), ndt.day(), 0, 0, 0);
 
         let mut entry = self.retrieve(id)?;
-        let _         = entry.set_isflag::<IsDiaryEntry>()?;
+        entry.set_isflag::<IsDiaryEntry>()?;
         Ok(entry)
     }
 
@@ -88,7 +88,7 @@ impl Diary for Store {
                                ndt.second());
 
         let mut entry = self.retrieve(id)?;
-        let _         = entry.set_isflag::<IsDiaryEntry>()?;
+        entry.set_isflag::<IsDiaryEntry>()?;
         Ok(entry)
     }
 
@@ -131,7 +131,6 @@ impl Diary for Store {
                             },
                         }
                     })
-                    .into_iter()
                     .rev()
                     .next()
             }

@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-pub const CRATE_NAME : &'static str                  = "timetrack";
-pub const DATE_TIME_FORMAT : &'static str            = "%Y-%m-%dT%H:%M:%S";
-pub const DATE_TIME_START_HEADER_PATH : &'static str = "timetrack.start";
-pub const DATE_TIME_END_HEADER_PATH : &'static str   = "timetrack.end";
-pub const DATE_TIME_TAG_HEADER_PATH : &'static str   = "timetrack.tag";
+pub const CRATE_NAME : &str                  = "timetrack";
+pub const DATE_TIME_FORMAT : &str            = "%Y-%m-%dT%H:%M:%S";
+pub const DATE_TIME_START_HEADER_PATH : &str = "timetrack.start";
+pub const DATE_TIME_END_HEADER_PATH : &str   = "timetrack.end";
+pub const DATE_TIME_TAG_HEADER_PATH : &str   = "timetrack.tag";
 

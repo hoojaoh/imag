@@ -52,7 +52,7 @@ pub mod iter {
     impl<I: Iterator<Item = Entry>> ToHtmlIterator<I> {
 
         pub fn new(i: I) -> ToHtmlIterator<I> {
-            ToHtmlIterator { i: i }
+            ToHtmlIterator { i }
         }
 
     }
@@ -83,7 +83,7 @@ pub mod iter {
     impl<I: Iterator<Item = Entry>> WithHtmlIterator<I> {
 
         pub fn new(i: I) -> WithHtmlIterator<I> {
-            WithHtmlIterator { i: i }
+            WithHtmlIterator { i }
         }
 
     }

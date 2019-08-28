@@ -31,30 +31,28 @@ use libimagerror::exit::ExitUnwrap;
 use libimagutil::debug_result::*;
 
 pub fn retrieve(rt: &Runtime) {
-    rt.cli()
-        .subcommand_matches("retrieve")
-        .map(|scmd| {
-            // unwrap() is safe as arg is required
-            let id    = scmd.value_of("id").unwrap();
-            let path  = PathBuf::from(id);
-            let path  = StoreId::new(path).map_err_trace_exit_unwrap();
-            debug!("path = {:?}", path);
+    if let Some(scmd) = rt.cli().subcommand_matches("retrieve") {
+        // unwrap() is safe as arg is required
+        let id    = scmd.value_of("id").unwrap();
+        let path  = PathBuf::from(id);
+        let path  = StoreId::new(path).map_err_trace_exit_unwrap();
+        debug!("path = {:?}", path);
 
-            rt.store()
-                .retrieve(path.clone())
-                .map(|e| print_entry(rt, scmd, e))
-                .map_dbg_str("No entry")
-                .map_dbg(|e| format!("{:?}", e))
-                .map_err_trace_exit_unwrap();
+        rt.store()
+            .retrieve(path.clone())
+            .map(|e| print_entry(rt, scmd, e))
+            .map_dbg_str("No entry")
+            .map_dbg(|e| format!("{:?}", e))
+            .map_err_trace_exit_unwrap();
 
-            let _ = rt.report_touched(&path).unwrap_or_exit();
-        });
+        rt.report_touched(&path).unwrap_or_exit();
+    }
 }
 
 pub fn print_entry(rt: &Runtime, scmd: &ArgMatches, e: FileLockEntry) {
     if do_print_raw(scmd) {
         debug!("Printing raw content...");
-        let _ = writeln!(rt.stdout(), "{}", e.to_str().map_err_trace_exit_unwrap())
+        writeln!(rt.stdout(), "{}", e.to_str().map_err_trace_exit_unwrap())
             .to_exit_code()
             .unwrap_or_exit();
     } else if do_filter(scmd) {
@@ -73,7 +71,7 @@ pub fn print_entry(rt: &Runtime, scmd: &ArgMatches, e: FileLockEntry) {
                 unimplemented!()
             } else {
                 debug!("Printing header as TOML...");
-                let _ = writeln!(rt.stdout(), "{}", e.get_header())
+                writeln!(rt.stdout(), "{}", e.get_header())
                     .to_exit_code()
                     .unwrap_or_exit();
             }
@@ -81,7 +79,7 @@ pub fn print_entry(rt: &Runtime, scmd: &ArgMatches, e: FileLockEntry) {
 
         if do_print_content(scmd) {
             debug!("Printing content...");
-            let _ = writeln!(rt.stdout(), "{}", e.get_content())
+            writeln!(rt.stdout(), "{}", e.get_content())
                     .to_exit_code()
                     .unwrap_or_exit();
         }

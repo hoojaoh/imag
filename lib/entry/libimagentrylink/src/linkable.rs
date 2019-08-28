@@ -95,7 +95,7 @@ impl Linkable for Entry {
         let partial : LinkPartial = self
             .get_header()
             .read_partial::<LinkPartial>()?
-            .unwrap_or_else(|| LinkPartial::default());
+            .unwrap_or_else(LinkPartial::default);
 
         partial
             .internal
@@ -292,7 +292,7 @@ fn alter_linking<F>(left: &mut Entry, right: &mut Entry, f: F) -> Result<()>
     debug!("Altering linkage of {:?} and {:?}", left, right);
 
     let get_partial = |entry: &mut Entry| -> Result<LinkPartial> {
-        Ok(entry.get_header().read_partial::<LinkPartial>()?.unwrap_or_else(|| LinkPartial::default()))
+        Ok(entry.get_header().read_partial::<LinkPartial>()?.unwrap_or_else(LinkPartial::default))
     };
 
     let left_partial : LinkPartial = get_partial(left)?;
@@ -337,7 +337,7 @@ mod test {
         let links = entry.links();
         assert!(links.is_ok());
         let links = links.unwrap();
-        assert_eq!(links.collect::<Vec<_>>().len(), 0);
+        assert_eq!(links.count(), 0);
     }
 
     #[test]
@@ -383,6 +383,7 @@ mod test {
     }
 
     #[test]
+    #[clippy::cognitive_complexity = "49"]
     fn test_multiple_links() {
         setup_logging();
         let store = get_store();
@@ -395,67 +396,67 @@ mod test {
 
         assert!(e1.add_link(&mut e2).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 1);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 0);
+        assert_eq!(e4.links().unwrap().count(), 0);
+        assert_eq!(e5.links().unwrap().count(), 0);
 
         assert!(e1.add_link(&mut e3).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 2);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 1);
+        assert_eq!(e4.links().unwrap().count(), 0);
+        assert_eq!(e5.links().unwrap().count(), 0);
 
         assert!(e1.add_link(&mut e4).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 3);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 3);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 1);
+        assert_eq!(e4.links().unwrap().count(), 1);
+        assert_eq!(e5.links().unwrap().count(), 0);
 
         assert!(e1.add_link(&mut e5).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 4);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e1.links().unwrap().count(), 4);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 1);
+        assert_eq!(e4.links().unwrap().count(), 1);
+        assert_eq!(e5.links().unwrap().count(), 1);
 
         assert!(e5.remove_link(&mut e1).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 3);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 3);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 1);
+        assert_eq!(e4.links().unwrap().count(), 1);
+        assert_eq!(e5.links().unwrap().count(), 0);
 
         assert!(e4.remove_link(&mut e1).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 2);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 1);
+        assert_eq!(e4.links().unwrap().count(), 0);
+        assert_eq!(e5.links().unwrap().count(), 0);
 
         assert!(e3.remove_link(&mut e1).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 1);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 0);
+        assert_eq!(e4.links().unwrap().count(), 0);
+        assert_eq!(e5.links().unwrap().count(), 0);
 
         assert!(e2.remove_link(&mut e1).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e4.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e5.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 0);
+        assert_eq!(e2.links().unwrap().count(), 0);
+        assert_eq!(e3.links().unwrap().count(), 0);
+        assert_eq!(e4.links().unwrap().count(), 0);
+        assert_eq!(e5.links().unwrap().count(), 0);
 
     }
 
@@ -467,18 +468,18 @@ mod test {
         let mut e1 = store.retrieve(PathBuf::from("1")).unwrap();
         let mut e2 = store.retrieve(PathBuf::from("2")).unwrap();
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 0);
+        assert_eq!(e2.links().unwrap().count(), 0);
 
         assert!(e1.add_link(&mut e2).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e1.links().unwrap().count(), 1);
+        assert_eq!(e2.links().unwrap().count(), 1);
 
         assert!(e1.remove_link(&mut e2).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 0);
+        assert_eq!(e2.links().unwrap().count(), 0);
     }
 
     #[test]
@@ -490,40 +491,40 @@ mod test {
         let mut e2 = store.retrieve(PathBuf::from("2")).unwrap();
         let mut e3 = store.retrieve(PathBuf::from("3")).unwrap();
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 0);
+        assert_eq!(e2.links().unwrap().count(), 0);
+        assert_eq!(e3.links().unwrap().count(), 0);
 
         assert!(e1.add_link(&mut e2).is_ok()); // 1-2
         assert!(e1.add_link(&mut e3).is_ok()); // 1-2, 1-3
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e1.links().unwrap().count(), 2);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 1);
 
         assert!(e2.add_link(&mut e3).is_ok()); // 1-2, 1-3, 2-3
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 2);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 2);
+        assert_eq!(e1.links().unwrap().count(), 2);
+        assert_eq!(e2.links().unwrap().count(), 2);
+        assert_eq!(e3.links().unwrap().count(), 2);
 
         assert!(e1.remove_link(&mut e2).is_ok()); // 1-3, 2-3
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 2);
+        assert_eq!(e1.links().unwrap().count(), 1);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 2);
 
         assert!(e1.remove_link(&mut e3).is_ok()); // 2-3
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 1);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 1);
+        assert_eq!(e1.links().unwrap().count(), 0);
+        assert_eq!(e2.links().unwrap().count(), 1);
+        assert_eq!(e3.links().unwrap().count(), 1);
 
         assert!(e2.remove_link(&mut e3).is_ok());
 
-        assert_eq!(e1.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e2.links().unwrap().collect::<Vec<_>>().len(), 0);
-        assert_eq!(e3.links().unwrap().collect::<Vec<_>>().len(), 0);
+        assert_eq!(e1.links().unwrap().count(), 0);
+        assert_eq!(e2.links().unwrap().count(), 0);
+        assert_eq!(e3.links().unwrap().count(), 0);
     }
 
     #[test]
@@ -535,14 +536,14 @@ mod test {
         let mut entry1 = store.create(PathBuf::from("test_directional_link-1")).unwrap();
         let mut entry2 = store.create(PathBuf::from("test_directional_link-2")).unwrap();
 
-        assert!(entry1.unidirectional_links().unwrap().collect::<Vec<_>>().is_empty());
-        assert!(entry2.unidirectional_links().unwrap().collect::<Vec<_>>().is_empty());
+        assert!(entry1.unidirectional_links().unwrap().next().is_none());
+        assert!(entry2.unidirectional_links().unwrap().next().is_none());
 
-        assert!(entry1.directional_links_to().unwrap().collect::<Vec<_>>().is_empty());
-        assert!(entry2.directional_links_to().unwrap().collect::<Vec<_>>().is_empty());
+        assert!(entry1.directional_links_to().unwrap().next().is_none());
+        assert!(entry2.directional_links_to().unwrap().next().is_none());
 
-        assert!(entry1.directional_links_from().unwrap().collect::<Vec<_>>().is_empty());
-        assert!(entry2.directional_links_from().unwrap().collect::<Vec<_>>().is_empty());
+        assert!(entry1.directional_links_from().unwrap().next().is_none());
+        assert!(entry2.directional_links_from().unwrap().next().is_none());
 
         assert!(entry1.add_link_to(&mut entry2).is_ok());
 

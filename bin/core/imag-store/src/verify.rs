@@ -48,7 +48,7 @@ pub fn verify(rt: &Runtime) {
             };
 
             info!("{: >6} | {: >14} | {:?}", verify, content_len, p.deref());
-            let _ = rt.report_touched(fle.get_location()).unwrap_or_exit();
+            rt.report_touched(fle.get_location()).unwrap_or_exit();
             status
         });
 

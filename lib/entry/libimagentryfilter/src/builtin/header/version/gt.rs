@@ -31,7 +31,7 @@ pub struct VersionGt {
 impl VersionGt {
 
     pub fn new(version: Version) -> VersionGt {
-        VersionGt { version: version }
+        VersionGt { version }
     }
 
 }

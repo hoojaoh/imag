@@ -55,7 +55,7 @@ pub fn list(rt: &Runtime) {
         .map(IntoStoreId::into_storeid)
         .trace_unwrap_exit()
         .for_each(|id| {
-            let _ = rt.report_touched(&id).unwrap_or_exit();
+            rt.report_touched(&id).unwrap_or_exit();
 
             if !rt.output_is_pipe() {
                 writeln!(rt.stdout(), "{}", id).to_exit_code().unwrap_or_exit()

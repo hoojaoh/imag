@@ -113,7 +113,7 @@ impl UrlLinker for Entry {
             file.set_url(link)?;
 
             // then add an internal link to the new file or return an error if this fails
-            let _ = self.add_link(&mut file)?;
+            self.add_link(&mut file)?;
             debug!("Added linking: {:?} <-> {:?}", self.get_location(), file.get_location());
 
             Ok((link_already_exists, file_id))
@@ -207,12 +207,10 @@ mod tests {
         let link = match link_entry.get_header().read_string("url.uri") {
             Ok(Some(s)) => s,
             Ok(None) => {
-                assert!(false);
                 unreachable!()
             },
             Err(e) => {
                 error!("{:?}", e);
-                assert!(false);
                 unreachable!()
             },
         };
@@ -236,7 +234,6 @@ mod tests {
         let urls = match urls {
             Err(e) => {
                 debug!("Error: {:?}", e);
-                assert!(false);
                 unreachable!()
             },
             Ok(urls) => urls.collect::<Vec<_>>(),

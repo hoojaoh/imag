@@ -83,7 +83,7 @@ fn main() {
                                     ui::build_ui);
 
 
-    let _ = rt
+    rt
         .cli()
         .subcommand_name()
         .map(|name| {
@@ -155,7 +155,7 @@ fn create(rt: &Runtime) {
     debug!("Builder = {:?}", hb);
 
     let fle = hb.build(rt.store()).map_err_trace_exit_unwrap();
-    let _   = rt.report_touched(fle.get_location()).unwrap_or_exit();
+    rt.report_touched(fle.get_location()).unwrap_or_exit();
 }
 
 fn delete(rt: &Runtime) {
@@ -180,8 +180,8 @@ fn delete(rt: &Runtime) {
         .trace_unwrap_exit()
         .map(|sid| (sid.clone(), rt.store().get(sid).map_err_trace_exit_unwrap())) // get the FileLockEntry
         .filter(|&(_, ref habit)| match habit { // filter for name of habit == name we look for
-            &Some(ref h) => h.habit_name().map_err_trace_exit_unwrap() == name,
-            &None => false,
+            Some(ref h) => h.habit_name().map_err_trace_exit_unwrap() == name,
+            None => false,
         })
         .filter_map(|(a, o)| o.map(|x| (a, x))) // map: (a, Option<b>) -> Option<(a, b)> -> (a, b)
         .map(|(sid, fle)| {
@@ -201,10 +201,10 @@ fn delete(rt: &Runtime) {
                         if ask_bool(&q, Some(false), &mut input, &mut output)
                             .map_err_trace_exit_unwrap()
                         {
-                            let _ = do_delete(id);
+                            do_delete(id);
                         }
                     } else {
-                        let _ = do_delete(id);
+                        do_delete(id);
                     }
                 };
 
@@ -227,10 +227,10 @@ fn delete(rt: &Runtime) {
                 if ask_bool(&q, Some(false), &mut input, &mut output)
                         .map_err_trace_exit_unwrap()
                 {
-                    let _ = do_delete_template(sid);
+                    do_delete_template(sid);
                 }
             } else {
-                let _ = do_delete_template(sid);
+                do_delete_template(sid);
             }
         })
         .collect::<Vec<_>>();
@@ -253,12 +253,10 @@ fn today(rt: &Runtime, future: bool) {
             let futu = scmd.is_present("today-show-future");
             let done = scmd.is_present("today-done");
             (futu, done)
+        } else if let Some(status) = rt.cli().subcommand_matches("status") {
+            (true, status.is_present("status-done"))
         } else {
-            if let Some(status) = rt.cli().subcommand_matches("status") {
-                (true, status.is_present("status-done"))
-            } else {
-                (true, false)
-            }
+            (true, false)
         }
     };
     let today = ::chrono::offset::Local::today().naive_local();
@@ -329,7 +327,7 @@ fn today(rt: &Runtime, future: bool) {
 
             if let Some(date) = date {
                 let is_done = element
-                    .instance_exists_for_date(&date)
+                    .instance_exists_for_date(date)
                     .map_err_trace_exit_unwrap();
 
                 if show_done || !is_done {
@@ -370,7 +368,7 @@ fn today(rt: &Runtime, future: bool) {
                     .map_err_trace_exit_unwrap()
                     .map(|date|  {
                         let instance_exists = habit
-                            .instance_exists_for_date(&date)
+                            .instance_exists_for_date(date)
                             .map_err_trace_exit_unwrap();
 
                         debug!("instance exists for {:?} for {:?} = {:?}",
@@ -390,7 +388,7 @@ fn today(rt: &Runtime, future: bool) {
                 let mut list = lister_fn(&e);
 
                 {
-                    let _ = rt
+                    rt
                         .report_touched(e.get_location())
                         .unwrap_or_exit();
                 }
@@ -414,7 +412,7 @@ fn list(rt: &Runtime) {
         let recur    = h.habit_recur_spec().map_err_trace_exit_unwrap();
         let comm     = h.habit_comment().map_err_trace_exit_unwrap();
         let (due, done) = if let Some(date) = h.next_instance_date().map_err_trace_exit_unwrap() {
-            let done     = h.instance_exists_for_date(&date)
+            let done     = h.instance_exists_for_date(date)
                 .map(|b| if b { "x" } else { "" })
                 .map(String::from)
                 .map_err_trace_exit_unwrap();
@@ -438,7 +436,7 @@ fn list(rt: &Runtime) {
     let mut table = Table::new();
     table.set_titles(Row::new(header));
 
-    let _ = rt
+    rt
         .store()
         .all_habit_templates()
         .map_err_trace_exit_unwrap()
@@ -460,7 +458,7 @@ fn list(rt: &Runtime) {
             let mut list = lister_fn(&e);
 
             {
-                let _ = rt.report_touched(e.get_location()).unwrap_or_exit();
+                rt.report_touched(e.get_location()).unwrap_or_exit();
             }
 
             v.append(&mut list);
@@ -484,7 +482,7 @@ fn show(rt: &Runtime) {
         use libimagutil::date::date_to_string;
         use libimaghabit::instance::HabitInstance;
 
-        let date = date_to_string(&i.get_date().map_err_trace_exit_unwrap());
+        let date = date_to_string(i.get_date().map_err_trace_exit_unwrap());
         let comm = i.get_comment(rt.store()).map_err_trace_exit_unwrap();
 
         vec![date, comm]
@@ -512,7 +510,7 @@ fn show(rt: &Runtime) {
             let recur    = habit.habit_recur_spec().map_err_trace_exit_unwrap();
             let comm     = habit.habit_comment().map_err_trace_exit_unwrap();
 
-            let _ = writeln!(rt.stdout(),
+            writeln!(rt.stdout(),
                      "{i} - {name}\nBase      : {b},\nRecurrence: {r}\nComment   : {c}\n",
                      i    = i,
                      name = name,
@@ -544,7 +542,7 @@ fn show(rt: &Runtime) {
                     let mut instances = instance_lister_fn(&rt, &e);
 
                     {
-                        let _ = rt.report_touched(e.get_location()).unwrap_or_exit();
+                        rt.report_touched(e.get_location()).unwrap_or_exit();
                     }
 
                     v.append(&mut instances);
@@ -574,7 +572,7 @@ fn done(rt: &Runtime) {
             .filter_map(|id| get_from_store(rt.store(), id))
             .filter(|h| {
                 let due = h.next_instance_date().map_err_trace_exit_unwrap();
-                due.map(|d| (d == today || d < today) || scmd.is_present("allow-future"))
+                due.map(|d| d <= today || scmd.is_present("allow-future"))
                     .unwrap_or(false)
             })
             .filter(|h| {
@@ -592,11 +590,11 @@ fn done(rt: &Runtime) {
         let next_instance_date = r.next_instance_date().map_err_trace_exit_unwrap();
         if let Some(next) = next_instance_date {
             debug!("Creating new instance on {:?}", next);
-            r.create_instance_with_date(rt.store(), &next)
+            r.create_instance_with_date(rt.store(), next)
                 .map_err_trace_exit_unwrap();
 
             info!("Done on {date}: {name}",
-                  date = libimagutil::date::date_to_string(&next),
+                  date = libimagutil::date::date_to_string(next),
                   name = next_instance_name);
         } else {
             info!("Ignoring: {}, because there is no due date (the habit is finised)",
@@ -604,7 +602,7 @@ fn done(rt: &Runtime) {
         }
 
         {
-            let _ = rt.report_touched(r.get_location()).unwrap_or_exit();
+            rt.report_touched(r.get_location()).unwrap_or_exit();
         }
 
     }
@@ -612,7 +610,7 @@ fn done(rt: &Runtime) {
 }
 
 /// Helper function for `Iterator::filter_map()`ing `all_habit_templates()` and `Store::get` them.
-fn get_from_store<'a>(store: &'a Store, id: StoreId) -> Option<FileLockEntry<'a>> {
+fn get_from_store(store: &Store, id: StoreId) -> Option<FileLockEntry<'_>> {
     match store.get(id.clone()) {
         Ok(Some(h)) => Some(h),
         Ok(None) => {
@@ -627,6 +625,6 @@ fn get_from_store<'a>(store: &'a Store, id: StoreId) -> Option<FileLockEntry<'a>
 }
 
 fn date_to_string_helper(d: chrono::NaiveDate) -> String {
-    libimagutil::date::date_to_string(&d)
+    libimagutil::date::date_to_string(d)
 }
 

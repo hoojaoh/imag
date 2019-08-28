@@ -76,24 +76,22 @@ fn main() {
                                     "Bookmark collection tool",
                                     build_ui);
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            debug!("Call {}", name);
-            match name {
-                "add"        => add(&rt),
-                "collection" => collection(&rt),
-                "list"       => list(&rt),
-                "remove"     => remove(&rt),
-                other        => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-bookmark", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        debug!("Call {}", name);
+        match name {
+            "add"        => add(&rt),
+            "collection" => collection(&rt),
+            "list"       => list(&rt),
+            "remove"     => remove(&rt),
+            other        => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-bookmark", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        }
+    }
 }
 
 fn add(rt: &Runtime) {
@@ -105,13 +103,13 @@ fn add(rt: &Runtime) {
         .ok_or_else(|| format_err!("No bookmark collection '{}' found", coll))
         .map_err_trace_exit_unwrap();
 
-    let _ = rt.report_touched(collection.get_location()).unwrap_or_exit();
+    rt.report_touched(collection.get_location()).unwrap_or_exit();
 
     for url in scmd.values_of("urls").unwrap() { // unwrap saved by clap
         let new_ids = BookmarkCollection::add_link(collection.deref_mut(), rt.store(), BookmarkLink::from(url))
             .map_err_trace_exit_unwrap();
 
-        let _ = rt.report_all_touched(new_ids.into_iter()).unwrap_or_exit();
+        rt.report_all_touched(new_ids.into_iter()).unwrap_or_exit();
     }
 
     info!("Ready");
@@ -123,7 +121,7 @@ fn collection(rt: &Runtime) {
     if scmd.is_present("add") { // adding a new collection
         let name = scmd.value_of("add").unwrap();
         if let Ok(id) = BookmarkCollectionStore::new(rt.store(), &name) {
-            let _ = rt.report_touched(id.get_location()).unwrap_or_exit();
+            rt.report_touched(id.get_location()).unwrap_or_exit();
             info!("Created: {}", name);
         } else {
             warn!("Creating collection {} failed", name);
@@ -135,7 +133,7 @@ fn collection(rt: &Runtime) {
         let name = scmd.value_of("remove").unwrap();
 
         { // remove all links
-            let _ = BookmarkCollectionStore::get(rt.store(), &name)
+            BookmarkCollectionStore::get(rt.store(), &name)
                 .map_err_trace_exit_unwrap()
                 .ok_or_else(|| format_err!("Collection does not exist: {}", name))
                 .map_err_trace_exit_unwrap()
@@ -143,7 +141,7 @@ fn collection(rt: &Runtime) {
                 .map_err_trace_exit_unwrap();
         }
 
-        if let Ok(_) = BookmarkCollectionStore::delete(rt.store(), &name) {
+        if BookmarkCollectionStore::delete(rt.store(), &name).is_ok() {
             info!("Deleted: {}", name);
         } else {
             warn!("Deleting collection {} failed", name);
@@ -160,13 +158,12 @@ fn list(rt: &Runtime) {
         .ok_or_else(|| format_err!("No bookmark collection '{}' found", coll))
         .map_err_trace_exit_unwrap();
 
-    let _ = rt.report_touched(collection.get_location()).unwrap_or_exit();
+    rt.report_touched(collection.get_location()).unwrap_or_exit();
 
     collection
         .get_links(rt.store())
         .map_dbg_str("Listing...")
         .map_err_trace_exit_unwrap()
-        .into_iter()
         .enumerate()
         .for_each(|(i, link)| match link {
             Ok(link) => writeln!(rt.stdout(), "{: >3}: {}", i, link).to_exit_code().unwrap_or_exit(),
@@ -184,13 +181,13 @@ fn remove(rt: &Runtime) {
         .ok_or_else(|| format_err!("No bookmark collection '{}' found", coll))
         .map_err_trace_exit_unwrap();
 
-    let _ = rt.report_touched(collection.get_location()).unwrap_or_exit();
+    rt.report_touched(collection.get_location()).unwrap_or_exit();
 
     for url in scmd.values_of("urls").unwrap() { // enforced by clap
         let removed_links = BookmarkCollection::remove_link(collection.deref_mut(), rt.store(), BookmarkLink::from(url))
             .map_err_trace_exit_unwrap();
 
-        let _ = rt.report_all_touched(removed_links.into_iter()).unwrap_or_exit();
+        rt.report_all_touched(removed_links.into_iter()).unwrap_or_exit();
     }
 
     info!("Ready");

@@ -49,7 +49,7 @@ impl DiaryId {
 
     pub fn new(name: String, y: i32, m: u32, d: u32, h: u32, min: u32, sec: u32) -> DiaryId {
         DiaryId {
-            name: name,
+            name,
             year: y,
             month: m,
             day: d,
@@ -202,7 +202,7 @@ fn component_to_str<'a>(com: Component<'a>) -> Result<&'a str> {
         Component::Normal(s) => Some(s),
         _ => None,
     }.and_then(|s| s.to_str())
-    .ok_or_else(|| Error::from(err_msg("ID Parse error")))
+    .ok_or_else(|| err_msg("ID Parse error"))
 }
 
 impl FromStoreId for DiaryId {
@@ -215,7 +215,7 @@ impl FromStoreId for DiaryId {
 
         fn next_component<'a>(components: &'a mut Rev<Components>) -> Result<&'a str> {
             components.next()
-                .ok_or_else(|| Error::from(err_msg("ID parse error")))
+                .ok_or_else(|| err_msg("ID parse error"))
                 .and_then(component_to_str)
         }
 
@@ -223,7 +223,7 @@ impl FromStoreId for DiaryId {
         trace!("Found components: {:?}", cmps);
 
         let (hour, minute, second) = next_component(&mut cmps).and_then(|time| {
-            let mut time = time.split(":");
+            let mut time = time.split(':');
             let hour     = time.next().and_then(|s| FromStr::from_str(s).ok());
             let minute   = time.next().and_then(|s| FromStr::from_str(s).ok());
             let second   = time.next().and_then(|s| FromStr::from_str(s).ok());
@@ -235,7 +235,7 @@ impl FromStoreId for DiaryId {
 
             match (hour, minute, second) {
                 (Some(h), Some(m), Some(s)) => Ok((h, m, s)),
-                _ => return Err(Error::from(err_msg("ID Parse error"))),
+                _ => Err(err_msg("ID Parse error")),
             }
         })?;
 

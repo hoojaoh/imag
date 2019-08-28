@@ -34,7 +34,7 @@ impl<T, I> NextWhere<T> for I
     fn next_where<F>(&mut self, f: &F) -> Option<Self::Item>
         where F: Filter<T>
     {
-        while let Some(next) = self.next() {
+        for next in self {
             if f.filter(&next) {
                 return Some(next);
             }

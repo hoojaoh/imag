@@ -153,8 +153,8 @@ impl<'a> Runtime<'a> {
         store_result.map(|store| Runtime {
             cli_matches: matches,
             configuration: config,
-            rtp: rtp,
-            store: store,
+            rtp,
+            store,
 
             has_output_pipe,
             has_input_pipe,
@@ -381,14 +381,14 @@ impl<'a> Runtime<'a> {
             .map(String::from)
             .ok_or_else(|| {
                 self.config()
-                    .ok_or_else(|| Error::from(err_msg("No Configuration!")))
+                    .ok_or_else(|| err_msg("No Configuration!"))
                     .and_then(|v| match v.read("rt.editor")? {
                         Some(&Value::String(ref s)) => Ok(Some(s.clone())),
-                        Some(_) => Err(Error::from(err_msg("Type error at 'rt.editor', expected 'String'"))),
+                        Some(_) => Err(err_msg("Type error at 'rt.editor', expected 'String'")),
                         None    => Ok(None),
                     })
             })
-            .or(env::var("EDITOR"))
+            .or_else(|_| env::var("EDITOR"))
             .map_err(|_| Error::from(EM::IO))
             .map_dbg(|s| format!("Editing with '{}'", s))
             .and_then(|s| {
@@ -617,13 +617,13 @@ fn get_override_specs(matches: &ArgMatches) -> Vec<String> {
         .map(|values| {
              values
              .filter(|s| {
-                 let b = s.contains("=");
+                 let b = s.contains('=');
                  if !b { warn!("override '{}' does not contain '=' - will be ignored!", s); }
                  b
              })
              .map(String::from)
              .collect()
         })
-        .unwrap_or(vec![])
+        .unwrap_or_else(|| vec![])
 }
 

@@ -59,10 +59,10 @@ impl<'a> Viewer for MarkdownViewer<'a> {
 
         ::mdcat::push_tty(sink,
                           TerminalCapabilities::ansi(),
-                          self.termsize.clone(),
+                          self.termsize,
                           parser,
                           base_dir,
-                          self.resource_access.clone(),
+                          self.resource_access,
                           syntax_set)
         .map_err(|e| e.compat())
         .map_err(::failure::Error::from)

@@ -93,7 +93,7 @@ fn main() {
         })
         .into_iter();
 
-    let iter = StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
+    let iter = StoreIdIterator::new(Box::new(sids.map(Ok)))
         .into_get_iter(rt.store())
         .trace_unwrap_exit()
         .filter_map(|x| x);

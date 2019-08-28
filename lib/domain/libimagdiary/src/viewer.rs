@@ -82,7 +82,7 @@ impl Viewer for DiaryViewer {
 
         for (id, entry) in entries.into_iter() {
             writeln!(sink, "{} :\n", id)?;
-            let _ = self.0.view_entry(entry.deref(), sink)?;
+            self.0.view_entry(entry.deref(), sink)?;
             writeln!(sink, "\n---\n")?;
         }
 

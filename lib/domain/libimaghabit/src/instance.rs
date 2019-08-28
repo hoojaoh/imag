@@ -45,7 +45,7 @@ pub trait HabitInstance {
     fn is_habit_instance(&self) -> Result<bool>;
 
     fn get_date(&self) -> Result<NaiveDate>;
-    fn set_date(&mut self, n: &NaiveDate) -> Result<()>;
+    fn set_date(&mut self, n: NaiveDate) -> Result<()>;
     fn get_comment(&self, store: &Store) -> Result<String>;
     fn get_template_name(&self) -> Result<String>;
 }
@@ -63,7 +63,7 @@ impl HabitInstance for Entry {
         get_string_header_from_entry(self, "habit.instance.date").and_then(date_from_string)
     }
 
-    fn set_date(&mut self, n: &NaiveDate) -> Result<()> {
+    fn set_date(&mut self, n: NaiveDate) -> Result<()> {
         use libimagutil::date::date_to_string;
         // Using `set` here because when creating the entry, these headers should be made present.
         self.get_header_mut()

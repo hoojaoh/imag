@@ -35,7 +35,7 @@ pub trait Viewer {
               W: Write
     {
         for entry in entries {
-            let _ = self.view_entry(entry.deref(), sink)?;
+            self.view_entry(entry.deref(), sink)?;
         }
         Ok(())
     }

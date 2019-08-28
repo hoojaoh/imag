@@ -59,7 +59,7 @@ pub fn start(rt: &Runtime) -> i32 {
                     1
                 },
                 Ok(entry) => {
-                    let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                    rt.report_touched(entry.get_location()).unwrap_or_exit();
 
                     acc
                 }

@@ -246,7 +246,7 @@ impl<'a, H: Hasher> Ref for RefWithHasher<'a, H> {
             .ok_or_else(|| Error::from(EM::EntryHeaderTypeError2("ref.hash.<hash>", "string")))?;
 
 
-        let file_path = get_file_path(config, basepath_name.as_ref(), &path)?;
+        let file_path = get_file_path(config, basepath_name, &path)?;
 
         ref_header
             .read(H::NAME)
@@ -288,11 +288,8 @@ impl<'a, H> MutRef for MutRefWithHasher<'a, H>
             let _ = header.delete("ref.relpath").context("Removing ref.relpath")?;
 
             if let Some(hash_tbl) = header.read_mut("ref.hash")? {
-                match hash_tbl {
-                    Value::Table(ref mut tbl) => *tbl = Map::new(),
-                    _ => {
-                        // should not happen
-                    }
+                if let Value::Table(ref mut tbl) = hash_tbl {
+                    *tbl = Map::new();
                 }
             }
 
@@ -332,18 +329,18 @@ impl<'a, H> MutRef for MutRefWithHasher<'a, H>
 
         if self.0.get_header().read("ref.is_ref")?.is_some() && !force {
             debug!("Entry is already a Ref!");
-            let _ = Err(err_msg("Entry is already a reference")).context("Making ref out of entry")?;
+            Err(err_msg("Entry is already a reference")).context("Making ref out of entry")?;
         }
 
         let file_path = get_file_path(config, basepath_name.as_ref(), &path)?;
 
         if !file_path.exists() {
             let msg = format_err!("File '{:?}' does not exist", file_path);
-            let _   = Err(msg).context("Making ref out of entry")?;
+            Err(msg).context("Making ref out of entry")?;
         }
 
         debug!("Entry hashing = {}", file_path.display());
-        let _ = H::hash(&file_path)
+        H::hash(&file_path)
             .and_then(|hash| {
                 trace!("hash = {}", hash);
 
@@ -391,7 +388,7 @@ pub(crate) fn make_header_section<P, C, H>(hash: String, hashname: H, relpath: P
             .map(String::from)
             .ok_or_else(|| {
                 let msg = format_err!("UTF Error in '{:?}'", relpath.as_ref());
-                Error::from(msg)
+                msg
             })?;
 
         let _ = header_section.insert("relpath", Value::String(relpath))?;
@@ -460,7 +457,7 @@ mod test {
             path.as_ref()
                 .to_str()
                 .map(String::from)
-                .ok_or_else(|| Error::from(err_msg("Failed to create test hash")))
+                .ok_or_else(|| err_msg("Failed to create test hash"))
         }
     }
 

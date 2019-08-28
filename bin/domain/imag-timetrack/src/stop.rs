@@ -60,17 +60,11 @@ pub fn stop(rt: &Runtime) -> i32 {
                 .get_timetrackings()
                 .map_err_trace_exit_unwrap()
                 .trace_unwrap()
-                .filter_map(|tracking| {
-                    let is_none = tracking
+                .filter(|tracking| {
+                    tracking
                         .get_end_datetime()
                         .map_err_trace_exit_unwrap()
-                        .is_none();
-
-                    if is_none {
-                        Some(tracking)
-                    } else {
-                        None
-                    }
+                        .is_none()
                 })
                 .map(|t| t.get_timetrack_tag())
                 .map(|r| r.map_err_trace_exit_unwrap())
@@ -99,7 +93,7 @@ pub fn stop(rt: &Runtime) -> i32 {
                 }
                 Ok(_) => {
                     debug!("Setting end time worked: {:?}", elem);
-                    let _ = rt.report_touched(elem.get_location()).unwrap_or_exit();
+                    rt.report_touched(elem.get_location()).unwrap_or_exit();
                     acc
                 }
             }

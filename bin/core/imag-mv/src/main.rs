@@ -118,11 +118,11 @@ fn main() {
             });
 
         for link in linked_entries.iter_mut() {
-            let _ = entry.remove_link(link).map_err_trace_exit_unwrap();
+            entry.remove_link(link).map_err_trace_exit_unwrap();
         }
     }
 
-    let _ = rt
+    rt
         .store()
         .move_by_id(sourcename.clone(), destname.clone())
         .map_err(|e| { // on error, re-add links
@@ -132,7 +132,7 @@ fn main() {
         })
         .map_err_trace_exit_unwrap();
 
-    let _ = rt.report_touched(&destname).unwrap_or_exit();
+    rt.report_touched(&destname).unwrap_or_exit();
 
     // re-add links to moved entry
     relink(rt.store(), destname, &mut linked_entries);
@@ -151,6 +151,6 @@ fn relink<'a>(store: &'a Store, target: StoreId, linked_entries: &mut Vec<FileLo
 
 
     for mut link in linked_entries {
-        let _ = entry.add_link(&mut link).map_err_trace_exit_unwrap();
+        entry.add_link(&mut link).map_err_trace_exit_unwrap();
     }
 }

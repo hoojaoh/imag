@@ -30,7 +30,7 @@ use libimagrt::runtime::Runtime;
 use libimagstore::store::FileLockEntry;
 
 
-pub fn build_data_object_for_handlebars<'a>(i: usize, vcard: &DeserVcard) -> BTreeMap<&'static str, String> {
+pub fn build_data_object_for_handlebars(i: usize, vcard: &DeserVcard) -> BTreeMap<&'static str, String> {
     let mut data = BTreeMap::new();
 
     let process_list = |list: &Vec<String>| {
@@ -96,21 +96,22 @@ pub fn find_contact_by_hash<'a, H: AsRef<str>>(rt: &'a Runtime, hash: H)
             error!("Failed to get entry");
             exit(1)
         }))
-        .filter_map(move |entry| {
+        .filter(move |entry| {
             let deser = entry.deser().map_err_trace_exit_unwrap();
 
-            if deser.uid()
+            let id_starts_with_hash = deser.uid()
                 .ok_or_else(|| {
                     error!("Could not get StoreId from Store::all_contacts(). This is a BUG!");
                     ::std::process::exit(1)
                 })
                 .unwrap() // exited above
-                .starts_with(hash.as_ref())
-            {
-                let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
-                Some(entry)
+                .starts_with(hash.as_ref());
+
+            if id_starts_with_hash {
+                rt.report_touched(entry.get_location()).unwrap_or_exit();
+                true
             } else {
-                None
+                false
             }
         })
 }

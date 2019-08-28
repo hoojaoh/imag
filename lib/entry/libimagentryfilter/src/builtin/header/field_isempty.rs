@@ -51,13 +51,13 @@ impl FailableFilter<Entry> for FieldIsEmpty {
              .read(&self.header_field_path[..])?
              .map(|v| {
                  match v {
-                     &Value::Array(ref a)   => a.is_empty(),
-                     &Value::String(ref s)  => s.is_empty(),
-                     &Value::Table(ref t)   => t.is_empty(),
-                     &Value::Boolean(_)  |
-                     &Value::Float(_)    |
-                     &Value::Datetime(_) |
-                     &Value::Integer(_)  => false,
+                     Value::Array(ref a)   => a.is_empty(),
+                     Value::String(ref s)  => s.is_empty(),
+                     Value::Table(ref t)   => t.is_empty(),
+                     Value::Boolean(_)  |
+                     Value::Float(_)    |
+                     Value::Datetime(_) |
+                     Value::Integer(_)  => false,
                  }
              })
              .unwrap_or(true))

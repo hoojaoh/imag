@@ -95,26 +95,24 @@ fn main() {
                                     build_ui);
 
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            debug!("Call {}", name);
-            match name {
-                "list"   => list(&rt),
-                "import" => import(&rt),
-                "show"   => show(&rt),
-                "edit"   => edit(&rt),
-                "find"   => find(&rt),
-                "create" => create(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-contact", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        debug!("Call {}", name);
+        match name {
+            "list"   => list(&rt),
+            "import" => import(&rt),
+            "show"   => show(&rt),
+            "edit"   => edit(&rt),
+            "find"   => find(&rt),
+            "create" => create(&rt),
+            other    => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-contact", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        }
+    }
 }
 
 fn list(rt: &Runtime) {
@@ -128,10 +126,10 @@ fn list(rt: &Runtime) {
         .map_err_trace_exit_unwrap()
         .into_get_iter()
         .trace_unwrap_exit()
-        .map(|fle| fle.ok_or_else(|| Error::from(err_msg("StoreId not found".to_owned()))))
+        .map(|fle| fle.ok_or_else(|| err_msg("StoreId not found".to_owned())))
         .trace_unwrap_exit()
         .map(|fle| {
-            let _ = rt.report_touched(fle.get_location()).unwrap_or_exit();
+            rt.report_touched(fle.get_location()).unwrap_or_exit();
             fle
         })
         .map(|e| e.deser())
@@ -191,7 +189,7 @@ fn import(rt: &Runtime) {
             .retrieve_from_path(&path, &ref_config, &collection_name, force_override)
             .map_err_trace_exit_unwrap();
 
-        let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+        rt.report_touched(entry.get_location()).unwrap_or_exit();
     } else if path.is_dir() {
         for entry in WalkDir::new(path).min_depth(1).into_iter() {
             let entry = entry
@@ -205,7 +203,7 @@ fn import(rt: &Runtime) {
                     .retrieve_from_path(&pb, &ref_config, &collection_name, force_override)
                     .map_err_trace_exit_unwrap();
 
-                let _ = rt.report_touched(fle.get_location()).unwrap_or_exit();
+                rt.report_touched(fle.get_location()).unwrap_or_exit();
                 info!("Imported: {}", entry.path().to_str().unwrap_or("<non UTF-8 path>"));
             } else {
                 warn!("Ignoring non-file: {}", entry.path().to_str().unwrap_or("<non UTF-8 path>"));
@@ -234,7 +232,7 @@ fn show(rt: &Runtime) {
                 .render("format", &data)
                 .map_err(Error::from)
                 .map_err_trace_exit_unwrap();
-            let _ = writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit();
+            writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit();
         });
 }
 
@@ -275,7 +273,7 @@ fn find(rt: &Runtime) {
                 || card.fullname().iter().any(|a| str_contains_any(a, &grepstring));
 
             if take {
-                let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+                rt.report_touched(entry.get_location()).unwrap_or_exit();
 
                 // optimization so we don't have to parse again in the next step
                 Some((entry, card))
@@ -326,7 +324,7 @@ fn find(rt: &Runtime) {
                     .map_err(Error::from)
                     .map_err_trace_exit_unwrap();
 
-                let _ = writeln!(rt.stdout(), "{}", s)
+                writeln!(rt.stdout(), "{}", s)
                     .to_exit_code()
                     .unwrap_or_exit();
             });
@@ -342,17 +340,17 @@ fn get_contact_print_format(config_value_path: &'static str, rt: &Runtime, scmd:
         .map(String::from)
         .unwrap_or_else(|| {
             rt.config()
-                .ok_or_else(|| Error::from(err_msg("No configuration file")))
+                .ok_or_else(|| err_msg("No configuration file"))
                 .map_err_trace_exit_unwrap()
                 .read_string(config_value_path)
                 .map_err(Error::from)
                 .map_err_trace_exit_unwrap()
-                .ok_or_else(|| Error::from(err_msg("Configuration 'contact.list_format' does not exist")))
+                .ok_or_else(|| err_msg("Configuration 'contact.list_format' does not exist"))
                 .map_err_trace_exit_unwrap()
         });
 
     let mut hb = Handlebars::new();
-    let _ = hb
+    hb
         .register_template_string("format", fmt)
         .map_err(Error::from)
         .map_err_trace_exit_unwrap();

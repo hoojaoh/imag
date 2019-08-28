@@ -79,14 +79,11 @@ impl FileAbstractionInstance for InMemoryFileAbstractionInstance {
     }
 
     fn write_file_content(&mut self, buf: &Entry) -> Result<()> {
-        match *self {
-            InMemoryFileAbstractionInstance { ref absent_path, .. } => {
-                let mut mtx = self.fs_abstraction.lock().expect("Locking Mutex failed");
-                let backend = mtx.get_mut();
-                let _ = backend.insert(absent_path.clone(), buf.clone());
-                return Ok(());
-            },
-        };
+        let absent_path = &self.absent_path;
+        let mut mtx = self.fs_abstraction.lock().expect("Locking Mutex failed");
+        let backend = mtx.get_mut();
+        let _ = backend.insert(absent_path.clone(), buf.clone());
+        Ok(())
     }
 }
 
@@ -101,12 +98,11 @@ impl InMemoryFileAbstraction {
         &self.virtual_filesystem
     }
 
-    fn backend_cloned<'a>(&'a self) -> Result<HashMap<PathBuf, Entry>> {
+    fn backend_cloned(&self) -> Result<HashMap<PathBuf, Entry>> {
         self.virtual_filesystem
             .lock()
             .map_err(|_| Error::from(EM::LockError))
             .map(|mtx| mtx.deref().borrow().clone())
-            .into()
     }
 
 }
@@ -172,7 +168,7 @@ impl FileAbstraction for InMemoryFileAbstraction {
         self.backend_cloned().map(Drain::new)
     }
 
-    fn fill<'a>(&'a mut self, mut d: Drain) -> Result<()> {
+    fn fill(&mut self, mut d: Drain) -> Result<()> {
         debug!("Draining into : {:?}", self);
         let mut mtx = self.backend()
             .lock()

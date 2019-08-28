@@ -53,7 +53,7 @@ pub fn list(rt: &Runtime) -> i32 {
                         ::std::process::exit(1)
                     });
 
-                    Some(dt.clone())
+                    Some(*dt)
                 },
                 Err(e) => {
                     error!("Failed to calculate date from '{}': {:?}",
@@ -66,7 +66,7 @@ pub fn list(rt: &Runtime) -> i32 {
                 ::std::process::exit(1)
             },
             Some(Err(e)) => {
-                let e = Error::from(e);
+                let e = e;
                 trace_error(&e);
                 ::std::process::exit(1)
             }
@@ -197,7 +197,7 @@ pub fn list_impl(rt: &Runtime,
                     .collect();
                 tab.add_row(Row::new(cells));
 
-                let _ = rt.report_touched(e.get_location()).unwrap_or_exit();
+                rt.report_touched(e.get_location()).unwrap_or_exit();
 
                 table_empty = false;
                 Ok(tab)

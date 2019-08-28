@@ -55,7 +55,7 @@ pub trait HabitTemplate : Sized {
     ///
     /// It uses `Store::retrieve()` underneath. So if there is already an instance for the day
     /// passed, this will simply return the instance.
-    fn create_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate)
+    fn create_instance_with_date<'a>(&mut self, store: &'a Store, date: NaiveDate)
         -> Result<FileLockEntry<'a>>;
 
     /// Shortcut for calling `Self::create_instance_with_date()` with an instance of
@@ -63,7 +63,7 @@ pub trait HabitTemplate : Sized {
     fn create_instance_today<'a>(&mut self, store: &'a Store) -> Result<FileLockEntry<'a>>;
 
     /// Same as `HabitTemplate::create_instance_with_date()` but uses `Store::retrieve` internally.
-    fn retrieve_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate)
+    fn retrieve_instance_with_date<'a>(&mut self, store: &'a Store, date: NaiveDate)
         -> Result<FileLockEntry<'a>>;
 
     /// Same as `HabitTemplate::create_instance_today()` but uses `Store::retrieve` internally.
@@ -87,17 +87,17 @@ pub trait HabitTemplate : Sized {
     fn habit_comment(&self) -> Result<String>;
     fn habit_until_date(&self) -> Result<Option<String>>;
 
-    fn instance_exists_for_date(&self, date: &NaiveDate) -> Result<bool>;
+    fn instance_exists_for_date(&self, date: NaiveDate) -> Result<bool>;
 
     /// Create a StoreId for a habit name and a date the habit should be instantiated for
-    fn instance_id_for(habit_name: &String, habit_date: &NaiveDate) -> Result<StoreId>;
+    fn instance_id_for(habit_name: &str, habit_date: NaiveDate) -> Result<StoreId>;
 }
 
 provide_kindflag_path!(pub IsHabitTemplate, "habit.template.is_habit_template");
 
 impl HabitTemplate for Entry {
 
-    fn create_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate) -> Result<FileLockEntry<'a>> {
+    fn create_instance_with_date<'a>(&mut self, store: &'a Store, date: NaiveDate) -> Result<FileLockEntry<'a>> {
         let name    = self.habit_name()?;
         let date    = date_to_string(date);
         let id      = instance_id_for_name_and_datestr(&name, &date)?;
@@ -108,10 +108,10 @@ impl HabitTemplate for Entry {
     }
 
     fn create_instance_today<'a>(&mut self, store: &'a Store) -> Result<FileLockEntry<'a>> {
-        self.create_instance_with_date(store, &Local::today().naive_local())
+        self.create_instance_with_date(store, Local::today().naive_local())
     }
 
-    fn retrieve_instance_with_date<'a>(&mut self, store: &'a Store, date: &NaiveDate) -> Result<FileLockEntry<'a>> {
+    fn retrieve_instance_with_date<'a>(&mut self, store: &'a Store, date: NaiveDate) -> Result<FileLockEntry<'a>> {
         let name    = self.habit_name()?;
         let date    = date_to_string(date);
         let id      = instance_id_for_name_and_datestr(&name, &date)?;
@@ -122,7 +122,7 @@ impl HabitTemplate for Entry {
     }
 
     fn retrieve_instance_today<'a>(&mut self, store: &'a Store) -> Result<FileLockEntry<'a>> {
-        self.retrieve_instance_with_date(store, &Local::today().naive_local())
+        self.retrieve_instance_with_date(store, Local::today().naive_local())
     }
 
     fn linked_instances(&self) -> Result<HabitInstanceStoreIdIterator> {
@@ -160,11 +160,11 @@ impl HabitTemplate for Entry {
         debug!("Increment is {:?}", increment);
 
         let until = self.habit_until_date()?.map(|s| -> Result<_> {
-            r#try!(date_from_s(s))
+            date_from_s(s)?
                 .calculate()?
                 .get_moment()
                 .map(Clone::clone)
-                .ok_or_else(|| Error::from(err_msg("until-date seems to have non-date value")))
+                .ok_or_else(|| err_msg("until-date seems to have non-date value"))
         });
 
         debug!("Until-Date is {:?}", basedate);
@@ -177,7 +177,7 @@ impl HabitTemplate for Entry {
                 if ndt >= base {
                     debug!("-> {:?} >= {:?}", ndt, base);
                     if let Some(u) = until {
-                        if ndt > &(u?) {
+                        if *ndt > u? {
                             return Ok(None);
                         } else {
                             return Ok(Some(ndt.date()));
@@ -233,7 +233,7 @@ impl HabitTemplate for Entry {
             .map(|os| os.map(String::from))
     }
 
-    fn instance_exists_for_date(&self, date: &NaiveDate) -> Result<bool> {
+    fn instance_exists_for_date(&self, date: NaiveDate) -> Result<bool> {
         let name = self.habit_name()?;
         let date = date_to_string(date);
 
@@ -246,16 +246,16 @@ impl HabitTemplate for Entry {
             }
         }
 
-        return Ok(false);
+        Ok(false)
     }
 
-    fn instance_id_for(habit_name: &String, habit_date: &NaiveDate) -> Result<StoreId> {
+    fn instance_id_for(habit_name: &str, habit_date: NaiveDate) -> Result<StoreId> {
         instance_id_for_name_and_datestr(habit_name, &date_to_string(habit_date))
     }
 
 }
 
-fn instance_id_for_name_and_datestr(habit_name: &String, habit_date: &String) -> Result<StoreId> {
+fn instance_id_for_name_and_datestr(habit_name: &str, habit_date: &str) -> Result<StoreId> {
     crate::module_path::new_id(format!("instance/{}-{}", habit_name, habit_date))
         .context(format_err!("Failed building ID for instance: habit name = {}, habit date = {}", habit_name, habit_date))
         .map_err(Error::from)
@@ -318,7 +318,7 @@ pub mod builder {
         pub fn build<'a>(self, store: &'a Store) -> Result<FileLockEntry<'a>> {
             #[inline]
             fn mkerr(s: &'static str) -> Error {
-                Error::from(format_err!("Habit builder missing: {}", s))
+                format_err!("Habit builder missing: {}", s)
             }
 
             let name = self.name
@@ -336,7 +336,7 @@ pub mod builder {
             if let Some(until) = self.untildate {
                 debug!("Success: Until-Date present");
                 if dateobj > until {
-                    let e = Error::from(err_msg("Habit builder logic error: until-date before start date"));
+                    let e = err_msg("Habit builder logic error: until-date before start date");
                     return Err(e);
                 }
             }
@@ -345,16 +345,16 @@ pub mod builder {
                 debug!("Kairos failed: {:?}", e);
                 return Err(e)
             }
-            let date      = date_to_string(&dateobj);
+            let date      = date_to_string(dateobj);
             debug!("Success: Date valid");
 
-            let comment   = self.comment.unwrap_or_else(|| String::new());
-            let sid       = r#try!(build_habit_template_sid(&name));
+            let comment   = self.comment.unwrap_or_else(String::new);
+            let sid       = build_habit_template_sid(&name)?;
 
             debug!("Creating entry in store for: {:?}", sid);
-            let mut entry = r#try!(store.create(sid));
+            let mut entry = store.create(sid)?;
 
-            let _ = entry.set_isflag::<IsHabitTemplate>()?;
+            entry.set_isflag::<IsHabitTemplate>()?;
             {
                 let h = entry.get_header_mut();
                 let _ = h.insert("habit.template.name", Value::String(name))?;
@@ -364,8 +364,8 @@ pub mod builder {
             }
 
             if let Some(until) = self.untildate {
-                let until = date_to_string(&until);
-                r#try!(entry.get_header_mut().insert("habit.template.until", Value::String(until)));
+                let until = date_to_string(until);
+                entry.get_header_mut().insert("habit.template.until", Value::String(until))?;
             }
 
             debug!("Success: Created entry in store and set headers");
@@ -387,7 +387,7 @@ pub mod builder {
     }
 
     /// Buld a StoreId for a Habit from a date object and a name of a habit
-    fn build_habit_template_sid(name: &String) -> Result<StoreId> {
+    fn build_habit_template_sid(name: &str) -> Result<StoreId> {
         crate::module_path::new_id(format!("template/{}", name)).map_err(From::from)
     }
 
@@ -400,7 +400,7 @@ fn postprocess_instance<'a>(mut entry: FileLockEntry<'a>,
     -> Result<FileLockEntry<'a>>
 {
     {
-        let _   = entry.set_isflag::<IsHabitInstance>()?;
+        entry.set_isflag::<IsHabitInstance>()?;
         let hdr = entry.get_header_mut();
         let _   = hdr.insert("habit.instance.name",    Value::String(name))?;
         let _   = hdr.insert("habit.instance.date",    Value::String(date))?;

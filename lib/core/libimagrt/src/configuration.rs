@@ -56,11 +56,11 @@ pub fn fetch_config(searchpath: &PathBuf) -> Result<Option<Value>> {
 
         env::var("HOME")
             .map(|home| gen_vars(&PathBuf::from(home), variants.iter(), &modifier))
-            .unwrap_or(vec![]),
+            .unwrap_or_else(|_| vec![]),
 
         xdg_basedir::get_data_home()
             .map(|data_dir| gen_vars(&data_dir, variants.iter(), &modifier))
-            .unwrap_or(vec![]),
+            .unwrap_or_else(|_| vec![]),
     ];
 
     let config = vals
@@ -121,10 +121,10 @@ pub fn override_config(val: &mut Value, v: Vec<String>) -> Result<()> {
         .map(|(k, v)| {
             let value = val.read_mut(&k)
                 .context(EM::TomlQueryError)?
-                .ok_or_else(|| Error::from(err_msg("No config value there, cannot override.")))?;
+                .ok_or_else(|| err_msg("No config value there, cannot override."))?;
 
             let new_value = into_value(value, v)
-                .ok_or_else(|| Error::from(err_msg("Config override type not matching")))?;
+                .ok_or_else(|| err_msg("Config override type not matching"))?;
 
             info!("Successfully overridden: {} = {}", k, new_value);
             *value = new_value;

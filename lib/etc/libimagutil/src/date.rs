@@ -23,7 +23,7 @@ use chrono::format::ParseError;
 
 pub const NAIVE_DATE_STRING_FORMAT : &str = "%Y-%m-%d";
 
-pub fn date_to_string(ndt: &NaiveDate) -> String {
+pub fn date_to_string(ndt: NaiveDate) -> String {
     ndt.format(NAIVE_DATE_STRING_FORMAT).to_string()
 }
 

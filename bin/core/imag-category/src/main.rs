@@ -70,25 +70,23 @@ fn main() {
                                     "Add a category to entries and manage categories",
                                     ui::build_ui);
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            match name {
-                "set"               => set(&rt),
-                "get"               => get(&rt),
-                "list-category"     => list_category(&rt),
-                "create-category"   => create_category(&rt),
-                "delete-category"   => delete_category(&rt),
-                "list-categories"   => list_categories(&rt),
-                other               => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-category", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        match name {
+            "set"               => set(&rt),
+            "get"               => get(&rt),
+            "list-category"     => list_category(&rt),
+            "create-category"   => create_category(&rt),
+            "delete-category"   => delete_category(&rt),
+            "list-categories"   => list_categories(&rt),
+            other               => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-category", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        }
+    }
 }
 
 fn set(rt: &Runtime) {
@@ -103,7 +101,7 @@ fn set(rt: &Runtime) {
         })
         .into_iter();
 
-    StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
+    StoreIdIterator::new(Box::new(sids.map(Ok)))
         .into_get_iter(rt.store())
         .trace_unwrap_exit()
         .map(|o| o.unwrap_or_else(|| {
@@ -111,7 +109,7 @@ fn set(rt: &Runtime) {
             ::std::process::exit(1)
         }))
         .for_each(|mut entry| {
-            let _ = entry
+            entry
                 .set_category_checked(rt.store(), &name)
                 .map_err_trace_exit_unwrap();
         })
@@ -129,7 +127,7 @@ fn get(rt: &Runtime) {
         })
         .into_iter();
 
-    StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
+    StoreIdIterator::new(Box::new(sids.map(Ok)))
         .into_get_iter(rt.store())
         .trace_unwrap_exit()
         .map(|o| o.unwrap_or_else(|| {
@@ -138,7 +136,7 @@ fn get(rt: &Runtime) {
         }))
         .map(|entry| entry.get_category().map_err_trace_exit_unwrap())
         .for_each(|name| {
-            let _ = writeln!(outlock, "{}", name).to_exit_code().unwrap_or_exit();
+            writeln!(outlock, "{}", name).to_exit_code().unwrap_or_exit();
         })
 }
 
@@ -190,7 +188,7 @@ fn delete_category(rt: &Runtime) {
 
     if answer {
         info!("Deleting category '{}'", name);
-        let _ = rt
+        rt
             .store()
             .delete_category(&name)
             .map_err_trace_exit_unwrap();

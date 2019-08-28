@@ -37,8 +37,8 @@ impl StdoutViewer {
 
     pub fn new(view_header: bool, view_content: bool) -> StdoutViewer {
         StdoutViewer {
-            view_header: view_header,
-            view_content: view_content,
+            view_header,
+            view_content,
             trim_right: false,
             wrap_content: None,
         }
@@ -60,8 +60,8 @@ impl Viewer for StdoutViewer {
         where W: Write
     {
         if self.view_header {
-            let header = to_string(e.get_header()).unwrap_or(String::from("TOML Parser error"));
-            let _ = writeln!(sink, "{}", header)?;
+            let header = to_string(e.get_header()).unwrap_or_else(|_| String::from("TOML Parser error"));
+            writeln!(sink, "{}", header)?;
         }
 
         if self.view_content {
@@ -74,7 +74,7 @@ impl Viewer for StdoutViewer {
             match self.wrap_content {
 
                 Some(limit) => for line in ::textwrap::wrap(content, limit).iter() {
-                    let _ = writeln!(sink, "{}", line)?;
+                    writeln!(sink, "{}", line)?;
                 },
                 None => writeln!(sink, "{}", content)?,
             }

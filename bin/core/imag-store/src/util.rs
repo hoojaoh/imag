@@ -29,7 +29,7 @@ use libimagutil::key_value_split::IntoKeyValue;
 pub fn build_toml_header(matches: &ArgMatches, mut header: Value) -> Value {
     debug!("Building header from cli spec");
     if let Some(headerspecs) = matches.values_of("header") {
-        let kvs = headerspecs.into_iter()
+        let kvs = headerspecs
                             .filter_map(|hs| {
                                 debug!("- Processing: '{}'", hs);
                                 let kv = String::from(hs).into_kv();
@@ -40,10 +40,8 @@ pub fn build_toml_header(matches: &ArgMatches, mut header: Value) -> Value {
             let (key, value) = tpl.into();
             debug!("Splitting: {:?}", key);
             let mut split = key.split('.');
-            match (split.next(), &mut header) {
-                (Some(cur), &mut Value::Table(ref mut hdr)) =>
-                    insert_key_into(String::from(cur), &mut split, Cow::Owned(value), hdr),
-                _ => { }
+            if let (Some(cur), &mut Value::Table(ref mut hdr)) = (split.next(), &mut header) {
+                insert_key_into(String::from(cur), &mut split, Cow::Owned(value), hdr);
             }
         }
     }
@@ -58,27 +56,27 @@ fn insert_key_into<'a>(current: String,
                    map: &mut Map<String, Value>) {
     let next = rest_path.next();
 
-    if next.is_none() {
-        debug!("Inserting into {:?} = {:?}", current, value);
-        map.insert(current, parse_value(value));
-    } else {
+    if let Some(next) = next {
         debug!("Inserting into {:?} ... = {:?}", current, value);
         match map.entry(current) {
             Entry::Occupied(ref mut e) => {
                 match *e.get_mut() {
                     Value::Table(ref mut t) => {
-                        insert_key_into(String::from(next.unwrap()), rest_path, value, t);
+                        insert_key_into(String::from(next), rest_path, value, t);
                     },
                     _ => unreachable!(),
                 }
             },
             Entry::Vacant(v) => { v.insert(Value::Table( {
                 let mut submap = Map::new();
-                insert_key_into(String::from(next.unwrap()), rest_path, value, &mut submap);
+                insert_key_into(String::from(next), rest_path, value, &mut submap);
                 debug!("Inserting submap = {:?}", submap);
                 submap }));
             }
         }
+    } else {
+        debug!("Inserting into {:?} = {:?}", current, value);
+        map.insert(current, parse_value(value));
     }
 }
 

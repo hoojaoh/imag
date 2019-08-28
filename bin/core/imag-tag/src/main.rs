@@ -93,9 +93,8 @@ fn main() {
         })
         .into_iter();
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| match name {
+    if let Some(name) = rt.cli().subcommand_name() {
+        match name {
             "list" => for id in ids {
                 list(id, &rt)
             },
@@ -118,7 +117,8 @@ fn main() {
                     .code()
                     .map(::std::process::exit);
             },
-        });
+        }
+    }
 }
 
 fn alter(rt: &Runtime, path: StoreId, add: Option<Vec<Tag>>, rem: Option<Vec<Tag>>) {
@@ -126,21 +126,21 @@ fn alter(rt: &Runtime, path: StoreId, add: Option<Vec<Tag>>, rem: Option<Vec<Tag
         Ok(Some(mut e)) => {
             debug!("Entry header now = {:?}", e.get_header());
 
-            add.map(|tags| {
-                    debug!("Adding tags = '{:?}'", tags);
-                    for tag in tags {
-                        debug!("Adding tag '{:?}'", tag);
-                        if let Err(e) = e.add_tag(tag) {
-                            trace_error(&e);
-                        } else {
-                            debug!("Adding tag worked");
-                        }
+            if let Some(tags) = add {
+                debug!("Adding tags = '{:?}'", tags);
+                for tag in tags {
+                    debug!("Adding tag '{:?}'", tag);
+                    if let Err(e) = e.add_tag(tag) {
+                        trace_error(&e);
+                    } else {
+                        debug!("Adding tag worked");
                     }
-                }); // it is okay to ignore a None here
+                }
+            } // it is okay to ignore a None here
 
             debug!("Entry header now = {:?}", e.get_header());
 
-            rem.map(|tags| {
+            if let Some(tags) = rem {
                 debug!("Removing tags = '{:?}'", tags);
                 for tag in tags {
                     debug!("Removing tag '{:?}'", tag);
@@ -148,7 +148,7 @@ fn alter(rt: &Runtime, path: StoreId, add: Option<Vec<Tag>>, rem: Option<Vec<Tag
                         trace_error(&e);
                     }
                 }
-            }); // it is okay to ignore a None here
+            } // it is okay to ignore a None here
 
             debug!("Entry header now = {:?}", e.get_header());
 
@@ -164,7 +164,7 @@ fn alter(rt: &Runtime, path: StoreId, add: Option<Vec<Tag>>, rem: Option<Vec<Tag
         },
     }
 
-    let _ = rt.report_touched(&path).unwrap_or_exit();
+    rt.report_touched(&path).unwrap_or_exit();
 }
 
 fn list(path: StoreId, rt: &Runtime) {
@@ -193,7 +193,7 @@ fn list(path: StoreId, rt: &Runtime) {
 
     if line_out {
         for tag in &tags {
-            let _ = writeln!(rt.stdout(), "{}", tag)
+            writeln!(rt.stdout(), "{}", tag)
                 .to_exit_code()
                 .unwrap_or_exit();
         }
@@ -201,18 +201,18 @@ fn list(path: StoreId, rt: &Runtime) {
 
     if sepp_out {
         let sepp = scmd.value_of("sep").unwrap(); // we checked before
-        let _ = writeln!(rt.stdout(), "{}", tags.join(sepp))
+        writeln!(rt.stdout(), "{}", tags.join(sepp))
             .to_exit_code()
             .unwrap_or_exit();
     }
 
     if comm_out {
-        let _ = writeln!(rt.stdout(), "{}", tags.join(", "))
+        writeln!(rt.stdout(), "{}", tags.join(", "))
             .to_exit_code()
             .unwrap_or_exit();
     }
 
-    let _ = rt.report_touched(&path).unwrap_or_exit();
+    rt.report_touched(&path).unwrap_or_exit();
 }
 
 /// Get the tags which should be added from the commandline
@@ -238,7 +238,6 @@ fn retrieve_tags(m: &ArgMatches, s: &'static str, v: &'static str) -> Option<Vec
          })
          .values_of(v)
          .unwrap() // enforced by clap
-         .into_iter()
          .map(String::from)
          .collect())
 }
@@ -286,7 +285,7 @@ mod tests {
         entry.get_header().read(&"tag.values".to_owned()).map_err(Error::from)
     }
 
-    fn tags_toml_value<'a, I: IntoIterator<Item = &'static str>>(tags: I) -> Value {
+    fn tags_toml_value<I: IntoIterator<Item = &'static str>>(tags: I) -> Value {
         Value::Array(tags.into_iter().map(|s| Value::String(s.to_owned())).collect())
     }
 

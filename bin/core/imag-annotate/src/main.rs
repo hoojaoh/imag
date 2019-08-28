@@ -77,22 +77,20 @@ fn main() {
                                     "Add annotations to entries",
                                     ui::build_ui);
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            match name {
-                "add"    => add(&rt),
-                "remove" => remove(&rt),
-                "list"   => list(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-annotation", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        });
+    if let Some(name) = rt.cli().subcommand_name() {
+        match name {
+            "add"    => add(&rt),
+            "remove" => remove(&rt),
+            "list"   => list(&rt),
+            other    => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-annotation", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            },
+        }
+    }
 }
 
 fn add(rt: &Runtime) {
@@ -116,7 +114,7 @@ fn add(rt: &Runtime) {
             .annotate(rt.store())
             .map_err_trace_exit_unwrap();
 
-        let _ = annotation.edit_content(&rt).map_err_trace_exit_unwrap();
+        annotation.edit_content(&rt).map_err_trace_exit_unwrap();
 
         for id in ids {
             let mut entry = rt.store().get(id.clone())
@@ -124,7 +122,7 @@ fn add(rt: &Runtime) {
                 .ok_or_else(|| format_err!("Not found: {}", id.local_display_string()))
                 .map_err_trace_exit_unwrap();
 
-            let _ = entry.add_link(&mut annotation).map_err_trace_exit_unwrap();
+            entry.add_link(&mut annotation).map_err_trace_exit_unwrap();
         }
 
         if !scmd.is_present("dont-print-name") {
@@ -134,7 +132,7 @@ fn add(rt: &Runtime) {
                 .map_err(Error::from)
                 .map_err_trace_exit_unwrap()
             {
-                let _ = writeln!(rt.stdout(), "Name of the annotation: {}", annotation_id)
+                writeln!(rt.stdout(), "Name of the annotation: {}", annotation_id)
                     .to_exit_code()
                     .unwrap_or_exit();
             } else {
@@ -160,7 +158,7 @@ fn remove(rt: &Runtime) {
         })
         .into_iter();
 
-    ids.into_iter().for_each(|id| {
+    ids.for_each(|id| {
         let mut entry = rt.store()
             .get(id.clone())
             .map_err_trace_exit_unwrap()
@@ -178,7 +176,7 @@ fn remove(rt: &Runtime) {
                 let loc = an.get_location().clone();
                 drop(an);
 
-                let _ = rt
+                rt
                     .store()
                     .delete(loc)
                     .map_err_trace_exit_unwrap();
@@ -205,10 +203,9 @@ fn list(rt: &Runtime) {
         .into_iter();
 
     if ids.len() != 0 {
-        let _ = ids
-            .into_iter()
+        ids
             .for_each(|id| {
-                let _ = rt
+                rt
                     .store()
                     .get(id.clone())
                     .map_err_trace_exit_unwrap()
@@ -239,7 +236,7 @@ fn list(rt: &Runtime) {
 }
 
 fn list_annotation<'a>(rt: &Runtime, i: usize, a: FileLockEntry<'a>, with_text: bool) {
-    let _ = if with_text {
+    if with_text {
         writeln!(rt.stdout(),
                  "--- {i: >5} | {id}\n{text}\n\n",
                  i = i,

@@ -44,10 +44,10 @@ pub trait EntryDate {
 
 }
 
-const DATE_HEADER_LOCATION : &'static str              = "datetime.value";
-const DATE_RANGE_START_HEADER_LOCATION : &'static str  = "datetime.range.start";
-const DATE_RANGE_END_HEADER_LOCATION : &'static str    = "datetime.range.end";
-const DATE_FMT : &'static str                          = "%Y-%m-%dT%H:%M:%S";
+const DATE_HEADER_LOCATION : &str              = "datetime.value";
+const DATE_RANGE_START_HEADER_LOCATION : &str  = "datetime.range.start";
+const DATE_RANGE_END_HEADER_LOCATION : &str    = "datetime.range.end";
+const DATE_FMT : &str                          = "%Y-%m-%dT%H:%M:%S";
 
 impl EntryDate for Entry {
 
@@ -114,7 +114,7 @@ impl EntryDate for Entry {
     /// header in an inconsistent state.
     ///
     fn delete_date_range(&mut self) -> Result<()> {
-        let _ = self
+        self
              .get_header_mut()
             .delete(&DATE_RANGE_START_HEADER_LOCATION)
             .map(|_| ())
@@ -228,6 +228,7 @@ mod tests {
     fn test_set_date() {
         let store = get_store();
 
+        #[allow(clippy::zero_prefixed_literal)]
         let date = {
             let date = NaiveDate::from_ymd(2000, 01, 02);
             let time = NaiveTime::from_hms(03, 04, 05);
@@ -255,11 +256,12 @@ mod tests {
 
         match *hdr_field {
             Value::String(ref s) => assert_eq!("2000-01-02T03:04:05", s),
-            _ => assert!(false, "Wrong header type"),
+            _ => panic!("Wrong header type"),
         }
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)]
     fn test_read_date() {
         use chrono::Datelike;
         use chrono::Timelike;
@@ -300,6 +302,7 @@ mod tests {
     fn test_delete_date() {
         let store = get_store();
 
+        #[allow(clippy::zero_prefixed_literal)]
         let date = {
             let date = NaiveDate::from_ymd(2000, 01, 02);
             let time = NaiveTime::from_hms(03, 04, 05);

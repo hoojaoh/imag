@@ -51,8 +51,7 @@ impl MailConfig {
     pub fn account(&self, name: &str) -> Option<&MailAccountConfig> {
         self.accounts()
             .iter()
-            .filter(|a| a.name == name)
-            .next()
+            .find(|a| a.name == name)
     }
 
     pub fn fetchcommand(&self) -> &MailCommand {
@@ -74,8 +73,7 @@ impl MailConfig {
     pub fn fetchcommand_for_account(&self, account_name: &str) -> &MailCommand {
         self.accounts()
             .iter()
-            .filter(|a| a.name == account_name)
-            .next()
+            .find(|a| a.name == account_name)
             .and_then(|a| a.fetchcommand.as_ref())
             .unwrap_or_else(|| self.fetchcommand())
     }
@@ -83,8 +81,7 @@ impl MailConfig {
     pub fn postfetchcommand_for_account(&self, account_name: &str) -> Option<&MailCommand> {
         self.accounts()
             .iter()
-            .filter(|a| a.name == account_name)
-            .next()
+            .find(|a| a.name == account_name)
             .and_then(|a| a.postfetchcommand.as_ref())
             .or_else(|| self.postfetchcommand())
     }
@@ -92,8 +89,7 @@ impl MailConfig {
     pub fn sendcommand_for_account(&self, account_name: &str) -> &MailCommand {
         self.accounts()
             .iter()
-            .filter(|a| a.name == account_name)
-            .next()
+            .find(|a| a.name == account_name)
             .and_then(|a| a.sendcommand.as_ref())
             .unwrap_or_else(|| self.sendcommand())
     }
@@ -101,8 +97,7 @@ impl MailConfig {
     pub fn postsendcommand_for_account(&self, account_name: &str) -> Option<&MailCommand> {
         self.accounts()
             .iter()
-            .filter(|a| a.name == account_name)
-            .next()
+            .find(|a| a.name == account_name)
             .and_then(|a| a.postsendcommand.as_ref())
             .or_else(|| self.postsendcommand())
     }

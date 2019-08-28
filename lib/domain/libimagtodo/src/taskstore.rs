@@ -59,7 +59,7 @@ impl<'a> TaskStore<'a> for Store {
             .context(err_msg("Error importing"))
             .map_err(Error::from)
             .and_then(|t| {
-                let uuid = t.uuid().clone();
+                let uuid = *t.uuid();
                 self.new_from_twtask(t).map(|t| (t, line, uuid))
             })
     }
@@ -87,7 +87,7 @@ impl<'a> TaskStore<'a> for Store {
         import_task(s.as_str())
             .context(err_msg("Import error"))
             .map_err(Error::from)
-            .map(|t| t.uuid().clone())
+            .map(|t| *t.uuid())
             .and_then(|uuid| self.get_task_from_uuid(uuid))
             .and_then(|o| match o {
                 None    => Ok(Err(s)),
@@ -141,7 +141,7 @@ impl<'a> TaskStore<'a> for Store {
                 // Here we check if the status of a task is deleted and if yes, we delete it
                 // from the store.
                 if *ttask.status() == TaskStatus::Deleted {
-                    let _ = self.delete_task_by_uuid(*ttask.uuid())?;
+                    self.delete_task_by_uuid(*ttask.uuid())?;
                     info!("Deleted task {}", *ttask.uuid());
                 }
             }
@@ -154,7 +154,7 @@ impl<'a> TaskStore<'a> for Store {
     }
 
     fn all_tasks(&self) -> Result<TaskIdIterator> {
-        self.entries().map(|i| TaskIdIterator::new(i))
+        self.entries().map(TaskIdIterator::new)
     }
 
     fn new_from_twtask(&'a self, task: TTask) -> Result<FileLockEntry<'a>> {

@@ -49,7 +49,7 @@ pub fn has_end_time_where<F>(f: F) -> HasEndTimeWhere<F>
     HasEndTimeWhere::new(f)
 }
 
-pub fn has_one_of_tags<'a>(tags: &'a Vec<TTT>) -> HasOneOfTags<'a> {
+pub fn has_one_of_tags(tags: &[TTT]) -> HasOneOfTags<'_> {
     HasOneOfTags::new(tags)
 }
 
@@ -100,10 +100,10 @@ mod types {
         }
     }
 
-    pub struct HasOneOfTags<'a>(&'a Vec<TTT>);
+    pub struct HasOneOfTags<'a>(&'a [TTT]);
 
     impl<'a> HasOneOfTags<'a> {
-        pub fn new(tags: &'a Vec<TTT>) -> HasOneOfTags<'a> {
+        pub fn new(tags: &'a [TTT]) -> HasOneOfTags<'a> {
             HasOneOfTags(tags)
         }
     }

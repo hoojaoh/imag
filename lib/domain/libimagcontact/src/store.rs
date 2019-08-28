@@ -157,7 +157,7 @@ fn prepare_fetching_from_store(buf: &str) -> Result<(StoreId, Value)> {
     debug!("Parsed: {:?}", vcard);
 
     let uid = vcard.uid()
-        .ok_or_else(|| Error::from(format_err!("UID Missing: {}", buf.to_string())))?;
+        .ok_or_else(|| format_err!("UID Missing: {}", buf.to_string()))?;
 
     let value = { // dirty ugly hack
         let serialized = DeserVcard::from(vcard);

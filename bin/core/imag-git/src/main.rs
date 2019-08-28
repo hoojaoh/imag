@@ -116,20 +116,16 @@ fn main() {
     debug!("Adding args = {:?}", args);
     command.args(&args);
 
-    match rt.cli().subcommand() {
-        (external, Some(ext_m)) => {
-            command.arg(external);
-            let args = ext_m
-                .values_of("")
-                .map(|vs| vs.map(String::from).collect())
-                .unwrap_or_else(|| vec![]);
+    if let (external, Some(ext_m)) = rt.cli().subcommand() {
+        command.arg(external);
+        let args = ext_m
+            .values_of("")
+            .map(|vs| vs.map(String::from).collect())
+            .unwrap_or_else(|| vec![]);
 
-            debug!("Adding subcommand '{}' and args = {:?}", external, args);
-            command.args(&args);
-        },
-        _ => {},
+        debug!("Adding subcommand '{}' and args = {:?}", external, args);
+        command.args(&args);
     }
-
     let mut out = rt.stdout();
 
     debug!("Calling: {:?}", command);
@@ -151,19 +147,19 @@ fn main() {
             debug!("Error calling git");
             match e.kind() {
                 ErrorKind::NotFound => {
-                    let _ = writeln!(out, "Cannot find 'git' executable")
+                    writeln!(out, "Cannot find 'git' executable")
                         .to_exit_code()
                         .unwrap_or_exit();
                     ::std::process::exit(1);
                 },
                 ErrorKind::PermissionDenied => {
-                    let _ = writeln!(out, "No permission to execute: 'git'")
+                    writeln!(out, "No permission to execute: 'git'")
                         .to_exit_code()
                         .unwrap_or_exit();
                     ::std::process::exit(1);
                 },
                 _ => {
-                    let _ = writeln!(out, "Error spawning: {:?}", e)
+                    writeln!(out, "Error spawning: {:?}", e)
                         .to_exit_code()
                         .unwrap_or_exit();
                     ::std::process::exit(1);

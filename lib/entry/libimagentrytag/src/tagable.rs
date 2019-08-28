@@ -60,9 +60,9 @@ impl Tagable for Entry {
         self.get_header()
             .read_partial::<TagHeader>()?
             .map(|header| {
-                let _ = header.values
+                header.values
                     .iter()
-                    .map(is_tag_str)
+                    .map(|val| is_tag_str(val))
                     .collect::<Result<_>>()?;
 
                 Ok(header.values)
@@ -73,7 +73,7 @@ impl Tagable for Entry {
     fn set_tags(&mut self, ts: &[Tag]) -> Result<()> {
         let _ = ts
             .iter()
-            .map(is_tag_str)
+            .map(|val| is_tag_str(val))
             .collect::<Result<Vec<_>>>()?;
 
         let header = TagHeader {
@@ -88,7 +88,7 @@ impl Tagable for Entry {
     }
 
     fn add_tag(&mut self, t: Tag) -> Result<()> {
-        let _ = is_tag_str(&t)?;
+        is_tag_str(&t)?;
 
         let mut tags = self.get_tags()?;
         debug!("Pushing tag = {:?} to list = {:?}", t, tags);
@@ -97,7 +97,7 @@ impl Tagable for Entry {
     }
 
     fn remove_tag(&mut self, t: Tag) -> Result<()> {
-        let _ = is_tag_str(&t)?;
+        is_tag_str(&t)?;
 
         let mut tags = self.get_tags()?;
         tags.retain(|tag| *tag != t);

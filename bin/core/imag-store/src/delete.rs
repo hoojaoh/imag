@@ -31,7 +31,7 @@ pub fn delete(rt: &Runtime) {
     let path  = StoreId::new(path).map_err_trace_exit_unwrap();
     debug!("Deleting file at {:?}", id);
 
-    let _ = rt.store()
+    rt.store()
         .delete(path)
         .map_warn_err(|e| format!("Error: {:?}", e))
         .map_err_trace_exit_unwrap();

@@ -73,14 +73,12 @@ pub fn edit(rt: &Runtime) {
             loop {
                 let res = edit_contact(&rt, &contact, &ref_config, collection_name, force_override);
                 if !retry {
-                    let _ = res.map_err_trace_exit_unwrap();
-                } else {
-                    if ask_continue(&mut input, &mut output) {
-                        continue;
-                    } else {
-                        exit(1)
-                    }
-                }
+                    res.map_err_trace_exit_unwrap();
+                } else if ask_continue(&mut input, &mut output) {
+    continue;
+} else {
+    exit(1)
+}
             }
         });
 }

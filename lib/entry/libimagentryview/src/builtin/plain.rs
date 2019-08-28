@@ -32,7 +32,7 @@ impl PlainViewer {
 
     pub fn new(show_header: bool) -> PlainViewer {
         PlainViewer {
-            show_header: show_header,
+            show_header,
         }
     }
 
@@ -44,9 +44,9 @@ impl Viewer for PlainViewer {
         where W: Write
     {
         if self.show_header {
-            let _ = writeln!(sink, "{}", e.get_header())?;
+            writeln!(sink, "{}", e.get_header())?;
         }
-        let _ = writeln!(sink, "{}", e.get_content())?;
+        writeln!(sink, "{}", e.get_content())?;
         Ok(())
     }
 

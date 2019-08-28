@@ -97,7 +97,7 @@ fn tw_hook(rt: &Runtime) {
             .import_task_from_reader(stdin)
             .map_err_trace_exit_unwrap();
 
-        let _ = writeln!(rt.stdout(), "{}\nTask {} stored in imag", line, uuid)
+        writeln!(rt.stdout(), "{}\nTask {} stored in imag", line, uuid)
             .to_exit_code()
             .unwrap_or_exit();
 
@@ -174,7 +174,7 @@ fn list(rt: &Runtime) {
             };
 
             // and then print that
-            let _ = writeln!(rt.stdout(), "{}", outstring).to_exit_code().unwrap_or_exit();
+            writeln!(rt.stdout(), "{}", outstring).to_exit_code().unwrap_or_exit();
         });
 
     res.map_err_trace().ok();

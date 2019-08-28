@@ -46,7 +46,7 @@ pub fn create(rt: &Runtime) {
 
     let mut entry = create_entry(rt.store(), &diaryname, rt);
 
-    let _ = rt.report_touched(entry.get_location()).unwrap_or_exit();
+    rt.report_touched(entry.get_location()).unwrap_or_exit();
 
     let res = if rt.cli().subcommand_matches("create").unwrap().is_present("no-edit") {
         debug!("Not editing new diary entry");
@@ -56,7 +56,7 @@ pub fn create(rt: &Runtime) {
         entry.edit_content(rt).context(err_msg("Diary edit error")).map_err(Error::from)
     };
 
-    let _ = res.map_err_trace_exit_unwrap();
+    res.map_err_trace_exit_unwrap();
     info!("Ok!");
 }
 
@@ -126,7 +126,7 @@ fn create_id_from_clispec(create: &ArgMatches, timed_type: Timed) -> NaiveDateTi
                         .map_err(|_| warn!("Could not parse minute: '{}'", s))
                         .ok()
                 })
-                .unwrap_or(ndt.minute());
+                .unwrap_or_else(|| ndt.minute());
 
             ndt.with_minute(min)
                 .unwrap_or_else(|| {
@@ -146,7 +146,7 @@ fn create_id_from_clispec(create: &ArgMatches, timed_type: Timed) -> NaiveDateTi
                         .map_err(|_| warn!("Could not parse minute: '{}'", s))
                         .ok()
                 })
-                .unwrap_or(ndt.minute());
+                .unwrap_or_else(|| ndt.minute());
 
             let sec = create
                 .value_of("second")
@@ -156,7 +156,7 @@ fn create_id_from_clispec(create: &ArgMatches, timed_type: Timed) -> NaiveDateTi
                         .map_err(|_| warn!("Could not parse second: '{}'", s))
                         .ok()
                 })
-                .unwrap_or(ndt.second());
+                .unwrap_or_else(|| ndt.second());
 
             ndt.with_minute(min)
                 .unwrap_or_else(|| {

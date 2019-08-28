@@ -148,10 +148,10 @@ impl LinkProcessor {
                         store.retrieve(id)?
                     } else {
                         store.get(id.clone())?
-                            .ok_or_else(|| Error::from(format_err!("Store get error: {}", id)))?
+                            .ok_or_else(|| format_err!("Store get error: {}", id))?
                     };
 
-                    let _ = entry.add_link(&mut target)?;
+                    entry.add_link(&mut target)?;
                 },
                 LinkQualification::ExternalLink(url) => {
                     if !self.process_urls {
@@ -212,7 +212,7 @@ impl LinkProcessor {
 
                     trace!("Ready processing, linking new ref entry...");
 
-                    let _ = entry.add_link(&mut ref_entry)?;
+                    entry.add_link(&mut ref_entry)?;
                 },
                 LinkQualification::Undecidable(e) => {
                     // error
@@ -250,7 +250,7 @@ impl LinkQualification {
                 // url::Url::parse() as Err(_)
                 //
                 // if url.scheme() == "https" || url.scheme() == "http" {
-                    return LinkQualification::ExternalLink(url);
+                    LinkQualification::ExternalLink(url)
                 // }
             },
 
@@ -302,7 +302,7 @@ mod tests {
         let store = get_store();
 
         let mut base = store.create(PathBuf::from("test-1")).unwrap();
-        *base.get_content_mut() = format!("This is an example entry with no links");
+        *base.get_content_mut() = "This is an example entry with no links".to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -319,7 +319,7 @@ mod tests {
         let store = get_store();
 
         let mut base = store.create(PathBuf::from("test-2.1")).unwrap();
-        *base.get_content_mut() = format!("This is an example entry with one [link](test-2.2)");
+        *base.get_content_mut() = "This is an example entry with one [link](test-2.2)".to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -362,7 +362,7 @@ mod tests {
         let store = get_store();
 
         let mut base = store.create(PathBuf::from("test-2.1")).unwrap();
-        *base.get_content_mut() = format!("This is an example entry with one [link](/test-2.2)");
+        *base.get_content_mut() = "This is an example entry with one [link](/test-2.2)".to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -383,7 +383,7 @@ mod tests {
         let store = get_store();
 
         let mut base = store.create(PathBuf::from("test-2.1")).unwrap();
-        *base.get_content_mut() = format!("This is an example entry with one [link](test-2.2)");
+        *base.get_content_mut() = "This is an example entry with one [link](test-2.2)".to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -423,7 +423,7 @@ mod tests {
         let store = get_store();
 
         let mut base = store.create(PathBuf::from("test-5.1")).unwrap();
-        *base.get_content_mut() = format!("An [example](http://example.com) is here.");
+        *base.get_content_mut() = "An [example](http://example.com) is here.".to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -473,7 +473,7 @@ mod tests {
         let mut base = store.create(PathBuf::from("test-5.1")).unwrap();
 
         // As the ref target must exist, we're using /etc/hosts here
-        *base.get_content_mut() = format!("An [example ref](file:///etc/hosts) is here.");
+        *base.get_content_mut() = "An [example ref](file:///etc/hosts) is here.".to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -503,10 +503,8 @@ mod tests {
         let mut base = store.create(PathBuf::from("test-5.1")).unwrap();
 
         // As the ref target must exist, we're using /etc/hosts here
-        *base.get_content_mut() = format!(
-            r#"An [example ref](file:///etc/hosts)
-            is [here](file:///etc/group)."#
-        );
+        *base.get_content_mut() = r#"An [example ref](file:///etc/hosts)
+            is [here](file:///etc/group)."#.to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -536,10 +534,8 @@ mod tests {
         let mut base = store.create(PathBuf::from("test-5.1")).unwrap();
 
         // As the ref target must exist, we're using /etc/hosts here
-        *base.get_content_mut() = format!(
-            r#"An [example ref](file:///etc/hosts)
-            is [here](file:///etc/group)."#
-        );
+        *base.get_content_mut() = r#"An [example ref](file:///etc/hosts)
+            is [here](file:///etc/group)."#.to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -567,7 +563,7 @@ mod tests {
         let store = get_store();
 
         let mut base = store.create(PathBuf::from("test-5.1")).unwrap();
-        *base.get_content_mut() = format!("An [example](http://example.com) is here.");
+        *base.get_content_mut() = "An [example](http://example.com) is here.".to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -594,7 +590,7 @@ mod tests {
         let store = get_store();
 
         let mut base = store.create(PathBuf::from("test-2.1")).unwrap();
-        *base.get_content_mut() = format!("This is an example entry with one [link](test-2.2)");
+        *base.get_content_mut() = "This is an example entry with one [link](test-2.2)".to_string();
 
         let update = store.update(&mut base);
         assert!(update.is_ok());
@@ -611,7 +607,7 @@ mod tests {
         let result = processor.process(&mut base, &store);
         assert!(result.is_ok(), "Should be Ok(()): {:?}", result);
 
-        assert_eq!(2, store.entries().unwrap().collect::<Vec<_>>().len());
+        assert_eq!(2, store.entries().unwrap().count());
     }
 
 }
