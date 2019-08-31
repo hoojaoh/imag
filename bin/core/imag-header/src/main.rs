@@ -151,6 +151,7 @@ fn has<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
 {
     debug!("Processing headers: has value");
     let header_path = get_header_path(mtch, "header-value-path");
+    let mut output = rt.stdout();
 
     iter.for_each(|entry| {
         trace!("Processing headers: working on {:?}", entry.get_location());
@@ -161,6 +162,9 @@ fn has<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
             .is_some()
             {
                 rt.report_touched(entry.get_location()).unwrap_or_exit();
+                if !rt.output_is_pipe() {
+                    writeln!(output, "{}", entry.get_location()).to_exit_code().unwrap_or_exit();
+                }
             }
     })
 }
@@ -170,6 +174,7 @@ fn hasnt<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
 {
     debug!("Processing headers: hasnt value");
     let header_path = get_header_path(mtch, "header-value-path");
+    let mut output = rt.stdout();
 
     iter.for_each(|entry| {
         trace!("Processing headers: working on {:?}", entry.get_location());
@@ -179,6 +184,9 @@ fn hasnt<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
             .map_err_trace_exit_unwrap()
             .is_none() {
                 rt.report_touched(entry.get_location()).unwrap_or_exit();
+                if !rt.output_is_pipe() {
+                    writeln!(output, "{}", entry.get_location()).to_exit_code().unwrap_or_exit();
+                }
             }
     })
 }
