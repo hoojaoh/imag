@@ -342,5 +342,62 @@ mod tests {
 
         assert!(succeeded, "not all entries in iterator are from coll_3 collection");
     }
+
+    #[test]
+    fn test_entries_iterator_substr() {
+        setup_logging();
+        let store = get_store();
+
+        let ids = {
+            let base = String::from("entry");
+            let variants = vec!["coll_1", "coll2", "coll_3"];
+            let modifier = |base: &String, v: &&str| {
+                StoreId::new(PathBuf::from(format!("{}/{}", *v, base))).unwrap()
+            };
+
+            generate_variants(&base, variants.iter(), &modifier)
+        };
+
+        for id in ids {
+            let _ = store.retrieve(id).unwrap();
+        }
+
+        let succeeded = store.entries()
+            .unwrap()
+            .find_by_id_substr("_")
+            .map(|id| { debug!("Processing id = {:?}", id); id })
+            .all(|id| id.unwrap().local_display_string().contains('_'));
+
+        assert!(succeeded, "not all entries in iterator contain '_'");
+    }
+
+    #[test]
+    fn test_entries_iterator_startswith() {
+        setup_logging();
+        let store = get_store();
+
+        let ids = {
+            let base = String::from("entry");
+            let variants = vec!["coll_1", "coll2", "coll_3"];
+            let modifier = |base: &String, v: &&str| {
+                StoreId::new(PathBuf::from(format!("{}/{}", *v, base))).unwrap()
+            };
+
+            generate_variants(&base, variants.iter(), &modifier)
+        };
+
+        for id in ids {
+            let _ = store.retrieve(id).unwrap();
+        }
+
+        let succeeded = store.entries()
+            .unwrap()
+            .find_by_id_startswith("entr")
+            .map(|id| { debug!("Processing id = {:?}", id); id })
+            .all(|id| id.unwrap().local_display_string().starts_with("entry"));
+
+        assert!(succeeded, "not all entries in iterator start with 'entr'");
+    }
+
 }
 
