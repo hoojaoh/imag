@@ -40,3 +40,39 @@ pub trait Viewer {
         Ok(())
     }
 }
+
+/// Extension for all iterators, so that an iterator can be viewed with:
+///
+/// ```ignore
+///     iter.view::<Viewer, _>(&mut sink)
+/// ```
+///
+pub trait ViewFromIter {
+    fn view<V, W>(self, sink: &mut W) -> Result<()>
+        where V: Viewer + Default,
+              W: Write;
+
+    fn view_with<V, W>(self, v: V, sink: &mut W) -> Result<()>
+        where V: Viewer,
+              W: Write;
+}
+
+impl<I, E> ViewFromIter for I
+    where I: Iterator<Item = E>,
+          E: Deref<Target = Entry>
+{
+    fn view<V, W>(self, sink: &mut W) -> Result<()>
+        where V: Viewer + Default,
+              W: Write
+    {
+        self.view_with(V::default(), sink)
+    }
+
+    fn view_with<V, W>(self, v: V, sink: &mut W) -> Result<()>
+        where V: Viewer,
+              W: Write
+    {
+        v.view_entries(self, sink)
+    }
+}
+
