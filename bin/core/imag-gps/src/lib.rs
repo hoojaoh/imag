@@ -39,7 +39,7 @@ extern crate clap;
 #[macro_use] extern crate failure;
 
 extern crate libimagentrygps;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagutil;
 extern crate libimagerror;
 extern crate libimagstore;
@@ -50,11 +50,13 @@ use std::str::FromStr;
 
 
 use failure::err_msg;
+use failure::Fallible as Result;
+use clap::App;
 
 use libimagstore::storeid::StoreId;
 use libimagentrygps::types::*;
 use libimagentrygps::entry::*;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagrt::runtime::Runtime;
 use libimagerror::trace::MapErrTrace;
 use libimagerror::exit::ExitUnwrap;
@@ -62,26 +64,45 @@ use libimagerror::io::ToExitCode;
 
 mod ui;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-gps",
-                                    &version,
-                                    "Add GPS coordinates to entries",
-                                    ui::build_ui);
-
-    if let Some(name) = rt.cli().subcommand_name() {
-        match name {
-            "add"    => add(&rt),
-            "remove" => remove(&rt),
-            "get"    => get(&rt),
-            other    => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-gps", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagGps {}
+impl ImagApplication for ImagGps {
+    fn run(rt: Runtime) -> Result<()> {
+        if let Some(name) = rt.cli().subcommand_name() {
+            match name {
+                "add"    => add(&rt),
+                "remove" => remove(&rt),
+                "get"    => get(&rt),
+                other    => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-gps", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                }
             }
         }
+
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Add GPS coordinates to entries"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 
