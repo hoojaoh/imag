@@ -44,7 +44,7 @@ extern crate failure;
 extern crate textwrap;
 
 extern crate libimaglog;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagerror;
 extern crate libimagdiary;
@@ -56,9 +56,10 @@ use std::str::FromStr;
 
 use failure::Error;
 use failure::err_msg;
+use failure::Fallible as Result;
 
+use libimagrt::application::ImagApplication;
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
 use libimagerror::trace::MapErrTrace;
 use libimagerror::io::ToExitCode;
 use libimagerror::exit::ExitUnwrap;
@@ -70,50 +71,70 @@ use libimaglog::log::Log;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagstore::store::FileLockEntry;
 
+use clap::App;
+
 mod ui;
-use crate::ui::build_ui;
 
 use toml::Value;
 use itertools::Itertools;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-log",
-                                    &version,
-                                    "Overlay to imag-diary to 'log' single lines of text",
-                                    build_ui);
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagLog {}
+impl ImagApplication for ImagLog {
+    fn run(rt: Runtime) -> Result<()> {
+        if let Some(scmd) = rt.cli().subcommand_name() {
+            match scmd {
+                "show" => show(&rt),
+                other    => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-log", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            }
+        } else {
+            let text       = get_log_text(&rt);
+            let diary_name = rt.cli()
+                .value_of("diaryname")
+                .map(String::from)
+                .unwrap_or_else(|| get_diary_name(&rt));
 
+            debug!("Writing to '{}': {}", diary_name, text);
 
-    if let Some(scmd) = rt.cli() .subcommand_name() {
-        match scmd {
-            "show" => show(&rt),
-            other    => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-log", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
+            rt
+                .store()
+                .new_entry_now(&diary_name)
+                .map(|mut fle| {
+                    fle.make_log_entry().map_err_trace_exit_unwrap();
+                    *fle.get_content_mut() = text;
+                    fle
+                })
+                .map(|fle| rt.report_touched(fle.get_location()).unwrap_or_exit())
+                .map_err_trace_exit_unwrap();
+
         }
-    } else {
-        let text       = get_log_text(&rt);
-        let diary_name = rt.cli()
-            .value_of("diaryname")
-            .map(String::from)
-            .unwrap_or_else(|| get_diary_name(&rt));
 
-        debug!("Writing to '{}': {}", diary_name, text);
+        Ok(())
+    }
 
-        rt
-            .store()
-            .new_entry_now(&diary_name)
-            .map(|mut fle| {
-                fle.make_log_entry().map_err_trace_exit_unwrap();
-                *fle.get_content_mut() = text;
-                fle
-            })
-            .map(|fle| rt.report_touched(fle.get_location()).unwrap_or_exit())
-            .map_err_trace_exit_unwrap();
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Overlay to imag-diary to 'log' single lines of text"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 
@@ -203,7 +224,7 @@ fn show(rt: &Runtime) {
                 .unwrap_or_exit();
             Ok(())
         })
-        .collect::<Result<Vec<()>, ExitCode>>()
+        .collect::<RResult<Vec<()>, ExitCode>>()
         .unwrap_or_exit();
 }
 
