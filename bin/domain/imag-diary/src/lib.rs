@@ -47,18 +47,20 @@ extern crate libimagentryedit;
 extern crate libimagentryview;
 extern crate libimagerror;
 extern crate libimaginteraction;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagtimeui;
 extern crate libimagutil;
 
 use std::io::Write;
 
-use libimagrt::setup::generate_runtime_setup;
 use libimagrt::runtime::Runtime;
+use libimagrt::application::ImagApplication;
 use libimagerror::trace::MapErrTrace;
 
 use itertools::Itertools;
+use clap::App;
+use failure::Fallible as Result;
 
 mod create;
 mod delete;
@@ -72,29 +74,48 @@ use crate::delete::delete;
 use crate::list::list;
 use crate::view::view;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-diary",
-                                    &version,
-                                    "Personal Diary/Diaries",
-                                    ui::build_ui);
-
-    if let Some(name) = rt.cli().subcommand_name() {
-        debug!("Call {}", name);
-        match name {
-            "diaries" => diaries(&rt),
-            "create" => create(&rt),
-            "delete" => delete(&rt),
-            "list" => list(&rt),
-            "view" => view(&rt),
-            other    => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-diary", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagDiary {}
+impl ImagApplication for ImagDiary {
+    fn run(rt: Runtime) -> Result<()> {
+        if let Some(name) = rt.cli().subcommand_name() {
+            debug!("Call {}", name);
+            match name {
+                "diaries" => diaries(&rt),
+                "create" => create(&rt),
+                "delete" => delete(&rt),
+                "list" => list(&rt),
+                "view" => view(&rt),
+                other    => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-diary", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            }
         }
+
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Personal Diary/Diaries"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 
