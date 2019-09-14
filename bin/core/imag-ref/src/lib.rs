@@ -39,23 +39,24 @@ extern crate clap;
 #[macro_use] extern crate failure;
 
 extern crate libimagstore;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagentryref;
 extern crate libimagerror;
 extern crate libimaginteraction;
 extern crate libimagutil;
 
 mod ui;
-use crate::ui::build_ui;
 
 use std::process::exit;
 use std::io::Write;
 
 use failure::Error;
+use failure::Fallible as Result;
+use clap::App;
 
 use libimagerror::trace::MapErrTrace;
 use libimagerror::exit::ExitUnwrap;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagrt::runtime::Runtime;
 use libimagentryref::reference::Ref;
 use libimagentryref::reference::MutRef;
@@ -63,27 +64,47 @@ use libimagentryref::reference::RefFassade;
 use libimagentryref::hasher::default::DefaultHasher;
 use libimagentryref::util::get_ref_config;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-ref",
-                                    &version,
-                                    "Reference files outside of the store",
-                                    build_ui);
-    if let Some(name) = rt.cli().subcommand_name() {
-        debug!("Call: {}", name);
-        match name {
-            "deref"     => deref(&rt),
-            "create"    => create(&rt),
-            "remove"    => remove(&rt),
-            "list-dead" => list_dead(&rt),
-            other => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-ref", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagRef {}
+impl ImagApplication for ImagRef {
+    fn run(rt: Runtime) -> Result<()> {
+        if let Some(name) = rt.cli().subcommand_name() {
+            debug!("Call: {}", name);
+            match name {
+                "deref"     => deref(&rt),
+                "create"    => create(&rt),
+                "remove"    => remove(&rt),
+                "list-dead" => list_dead(&rt),
+                other => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-ref", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            }
         };
+
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Reference files outside of the store"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 
