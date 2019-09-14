@@ -51,3 +51,10 @@ path             = "../../../lib/core/libimagrt"
 default-features = false
 features         = ["testing"]
 
+[lib]
+name = "libimagtagcmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-tag"
+path = "src/bin.rs"

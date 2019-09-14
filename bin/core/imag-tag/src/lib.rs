@@ -41,7 +41,7 @@ extern crate clap;
 extern crate failure;
 
 extern crate libimagstore;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagentrytag;
 extern crate libimagerror;
 
@@ -61,7 +61,7 @@ extern crate env_logger;
 use std::io::Write;
 
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagentrytag::tagable::Tagable;
 use libimagentrytag::tag::Tag;
 use libimagerror::trace::trace_error;
@@ -71,53 +71,72 @@ use libimagerror::exit::ExitUnwrap;
 use libimagstore::storeid::StoreId;
 use libimagutil::warn_exit::warn_exit;
 
-use clap::ArgMatches;
+use clap::{App, ArgMatches};
+use failure::Fallible as Result;
 
 mod ui;
 
-use crate::ui::build_ui;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-tag",
-                                    &version,
-                                    "Direct interface to the store. Use with great care!",
-                                    build_ui);
-
-    let ids = rt
-        .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
-        .into_iter();
-
-    if let Some(name) = rt.cli().subcommand_name() {
-        match name {
-            "list" => for id in ids {
-                list(id, &rt)
-            },
-            "remove" => for id in ids {
-                let add = None;
-                let rem = get_remove_tags(rt.cli());
-                debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
-                alter(&rt, id, add, rem);
-            },
-            "add" => for id in ids {
-                let add = get_add_tags(rt.cli());
-                let rem = None;
-                debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
-                alter(&rt, id, add, rem);
-            },
-            other => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-tag", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagTag {}
+impl ImagApplication for ImagTag {
+    fn run(rt: Runtime) -> Result<()> {
+        let ids = rt
+            .ids::<crate::ui::PathProvider>()
+            .map_err_trace_exit_unwrap()
+            .unwrap_or_else(|| {
+                error!("No ids supplied");
+                ::std::process::exit(1);
+            })
+            .into_iter();
+        
+        if let Some(name) = rt.cli().subcommand_name() {
+            match name {
+                "list" => for id in ids {
+                    list(id, &rt)
+                },
+                "remove" => for id in ids {
+                    let add = None;
+                    let rem = get_remove_tags(rt.cli());
+                    debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
+                    alter(&rt, id, add, rem);
+                },
+                "add" => for id in ids {
+                    let add = get_add_tags(rt.cli());
+                    let rem = None;
+                    debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
+                    alter(&rt, id, add, rem);
+                },
+                other => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-tag", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            }
         }
+
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Manage tags of entries"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 
