@@ -44,7 +44,7 @@ extern crate toml_query;
 extern crate libimagentryannotation;
 extern crate libimagentryedit;
 extern crate libimagerror;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagutil;
 extern crate libimagentrylink;
@@ -52,7 +52,9 @@ extern crate libimagentrylink;
 use std::io::Write;
 
 use failure::Error;
+use failure::Fallible as Result;
 use toml_query::read::TomlValueReadTypeExt;
+use clap::App;
 
 use libimagentryannotation::annotateable::*;
 use libimagentryannotation::annotation_fetcher::*;
@@ -63,33 +65,48 @@ use libimagerror::io::ToExitCode;
 use libimagerror::errors::ErrorMsg as EM;
 use libimagerror::iter::TraceIterator;
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagstore::store::FileLockEntry;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagentrylink::linkable::Linkable;
 
 mod ui;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-annotation",
-                                    &version,
-                                    "Add annotations to entries",
-                                    ui::build_ui);
-
-    if let Some(name) = rt.cli().subcommand_name() {
-        match name {
-            "add"    => add(&rt),
-            "remove" => remove(&rt),
-            "list"   => list(&rt),
-            other    => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-annotation", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
+pub enum ImagAnnotate {}
+impl ImagApplication for ImagAnnotate {
+    fn run(rt: Runtime) -> Result<()> {
+        if let Some(name) = rt.cli().subcommand_name() {
+            match name {
+                "add"    => add(&rt),
+                "remove" => remove(&rt),
+                "list"   => list(&rt),
+                other    => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-annotation", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            }
         }
+
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Add annotations to entries"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 

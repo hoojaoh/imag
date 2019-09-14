@@ -39,3 +39,10 @@ version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
+[lib]
+name = "libimagannotatecmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-annotate"
+path = "src/bin.rs"
