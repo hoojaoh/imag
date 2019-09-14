@@ -35,3 +35,10 @@ version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
+[lib]
+name = "libimagtodofrontend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-todo"
+path = "src/bin.rs"

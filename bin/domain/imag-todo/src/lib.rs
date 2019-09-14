@@ -41,7 +41,7 @@ extern crate toml_query;
 #[macro_use] extern crate is_match;
 extern crate failure;
 
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagerror;
 extern crate libimagtodo;
 
@@ -49,9 +49,11 @@ use std::process::{Command, Stdio};
 use std::io::stdin;
 use std::io::Write;
 use failure::Error;
+use failure::Fallible as Result;
+use clap::App;
 
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagtodo::taskstore::TaskStore;
 use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::iter::TraceIterator;
@@ -60,29 +62,47 @@ use libimagerror::io::ToExitCode;
 
 mod ui;
 
-use crate::ui::build_ui;
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-todo",
-                                    &version,
-                                    "Interface with taskwarrior",
-                                    build_ui);
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagTodo {}
+impl ImagApplication for ImagTodo {
+    fn run(rt: Runtime) -> Result<()> {
+        match rt.cli().subcommand_name() {
+            Some("tw-hook") => tw_hook(&rt),
+            Some("list") => list(&rt),
+            Some(other) => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-todo", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(::std::process::exit);
+            }
+            None => {
+                warn!("No command");
+            },
+        };
 
-    match rt.cli().subcommand_name() {
-        Some("tw-hook") => tw_hook(&rt),
-        Some("list") => list(&rt),
-        Some(other) => {
-            debug!("Unknown command");
-            let _ = rt.handle_unknown_subcommand("imag-todo", other, rt.cli())
-                .map_err_trace_exit_unwrap()
-                .code()
-                .map(::std::process::exit);
-        }
-        None => {
-            warn!("No command");
-        },
-    } // end match scmd
-} // end main
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Interface with taskwarrior"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
+    }
+}
 
 fn tw_hook(rt: &Runtime) {
     let subcmd = rt.cli().subcommand_matches("tw-hook").unwrap();
