@@ -47,7 +47,7 @@ extern crate serde_json;
 
 extern crate libimagcontact;
 extern crate libimagstore;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagerror;
 extern crate libimagutil;
 extern crate libimaginteraction;
@@ -59,16 +59,17 @@ use std::path::PathBuf;
 use std::io::Write;
 
 use handlebars::Handlebars;
-use clap::ArgMatches;
+use clap::{App, ArgMatches};
 use toml_query::read::TomlValueReadExt;
 use toml_query::read::TomlValueReadTypeExt;
 use toml_query::read::Partial;
 use walkdir::WalkDir;
 use failure::Error;
 use failure::err_msg;
+use failure::Fallible as Result;
 
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagerror::trace::MapErrTrace;
 use libimagerror::io::ToExitCode;
 use libimagerror::exit::ExitUnwrap;
@@ -82,36 +83,53 @@ mod util;
 mod create;
 mod edit;
 
-use crate::ui::build_ui;
 use crate::util::build_data_object_for_handlebars;
 use crate::create::create;
 use crate::edit::edit;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-contact",
-                                    &version,
-                                    "Contact management tool",
-                                    build_ui);
-
-
-    if let Some(name) = rt.cli().subcommand_name() {
-        debug!("Call {}", name);
-        match name {
-            "list"   => list(&rt),
-            "import" => import(&rt),
-            "show"   => show(&rt),
-            "edit"   => edit(&rt),
-            "find"   => find(&rt),
-            "create" => create(&rt),
-            other    => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-contact", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagContact {}
+impl ImagApplication for ImagContact {
+    fn run(rt: Runtime) -> Result<()> {
+        if let Some(name) = rt.cli().subcommand_name() {
+            debug!("Call {}", name);
+            match name {
+                "list"   => list(&rt),
+                "import" => import(&rt),
+                "show"   => show(&rt),
+                "edit"   => edit(&rt),
+                "find"   => find(&rt),
+                "create" => create(&rt),
+                other    => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-contact", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            }
         }
+        
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Contact management tool"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 
