@@ -23,8 +23,9 @@ extern crate clap;
 extern crate regex;
 extern crate filters;
 #[macro_use] extern crate log;
+extern crate failure;
 
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagerror;
 extern crate libimagstore;
 extern crate libimagwiki;
@@ -33,9 +34,11 @@ extern crate libimagentrylink;
 extern crate libimagutil;
 
 use std::io::Write;
+use failure::Fallible as Result;
+use clap::App;
 
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagerror::iter::TraceIterator;
 use libimagerror::trace::MapErrTrace;
 use libimagerror::exit::ExitUnwrap;
@@ -44,36 +47,55 @@ use libimagwiki::store::WikiStore;
 use libimagentryedit::edit::{Edit, EditHeader};
 
 mod ui;
-use crate::ui::build_ui;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-wiki",
-                                    &version,
-                                    "Personal wiki",
-                                    build_ui);
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagWiki {}
+impl ImagApplication for ImagWiki {
+    fn run(rt: Runtime) -> Result<()> {
+        let wiki_name = rt.cli().value_of("wikiname").unwrap_or("default");
+        trace!("wiki_name = {}", wiki_name);
+        trace!("calling = {:?}", rt.cli().subcommand_name());
 
-    let wiki_name = rt.cli().value_of("wikiname").unwrap_or("default");
-    trace!("wiki_name = {}", wiki_name);
-    trace!("calling = {:?}", rt.cli().subcommand_name());
+        match rt.cli().subcommand_name() {
+            Some("list")        => list(&rt, wiki_name),
+            Some("idof")        => idof(&rt, wiki_name),
+            Some("create")      => create(&rt, wiki_name),
+            Some("create-wiki") => create_wiki(&rt),
+            Some("show")        => show(&rt, wiki_name),
+            Some("delete")      => delete(&rt, wiki_name),
+            Some(other)         => {
+                debug!("Unknown command");
+                let _ = rt.handle_unknown_subcommand("imag-wiki", other, rt.cli())
+                    .map_err_trace_exit_unwrap()
+                    .code()
+                    .map(std::process::exit);
+            }
+            None => warn!("No command"),
+        } // end match scmd
 
-    match rt.cli().subcommand_name() {
-        Some("list")        => list(&rt, wiki_name),
-        Some("idof")        => idof(&rt, wiki_name),
-        Some("create")      => create(&rt, wiki_name),
-        Some("create-wiki") => create_wiki(&rt),
-        Some("show")        => show(&rt, wiki_name),
-        Some("delete")      => delete(&rt, wiki_name),
-        Some(other)         => {
-            debug!("Unknown command");
-            let _ = rt.handle_unknown_subcommand("imag-wiki", other, rt.cli())
-                .map_err_trace_exit_unwrap()
-                .code()
-                .map(std::process::exit);
-        }
-        None => warn!("No command"),
-    } // end match scmd
-} // end main
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Personal wiki"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
+    }
+}
+
 
 fn list(rt: &Runtime, wiki_name: &str) {
     let scmd   = rt.cli().subcommand_matches("list").unwrap(); // safed by clap

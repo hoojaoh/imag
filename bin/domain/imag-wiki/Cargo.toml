@@ -21,6 +21,7 @@ toml-query = "0.9.2"
 is-match = "0.1.0"
 regex = "1.1.7"
 filters = "0.3.0"
+failure = "0.1.5"
 
 libimagentryedit     = { version = "0.10.0", path = "../../../lib/entry/libimagentryedit" }
 libimagentrylink     = { version = "0.10.0", path = "../../../lib/entry/libimagentrylink" }
@@ -31,3 +32,10 @@ libimagstore         = { version = "0.10.0", path = "../../../lib/core/libimagst
 libimagwiki          = { version = "0.10.0", path = "../../../lib/domain/libimagwiki" }
 libimagutil          = { version = "0.10.0", path = "../../../lib/etc/libimagutil" }
 
+[lib]
+name = "libimagwikifrontend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-wiki"
+path = "src/bin.rs"
