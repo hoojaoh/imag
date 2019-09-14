@@ -40,7 +40,7 @@ extern crate toml;
 #[cfg(test)] extern crate toml_query;
 extern crate failure;
 
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagerror;
 
@@ -51,7 +51,8 @@ extern crate libimagutil;
 #[cfg(not(test))]
 extern crate libimagutil;
 
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
+use libimagrt::runtime::Runtime;
 use libimagerror::trace::MapErrTrace;
 
 mod create;
@@ -65,42 +66,62 @@ mod util;
 
 use std::ops::Deref;
 
+use failure::Fallible as Result;
+use clap::App;
+
 use crate::create::create;
 use crate::delete::delete;
 use crate::get::get;
 use crate::retrieve::retrieve;
-use crate::ui::build_ui;
 use crate::update::update;
 use crate::verify::verify;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt      = generate_runtime_setup("imag-store",
-                                         &version,
-                                         "Direct interface to the store. Use with great care!",
-                                         build_ui);
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagStore {}
+impl ImagApplication for ImagStore {
+    fn run(rt: Runtime) -> Result<()> {
+        let command = rt.cli().subcommand_name().map(String::from);
 
-    let command = rt.cli().subcommand_name().map(String::from);
+        if let Some(command) = command {
+            debug!("Call: {}", command);
+            match command.deref() {
+                "create"   => create(&rt),
+                "delete"   => delete(&rt),
+                "get"      => get(&rt),
+                "retrieve" => retrieve(&rt),
+                "update"   => update(&rt),
+                "verify"   => verify(&rt),
+                other      => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-store", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            };
+        } else {
+            debug!("No command");
+        }
 
-    if let Some(command) = command {
-        debug!("Call: {}", command);
-        match command.deref() {
-            "create"   => create(&rt),
-            "delete"   => delete(&rt),
-            "get"      => get(&rt),
-            "retrieve" => retrieve(&rt),
-            "update"   => update(&rt),
-            "verify"   => verify(&rt),
-            other      => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-store", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
-        };
-    } else {
-        debug!("No command");
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Direct interface to the store. Use with great care!"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
-
