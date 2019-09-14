@@ -45,7 +45,7 @@ extern crate prettytable;
 
 extern crate libimaghabit;
 extern crate libimagstore;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagerror;
 extern crate libimagutil;
 extern crate libimaginteraction;
@@ -57,9 +57,11 @@ use prettytable::Table;
 use prettytable::Cell;
 use prettytable::Row;
 use failure::Error;
+use failure::Fallible as Result;
+use clap::App;
 
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::iter::TraceIterator;
 use libimagerror::exit::ExitUnwrap;
@@ -75,37 +77,55 @@ use libimagutil::debug_result::DebugResult;
 
 mod ui;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-habit",
-                                    &version,
-                                    "Habit tracking tool",
-                                    ui::build_ui);
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagHabit {}
+impl ImagApplication for ImagHabit {
+    fn run(rt: Runtime) -> Result<()> {
+        rt
+            .cli()
+            .subcommand_name()
+            .map(|name| {
+                debug!("Call {}", name);
+                match name {
+                    "create" => create(&rt),
+                    "delete" => delete(&rt),
+                    "list"   => list(&rt),
+                    "today"  => today(&rt, false),
+                    "status" => today(&rt, true),
+                    "show"   => show(&rt),
+                    "done"   => done(&rt),
+                    other    => {
+                        debug!("Unknown command");
+                        let _ = rt.handle_unknown_subcommand("imag-habit", other, rt.cli())
+                            .map_err_trace_exit_unwrap()
+                            .code()
+                            .map(::std::process::exit);
+                    },
+                }
+            })
+            .unwrap_or_else(|| today(&rt, true));
 
+        Ok(())
+    }
 
-    rt
-        .cli()
-        .subcommand_name()
-        .map(|name| {
-            debug!("Call {}", name);
-            match name {
-                "create" => create(&rt),
-                "delete" => delete(&rt),
-                "list"   => list(&rt),
-                "today"  => today(&rt, false),
-                "status" => today(&rt, true),
-                "show"   => show(&rt),
-                "done"   => done(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-habit", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        })
-        .unwrap_or_else(|| today(&rt, true));
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Habit tracking tool"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
+    }
 }
 
 fn create(rt: &Runtime) {
