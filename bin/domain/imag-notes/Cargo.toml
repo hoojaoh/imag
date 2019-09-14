@@ -22,6 +22,7 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 log = "0.4.6"
 itertools = "0.8.0"
+failure = "0.1.5"
 
 libimagrt        = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
@@ -35,3 +36,10 @@ version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
+[lib]
+name = "libimagnotesfrontend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-notes"
+path = "src/bin.rs"

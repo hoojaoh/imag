@@ -37,9 +37,10 @@
 extern crate clap;
 #[macro_use] extern crate log;
 extern crate itertools;
+extern crate failure;
 
 extern crate libimagnotes;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagentryedit;
 extern crate libimagerror;
 extern crate libimagutil;
@@ -49,10 +50,12 @@ use std::io::Write;
 use std::process::exit;
 
 use itertools::Itertools;
+use clap::App;
+use failure::Fallible as Result;
 
 use libimagentryedit::edit::Edit;
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagnotes::note::Note;
 use libimagnotes::notestore::*;
@@ -65,30 +68,49 @@ use libimagutil::warn_result::WarnResult;
 
 
 mod ui;
-use crate::ui::build_ui;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-notes",
-                                    &version,
-                                    "Note taking helper",
-                                    build_ui);
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagNotes {}
+impl ImagApplication for ImagNotes {
+    fn run(rt: Runtime) -> Result<()> {
+        if let Some(name) = rt.cli().subcommand_name() {
 
-    if let Some(name) = rt.cli().subcommand_name() {
-        debug!("Call: {}", name);
-        match name {
-            "create" => create(&rt),
-            "delete" => delete(&rt),
-            "edit"   => edit(&rt),
-            "list"   => list(&rt),
-            other    => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-notes", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
-        };
+            debug!("Call: {}", name);
+            match name {
+                "create" => create(&rt),
+                "delete" => delete(&rt),
+                "edit"   => edit(&rt),
+                "list"   => list(&rt),
+                other    => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-notes", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            };
+        }
+        
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Note taking helper"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 
