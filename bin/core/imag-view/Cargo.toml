@@ -41,3 +41,10 @@ version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
+[lib]
+name = "libimagviewcmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-view"
+path = "src/bin.rs"
