@@ -20,6 +20,8 @@ is-it-maintained-open-issues      = { repository = "matthiasbeyer/imag" }
 maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
+failure = "0.1.5"
+
 libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
 libimagrt    = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 
@@ -31,3 +33,10 @@ features = ["color", "suggestions", "wrap_help"]
 [dev-dependencies]
 toml = "0.5.1"
 
+[lib]
+name = "libimaginitcmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-init"
+path = "src/bin.rs"

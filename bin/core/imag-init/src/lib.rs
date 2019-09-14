@@ -35,7 +35,7 @@
 )]
 
 extern crate clap;
-
+extern crate failure;
 #[cfg(test)]
 extern crate toml;
 
@@ -53,6 +53,10 @@ use std::process::Command;
 use libimagerror::exit::ExitUnwrap;
 use libimagerror::io::ToExitCode;
 use libimagrt::runtime::Runtime;
+use libimagrt::application::ImagApplication;
+
+use failure::Fallible as Result;
+use clap::App;
 
 const CONFIGURATION_STR : &str = include_str!("../imagrc.toml");
 
@@ -69,7 +73,34 @@ const GITIGNORE_STR : &str = r#"
 imagrc.toml
 "#;
 
-fn main() {
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagInit {}
+impl ImagApplication for ImagInit {
+    fn run(_rt: Runtime) -> Result<()> {
+        panic!("imag-init needs to be run as a seperate binary, or we'll need to figure something out here!");
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Intialize the imag store"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
+    }
+}
+
+pub fn imag_init() {
     let version = make_imag_version!();
     let app     = ui::build_ui(Runtime::get_default_cli_builder(
         "imag-init",
