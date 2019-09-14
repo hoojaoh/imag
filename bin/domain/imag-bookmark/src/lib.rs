@@ -41,7 +41,7 @@ extern crate toml_query;
 #[macro_use] extern crate failure;
 
 extern crate libimagbookmark;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagerror;
 extern crate libimagutil;
 extern crate libimagentrylink;
@@ -52,9 +52,11 @@ use std::ops::DerefMut;
 
 use toml_query::read::TomlValueReadTypeExt;
 use failure::Error;
+use failure::Fallible as Result;
+use clap::App;
 
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagbookmark::collection::BookmarkCollection;
 use libimagbookmark::collection::BookmarkCollectionStore;
 use libimagbookmark::link::Link as BookmarkLink;
@@ -64,33 +66,49 @@ use libimagerror::exit::ExitUnwrap;
 use libimagutil::debug_result::DebugResult;
 use libimagentrylink::linkable::Linkable;
 
-
 mod ui;
 
-use crate::ui::build_ui;
-
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-bookmark",
-                                    &version,
-                                    "Bookmark collection tool",
-                                    build_ui);
-
-    if let Some(name) = rt.cli().subcommand_name() {
-        debug!("Call {}", name);
-        match name {
-            "add"        => add(&rt),
-            "collection" => collection(&rt),
-            "list"       => list(&rt),
-            "remove"     => remove(&rt),
-            other        => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-bookmark", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagBookmark {}
+impl ImagApplication for ImagBookmark {
+    fn run(rt: Runtime) -> Result<()> {
+        if let Some(name) = rt.cli().subcommand_name() {
+            debug!("Call {}", name);
+            match name {
+                "add"        => add(&rt),
+                "collection" => collection(&rt),
+                "list"       => list(&rt),
+                "remove"     => remove(&rt),
+                other        => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-bookmark", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            }
         }
+
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Bookmark collection tool"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 
