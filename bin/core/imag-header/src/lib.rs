@@ -41,7 +41,7 @@ extern crate failure;
 
 extern crate libimagentryedit;
 extern crate libimagerror;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagutil;
 
@@ -49,10 +49,10 @@ use std::io::Write;
 use std::str::FromStr;
 use std::string::ToString;
 
-use clap::ArgMatches;
+use clap::{App, ArgMatches};
 use filters::filter::Filter;
-use failure::Error;
 use toml::Value;
+use failure::{Fallible as Result, Error};
 
 use libimagerror::exit::ExitCode;
 use libimagerror::exit::ExitUnwrap;
@@ -60,7 +60,7 @@ use libimagerror::io::ToExitCode;
 use libimagerror::iter::TraceIterator;
 use libimagerror::trace::MapErrTrace;
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreIdIterator;
@@ -68,55 +68,73 @@ use libimagstore::storeid::StoreIdIterator;
 use toml_query::read::TomlValueReadExt;
 use toml_query::read::TomlValueReadTypeExt;
 
-
 mod ui;
 
 const EPS_CMP: f64 = 1e-10;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-header",
-                                    &version,
-                                    "Plumbing tool for reading/writing structured data in entries",
-                                    ui::build_ui);
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagHeader {}
+impl ImagApplication for ImagHeader {
+    fn run(rt: Runtime) -> Result<()> {
+        let list_output_with_ids     = rt.cli().is_present("list-id");
+        let list_output_with_ids_fmt = rt.cli().value_of("list-id-format");
 
-    let list_output_with_ids     = rt.cli().is_present("list-id");
-    let list_output_with_ids_fmt = rt.cli().value_of("list-id-format");
+        trace!("list_output_with_ids     = {:?}", list_output_with_ids );
+        trace!("list_output_with_ids_fmt = {:?}", list_output_with_ids_fmt);
 
-    trace!("list_output_with_ids     = {:?}", list_output_with_ids );
-    trace!("list_output_with_ids_fmt = {:?}", list_output_with_ids_fmt);
+        let sids = rt
+            .ids::<crate::ui::PathProvider>()
+            .map_err_trace_exit_unwrap()
+            .unwrap_or_else(|| {
+                error!("No ids supplied");
+                ::std::process::exit(1);
+            })
+            .into_iter();
 
-    let sids = rt
-        .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
-        .into_iter();
+        let iter = StoreIdIterator::new(Box::new(sids.map(Ok)))
+            .into_get_iter(rt.store())
+            .trace_unwrap_exit()
+            .filter_map(|x| x);
 
-    let iter = StoreIdIterator::new(Box::new(sids.map(Ok)))
-        .into_get_iter(rt.store())
-        .trace_unwrap_exit()
-        .filter_map(|x| x);
+        match rt.cli().subcommand() {
+            ("read", Some(mtch))   => ::std::process::exit(read(&rt, mtch, iter)),
+            ("has", Some(mtch))    => has(&rt, mtch, iter),
+            ("hasnt", Some(mtch))  => hasnt(&rt, mtch, iter),
+            ("int", Some(mtch))    => int(&rt, mtch, iter),
+            ("float", Some(mtch))  => float(&rt, mtch, iter),
+            ("string", Some(mtch)) => string(&rt, mtch, iter),
+            ("bool", Some(mtch))   => boolean(&rt, mtch, iter),
+            (other, _mtchs) => {
+                debug!("Unknown command");
+                ::std::process::exit({
+                    rt.handle_unknown_subcommand("imag-header", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .unwrap_or(1)
+                });
+            },
+        };
 
-    match rt.cli().subcommand() {
-        ("read", Some(mtch))   => ::std::process::exit(read(&rt, mtch, iter)),
-        ("has", Some(mtch))    => has(&rt, mtch, iter),
-        ("hasnt", Some(mtch))  => hasnt(&rt, mtch, iter),
-        ("int", Some(mtch))    => int(&rt, mtch, iter),
-        ("float", Some(mtch))  => float(&rt, mtch, iter),
-        ("string", Some(mtch)) => string(&rt, mtch, iter),
-        ("bool", Some(mtch))   => boolean(&rt, mtch, iter),
-        (other, _mtchs) => {
-            debug!("Unknown command");
-            ::std::process::exit({
-                rt.handle_unknown_subcommand("imag-header", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .unwrap_or(1)
-            });
-        },
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Plumbing tool for reading/writing structured data in entries"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
 
