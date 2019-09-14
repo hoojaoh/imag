@@ -21,6 +21,7 @@ maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
 log = "0.4.6"
+failure = "0.1.5"
 
 libimagrt        = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
@@ -32,3 +33,10 @@ version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
+[lib]
+name = "libimagmvcmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-mv"
+path = "src/bin.rs"
