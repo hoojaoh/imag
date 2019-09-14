@@ -30,3 +30,10 @@ version = "2.33.0"
 default-features = false
 features = ["suggestions", "color", "wrap_help"]
 
+[lib]
+name = "libimagdiagnosticscmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-diagnostics"
+path = "src/bin.rs"
