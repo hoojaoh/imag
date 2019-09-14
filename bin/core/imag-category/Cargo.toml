@@ -36,3 +36,10 @@ version          = "2.33.0"
 default-features = false
 features         = ["color", "suggestions", "wrap_help"]
 
+[lib]
+name = "libimagcategorycmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-category"
+path = "src/bin.rs"

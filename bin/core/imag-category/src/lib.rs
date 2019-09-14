@@ -42,15 +42,18 @@ extern crate failure;
 
 extern crate libimagentrycategory;
 extern crate libimagerror;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimaginteraction;
+
+use failure::Fallible as Result;
+use clap::App;
 
 use libimagerror::trace::MapErrTrace;
 use libimagerror::exit::ExitUnwrap;
 use libimagerror::io::ToExitCode;
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 
 mod ui;
 
@@ -63,31 +66,51 @@ use libimagerror::iter::TraceIterator;
 use libimagentrycategory::entry::EntryCategory;
 use libimagentrycategory::category::Category;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-category",
-                                    &version,
-                                    "Add a category to entries and manage categories",
-                                    ui::build_ui);
-
-    if let Some(name) = rt.cli().subcommand_name() {
-        match name {
-            "set"               => set(&rt),
-            "get"               => get(&rt),
-            "list-category"     => list_category(&rt),
-            "create-category"   => create_category(&rt),
-            "delete-category"   => delete_category(&rt),
-            "list-categories"   => list_categories(&rt),
-            other               => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-category", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagCategory {}
+impl ImagApplication for ImagCategory {
+    fn run(rt: Runtime) -> Result<()> {
+        if let Some(name) = rt.cli().subcommand_name() {
+            match name {
+                "set"               => set(&rt),
+                "get"               => get(&rt),
+                "list-category"     => list_category(&rt),
+                "create-category"   => create_category(&rt),
+                "delete-category"   => delete_category(&rt),
+                "list-categories"   => list_categories(&rt),
+                other               => {
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-category", other, rt.cli())
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
+            }
         }
+
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Add a category to entries and manage categories"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
+
 
 fn set(rt: &Runtime) {
     let scmd = rt.cli().subcommand_matches("set").unwrap(); // safed by main()
