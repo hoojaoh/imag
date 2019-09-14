@@ -34,3 +34,10 @@ version          = "2.33.0"
 default-features = false
 features         = ["color", "suggestions", "wrap_help"]
 
+[lib]
+name = "libimagmarkdowncmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-markdown"
+path = "src/bin.rs"
