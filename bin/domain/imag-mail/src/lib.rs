@@ -40,7 +40,7 @@ extern crate clap;
 extern crate toml_query;
 #[macro_use] extern crate indoc;
 
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagmail;
 extern crate libimagerror;
 extern crate libimagstore;
@@ -52,6 +52,7 @@ use std::path::PathBuf;
 
 use failure::Fallible as Result;
 use toml_query::read::TomlValueReadTypeExt;
+use clap::App;
 
 use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::iter::TraceIterator;
@@ -63,7 +64,7 @@ use libimagmail::util;
 use libimagentryref::reference::{Ref, RefFassade};
 use libimagentryref::util::get_ref_config;
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagutil::info_result::*;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreIdIterator;
@@ -71,31 +72,51 @@ use libimagstore::iter::get::StoreIdGetIteratorExtension;
 
 mod ui;
 
-use crate::ui::build_ui;
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagMail {}
+impl ImagApplication for ImagMail {
+    fn run(rt: Runtime) -> Result<()> {
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-mail",
-                                    &version,
-                                    "Mail collection tool",
-                                    build_ui);
+                    if let Some(name) = rt.cli().subcommand_name() {
 
-    if let Some(name) = rt.cli().subcommand_name() {
-        debug!("Call {}", name);
-        match name {
-            "import-mail" => import_mail(&rt),
-            "list"        => list(&rt),
-            "mail-store"  => mail_store(&rt),
-            other         => {
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-mail", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
+                debug!("Call {}", name);
+                match name {
+                    "import-mail" => import_mail(&rt),
+                    "list"        => list(&rt),
+                    "mail-store"  => mail_store(&rt),
+                    other         => {
+                        debug!("Unknown command");
+                        let _ = rt.handle_unknown_subcommand("imag-mail", other, rt.cli())
+                            .map_err_trace_exit_unwrap()
+                            .code()
+                            .map(::std::process::exit);
+                    }
+                }
             }
-        }
+
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Mail collection tool"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 }
+
 
 fn import_mail(rt: &Runtime) {
     let collection_name = get_ref_collection_name(rt).map_err_trace_exit_unwrap();
