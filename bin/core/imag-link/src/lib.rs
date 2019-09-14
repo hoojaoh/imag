@@ -45,7 +45,7 @@ extern crate failure;
 
 extern crate libimagentrylink;
 extern crate libimagentryurl;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagerror;
 
@@ -69,7 +69,7 @@ use libimagerror::trace::{MapErrTrace, trace_error};
 use libimagerror::exit::ExitUnwrap;
 use libimagerror::io::ToExitCode;
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
 use libimagutil::warn_exit::warn_exit;
@@ -77,57 +77,75 @@ use libimagutil::warn_result::*;
 
 use url::Url;
 use failure::Fallible as Result;
+use clap::App;
 
 mod ui;
 
-use crate::ui::build_ui;
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagLink {}
+impl ImagApplication for ImagLink {
+    fn run(rt: Runtime) -> Result<()> {
+        if rt.cli().is_present("check-consistency") {
+            let exit_code = match rt.store().check_link_consistency() {
+                Ok(_) => {
+                    info!("Store is consistent");
+                    0
+                }
+                Err(e) => {
+                    trace_error(&e);
+                    1
+                }
+            };
+            ::std::process::exit(exit_code);
+        }
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-link",
-                                    &version,
-                                    "Link entries",
-                                    build_ui);
-    if rt.cli().is_present("check-consistency") {
-        let exit_code = match rt.store().check_link_consistency() {
-            Ok(_) => {
-                info!("Store is consistent");
-                0
-            }
-            Err(e) => {
-                trace_error(&e);
-                1
-            }
-        };
-        ::std::process::exit(exit_code);
+        let _ = rt.cli()
+            .subcommand_name()
+            .map(|name| {
+                match name {
+                    "remove" => remove_linking(&rt),
+                    "unlink" => unlink(&rt),
+                    "list"   => list_linkings(&rt),
+                    other    => {
+                        debug!("Unknown command");
+                        let _ = rt.handle_unknown_subcommand("imag-link", other, rt.cli())
+                            .map_err_trace_exit_unwrap()
+                            .code()
+                            .map(::std::process::exit);
+                    },
+                }
+            })
+            .or_else(|| {
+                if let (Some(from), Some(to)) = (rt.cli().value_of("from"), rt.cli().values_of("to")) {
+                    Some(link_from_to(&rt, from, to))
+                } else {
+                    warn_exit("No commandline call", 1)
+                }
+            })
+            .ok_or_else(|| err_msg("No commandline call".to_owned()))
+            .map_err_trace_exit_unwrap();
+
+        Ok(())
     }
 
-    rt.cli()
-        .subcommand_name()
-        .map(|name| {
-            match name {
-                "remove" => remove_linking(&rt),
-                "unlink" => unlink(&rt),
-                "list"   => list_linkings(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-link", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
-        })
-        .or_else(|| {
-            if let (Some(from), Some(to)) = (rt.cli().value_of("from"), rt.cli().values_of("to")) {
-                link_from_to(&rt, from, to);
-                Some(())
-            } else {
-                warn_exit("No commandline call", 1)
-            }
-        })
-        .ok_or_else(|| err_msg("No commandline call".to_owned()))
-        .map_err_trace_exit_unwrap();
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "Link entries"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
+    }
 }
 
 fn get_entry_by_name<'a>(rt: &'a Runtime, name: &str) -> Result<Option<FileLockEntry<'a>>> {
