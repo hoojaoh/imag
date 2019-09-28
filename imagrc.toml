@@ -353,6 +353,7 @@ execute_in_store = false
 music = "/home/user/music"
 mail = "/home/user/mail"
 contacts = "/home/user/contacts"
+calendars = "/home/user/calendars"
 
 [mail]
 # The name of the mail reference collection

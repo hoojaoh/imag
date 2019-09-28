@@ -102,6 +102,14 @@ fn import(rt: &Runtime) {
         .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))
         .map_err_trace_exit_unwrap();
 
+    // sanity check
+    debug!("Doing sanity check on config, to see whether the configuration required for importing is there");
+    if ref_config.get(collection_name).is_none() {
+        error!("Configuration missing: {}.{}", libimagentryref::reference::Config::LOCATION, collection_name);
+        ::std::process::exit(1);
+    }
+
+    debug!("Starting import...");
     scmd.values_of("filesordirs")
         .unwrap() // save by clap
         .into_iter()
@@ -115,7 +123,9 @@ fn import(rt: &Runtime) {
                     Err(e) => Some(Err(Error::from(e))),
                     Ok(fe) => {
                         if fe.file_type().is_file() {
-                            Some(Ok(fe.into_path()))
+                            let path = fe.into_path();
+                            trace!("Found file: {}", path.display());
+                            Some(Ok(path))
                         } else {
                             None // filter out directories
                         }
@@ -127,6 +137,7 @@ fn import(rt: &Runtime) {
         .flat_map(|it| it)   // From Iter<Iter<Result<PathBuf>>> to Iter<Result<PathBuf>>
         .trace_unwrap_exit() //... to Iter<PathBuf>
         .map(|path| {
+            trace!("Importing {}", path.display());
             let v = rt.store().import_from_path(path, collection_name, &ref_config, force_override)?;
             Ok(v.into_iter()
                 .filter_map(|result| if do_fail {
