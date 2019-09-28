@@ -58,6 +58,9 @@ pub trait EventStore<'a> {
         -> Result<Vec<Result<FileLockEntry<'a>>>>
         where P: AsRef<Path>,
               Coll: AsRef<str>;
+
+    fn get_event_by_uid<ID>(&'a self, id: ID) -> Result<Option<FileLockEntry<'a>>>
+        where ID: AsRef<str>;
 }
 
 impl<'a> EventStore<'a> for Store {
@@ -93,6 +96,12 @@ impl<'a> EventStore<'a> for Store {
                 Ok(entry)
             })
             .collect())
+    }
+
+    fn get_event_by_uid<ID>(&'a self, id: ID) -> Result<Option<FileLockEntry<'a>>>
+        where ID: AsRef<str>
+    {
+        self.get(crate::module_path::new_id(id.as_ref())?)
     }
 }
 
