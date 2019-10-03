@@ -37,6 +37,7 @@ use libimagentryref::reference::Config;
 use libimagentryref::hasher::default::DefaultHasher;
 use libimagerror::trace::MapErrTrace;
 
+#[derive(Debug)]
 pub struct ParsedEventFLE<'a> {
     inner: FileLockEntry<'a>,
     data: ICalendar,
