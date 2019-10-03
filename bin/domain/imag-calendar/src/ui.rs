@@ -67,6 +67,13 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .required(false)
                         .multiple(false)
                         .help("Override the format used to list one event"))
+
+                   .arg(Arg::with_name("list-past")
+                        .long("past")
+                        .takes_value(false)
+                        .required(false)
+                        .multiple(false)
+                        .help("List past events"))
                    )
 }
 

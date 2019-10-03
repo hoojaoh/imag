@@ -40,6 +40,7 @@ extern crate clap;
 extern crate toml_query;
 extern crate walkdir;
 extern crate handlebars;
+extern crate chrono;
 
 #[macro_use] extern crate libimagrt;
 extern crate libimagcalendar;
@@ -58,6 +59,7 @@ use toml_query::read::Partial;
 use toml_query::read::TomlValueReadExt;
 use walkdir::DirEntry;
 use walkdir::WalkDir;
+use vobject::icalendar::Event;
 
 use libimagcalendar::store::EventStore;
 use libimagerror::io::ToExitCode;
@@ -67,6 +69,7 @@ use libimagerror::trace::MapErrTrace;
 use libimagrt::runtime::Runtime;
 use libimagrt::setup::generate_runtime_setup;
 
+mod filters;
 mod ui;
 mod util;
 
@@ -168,6 +171,8 @@ fn list(rt: &Runtime) {
     let list_format = get_event_print_format("calendar.list_format", rt, &scmd)
         .map_err_trace_exit_unwrap();
 
+    let do_filter_past = !scmd.is_present("list-past");
+
     let ref_config      = rt.config()
         .ok_or_else(|| format_err!("No configuration, cannot continue!"))
         .map_err_trace_exit_unwrap()
@@ -181,7 +186,11 @@ fn list(rt: &Runtime) {
     debug!("List format: {:?}", list_format);
     debug!("Ref config : {:?}", ref_config);
 
-    let event_filter = |pefle: &ParsedEventFLE| true; // TODO: impl filtering
+    let event_filter = |e: &'_ Event| { // what a crazy hack to make the compiler happy
+        debug!("Filtering event: {:?}", e);
+        let f = filters::filter_past(do_filter_past, chrono::Local::now().naive_local());
+        f(e)
+    };
 
     let mut listed_events = 0;
 
@@ -195,7 +204,6 @@ fn list(rt: &Runtime) {
         .trace_unwrap_exit()
         .map(|ev| ParsedEventFLE::parse(ev, &ref_config))
         .trace_unwrap_exit()
-        .filter(|e| event_filter(e))
         .for_each(|parsed_entry| {
             parsed_entry
                 .get_data()
@@ -222,5 +230,4 @@ fn list(rt: &Runtime) {
 fn is_not_hidden(entry: &DirEntry) -> bool {
     !entry.file_name().to_str().map(|s| s.starts_with(".")).unwrap_or(false)
 }
-
 
