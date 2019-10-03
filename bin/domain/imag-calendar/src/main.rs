@@ -47,8 +47,11 @@ extern crate libimagstore;
 extern crate libimagutil;
 
 use std::path::PathBuf;
+use std::result::Result as RResult;
+use std::io::Write;
 
 use failure::Error;
+use failure::err_msg;
 use failure::Fallible as Result;
 use toml_query::read::Partial;
 use toml_query::read::TomlValueReadExt;
@@ -56,6 +59,7 @@ use walkdir::DirEntry;
 use walkdir::WalkDir;
 
 use libimagcalendar::store::EventStore;
+use libimagerror::io::ToExitCode;
 use libimagerror::exit::ExitUnwrap;
 use libimagerror::iter::TraceIterator;
 use libimagerror::trace::MapErrTrace;
@@ -63,6 +67,7 @@ use libimagrt::runtime::Runtime;
 use libimagrt::setup::generate_runtime_setup;
 
 mod ui;
+mod util;
 
 fn main() {
     let version = make_imag_version!();
@@ -76,6 +81,7 @@ fn main() {
         debug!("Call {}", name);
         match name {
             "import" => import(&rt),
+            "list"   => list(&rt),
             other    => {
                 warn!("Right now, only the 'import' command is available");
                 debug!("Unknown command");
@@ -152,6 +158,66 @@ fn import(rt: &Runtime) {
         .trace_unwrap_exit()
         .flat_map(|it| it)
         .for_each(|fle| rt.report_touched(fle.get_location()).unwrap_or_exit());
+}
+
+fn list(rt: &Runtime) {
+    use util::*;
+
+    let scmd            = rt.cli().subcommand_matches("list").unwrap(); // safe by clap
+    let ref_config      = rt.config()
+        .ok_or_else(|| format_err!("No configuration, cannot continue!"))
+        .map_err_trace_exit_unwrap()
+        .read_partial::<libimagentryref::reference::Config>()
+        .map_err(Error::from)
+        .map_err_trace_exit_unwrap()
+        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))
+        .map_err_trace_exit_unwrap();
+
+    let event_filter = |pefle: &ParsedEventFLE| true; // TODO: impl filtering
+
+    rt.store()
+        .all_events()
+        .map_err_trace_exit_unwrap()
+        .trace_unwrap_exit()
+        .map(|sid| rt.store().get(sid))
+        .trace_unwrap_exit()
+        .map(|oe| oe.ok_or_else(|| err_msg("Missing entry while calling all_events()")))
+        .trace_unwrap_exit()
+        .map(|ev| ParsedEventFLE::parse(ev, &ref_config))
+        .trace_unwrap_exit()
+        .filter(|e| event_filter(e))
+        .for_each(|parsed_event| {
+            for event in parsed_event.get_data().events().filter_map(RResult::ok) {
+                macro_rules! get_data {
+                    ($t:expr, $text:expr) => {
+                        ($t).map(|obj| obj.into_raw()).unwrap_or_else(|| String::from($text))
+                    }
+                }
+
+                let summary     = get_data!(event.summary(), "<no summary>");
+                let uid         = get_data!(event.uid(), "<no uid>");
+                let description = get_data!(event.description(), "<no description>");
+                let dtstart     = get_data!(event.dtstart(), "<no start date>");
+                let dtend       = get_data!(event.dtend(), "<no end date>");
+                let location    = get_data!(event.location(), "<no location>");
+
+                let summary_underline = std::iter::repeat('-').take(summary.len()).collect::<String>();
+
+                writeln!(rt.stdout(),
+                    "{summary}\n{summary_underline}\n\n{uid}\n{description}\n{dtstart}\n{dtend}\n{location}\n\n",
+                    summary           = summary,
+                    summary_underline = summary_underline,
+                    uid               = uid,
+                    description       = description,
+                    dtstart           = dtstart,
+                    dtend             = dtend,
+                    location          = location)
+                    .to_exit_code()
+                    .unwrap_or_exit();
+            }
+
+            rt.report_touched(parsed_event.get_entry().get_location()).unwrap_or_exit();
+        });
 }
 
 /// helper function to check whether a DirEntry points to something hidden (starting with dot)

@@ -56,6 +56,11 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .multiple(false)
                         .help("Override if entry for event already exists"))
                    )
+
+        .subcommand(SubCommand::with_name("list")
+                   .about("List calendar entries")
+                   .version("0.1")
+                   )
 }
 
 fn import_validator<A: AsRef<str>>(s: A) -> Result<(), String> {
