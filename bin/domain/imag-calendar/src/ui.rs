@@ -81,6 +81,13 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .required(false)
                         .multiple(false)
                         .help("List events which are dated before certain date"))
+
+                   .arg(Arg::with_name("list-after")
+                        .long("after")
+                        .takes_value(true)
+                        .required(false)
+                        .multiple(false)
+                        .help("List events which are dated after certain date"))
                    )
 }
 

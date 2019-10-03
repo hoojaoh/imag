@@ -61,6 +61,10 @@ pub fn event_is_before<'a>(event: &Event<'a>, before_spec: &NaiveDateTime) -> bo
     }
 }
 
+pub fn event_is_after<'a>(event: &Event<'a>, after_spec: &NaiveDateTime) -> bool {
+    !event_is_before(event, after_spec)
+}
+
 fn try_to_parse_datetime(s: &str) -> Result<NaiveDateTime> {
     const FORMATS : &[&'static str] = &[
         "%Y%m%dT%H%M%S",
