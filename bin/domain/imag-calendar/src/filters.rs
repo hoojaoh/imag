@@ -75,12 +75,7 @@ fn try_to_parse_datetime(s: &str) -> Result<NaiveDateTime> {
         "%Y%m%dT%H%M%SZ"
     ];
 
-    for format in FORMATS {
-        if let Ok(parsed) = NaiveDateTime::parse_from_str(s, format) {
-            return Ok(parsed);
-        }
-    }
-
-    Err(format_err!("Cannot parse datetime: {}", s))
+    ::libimagutil::date::try_to_parse_datetime_from_string(s, FORMATS.iter())
+        .ok_or_else(|| format_err!("Cannot parse datetime: {}", s))
 }
 
