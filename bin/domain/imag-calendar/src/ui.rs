@@ -89,6 +89,25 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .multiple(false)
                         .help("List events which are dated after certain date"))
                    )
+
+        .subcommand(SubCommand::with_name("show")
+                   .about("Show one or several calendar entries")
+                   .version("0.1")
+                   .arg(Arg::with_name("show-ids")
+                        .index(1)
+                        .takes_value(true)
+                        .required(true)
+                        .multiple(true)
+                        .help("UIDs of Calendar entries to show"))
+
+                   .arg(Arg::with_name("format")
+                        .long("format")
+                        .short("F")
+                        .takes_value(true)
+                        .required(false)
+                        .multiple(false)
+                        .help("Override the format used to show events"))
+                   )
 }
 
 fn import_validator<A: AsRef<str>>(s: A) -> Result<(), String> {

@@ -31,11 +31,13 @@ use chrono::NaiveDateTime;
 
 use libimagrt::runtime::Runtime;
 use libimagstore::store::FileLockEntry;
+use libimagstore::store::Store;
 use libimagentryref::reference::fassade::RefFassade;
 use libimagentryref::reference::Ref;
 use libimagentryref::reference::Config;
 use libimagentryref::hasher::default::DefaultHasher;
 use libimagerror::trace::MapErrTrace;
+use crate::libimagcalendar::store::EventStore;
 
 #[derive(Debug)]
 pub struct ParsedEventFLE<'a> {
@@ -143,3 +145,46 @@ pub fn kairos_parse(spec: &str) -> Result<NaiveDateTime> {
         }
     }
 }
+
+pub fn find_event_by_id<'a>(store: &'a Store, id: &str, refconfig: &Config) -> Result<Option<ParsedEventFLE<'a>>> {
+    if let Some(entry) = store.get_event_by_uid(id)? {
+        debug!("Found directly: {} -> {}", id, entry.get_location());
+        return ParsedEventFLE::parse(entry, refconfig).map(Some)
+    }
+
+    for sid in store.all_events()? {
+        let sid = sid?;
+
+        let event = store.get(sid.clone())?.ok_or_else(|| {
+            format_err!("Cannot get {}, which should be there.", sid)
+        })?;
+
+        trace!("Checking whether {} is represented by {}", id, event.get_location());
+        let parsed = ParsedEventFLE::parse(event, refconfig)?;
+
+        if parsed
+            .get_data()
+            .events()
+            .filter_map(|event| if event
+                .as_ref()
+                .map(|e| {
+                    trace!("Checking whether {:?} starts with {}", e.uid(), id);
+                    e.uid().map(|uid| uid.raw().starts_with(id)).unwrap_or(false)
+                })
+                .unwrap_or(false)
+            {
+                trace!("Seems to be relevant");
+                Some(event)
+            } else {
+                None
+            })
+            .next()
+            .is_some()
+        {
+            return Ok(Some(parsed))
+        }
+    }
+
+    Ok(None)
+}
+

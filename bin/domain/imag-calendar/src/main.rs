@@ -87,6 +87,7 @@ fn main() {
         match name {
             "import" => import(&rt),
             "list"   => list(&rt),
+            "show"   => show(&rt),
             other    => {
                 warn!("Right now, only the 'import' command is available");
                 debug!("Unknown command");
@@ -237,6 +238,57 @@ fn list(rt: &Runtime) {
                 .for_each(|event| {
                     listed_events = listed_events + 1;
                     let data      = build_data_object_for_handlebars(listed_events, &event);
+
+                    let rendered = list_format
+                        .render("format", &data)
+                        .map_err(Error::from)
+                        .map_err_trace_exit_unwrap();
+
+                    writeln!(rt.stdout(), "{}", rendered).to_exit_code().unwrap_or_exit()
+                });
+
+            rt.report_touched(parsed_entry.get_entry().get_location()).unwrap_or_exit();
+        });
+}
+
+fn show(rt: &Runtime) {
+    let scmd        = rt.cli().subcommand_matches("show").unwrap(); // safe by clap
+    let ref_config  = rt.config()
+        .ok_or_else(|| format_err!("No configuration, cannot continue!"))
+        .map_err_trace_exit_unwrap()
+        .read_partial::<libimagentryref::reference::Config>()
+        .map_err(Error::from)
+        .map_err_trace_exit_unwrap()
+        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))
+        .map_err_trace_exit_unwrap();
+
+    let list_format = util::get_event_print_format("calendar.show_format", rt, &scmd)
+        .map_err_trace_exit_unwrap();
+
+    let mut shown_events = 0;
+
+    scmd.values_of("show-ids")
+        .unwrap() // safe by clap
+        .into_iter()
+        .filter_map(|id| {
+            util::find_event_by_id(rt.store(), id, &ref_config)
+                .map(|entry| { debug!("Found => {:?}", entry); entry })
+                .map_err_trace_exit_unwrap()
+                .map(|parsed| (parsed, id))
+        })
+        .for_each(|(parsed_entry, id)| {
+            parsed_entry
+                .get_data()
+                .events()
+                .filter_map(RResult::ok)
+                .filter(|pent| {
+                    let relevant = pent.uid().map(|uid| uid.raw().starts_with(id)).unwrap_or(false);
+                    debug!("Relevant {} => {}", parsed_entry.get_entry().get_location(), relevant);
+                    relevant
+                })
+                .for_each(|event| {
+                    shown_events = shown_events + 1;
+                    let data     = util::build_data_object_for_handlebars(shown_events, &event);
 
                     let rendered = list_format
                         .render("format", &data)
