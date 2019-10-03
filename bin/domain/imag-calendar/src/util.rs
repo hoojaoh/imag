@@ -17,10 +17,18 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::collections::BTreeMap;
+
+use clap::ArgMatches;
 use vobject::icalendar::ICalendar;
+use vobject::icalendar::Event;
+use handlebars::Handlebars;
 use failure::Fallible as Result;
 use failure::Error;
+use failure::err_msg;
+use toml_query::read::TomlValueReadTypeExt;
 
+use libimagrt::runtime::Runtime;
 use libimagstore::store::FileLockEntry;
 use libimagentryref::reference::fassade::RefFassade;
 use libimagentryref::reference::Ref;
@@ -58,3 +66,54 @@ impl<'a> ParsedEventFLE<'a> {
     }
 }
 
+pub fn get_event_print_format(config_value_path: &'static str, rt: &Runtime, scmd: &ArgMatches)
+    -> Result<Handlebars>
+{
+    scmd.value_of("format")
+        .map(String::from)
+        .map(Ok)
+        .unwrap_or_else(|| {
+            rt.config()
+                .ok_or_else(|| err_msg("No configuration file"))?
+                .read_string(config_value_path)?
+                .ok_or_else(|| err_msg("Configuration 'contact.list_format' does not exist"))
+        })
+        .and_then(|fmt| {
+            let mut hb = Handlebars::new();
+            hb.register_template_string("format", fmt)?;
+
+            hb.register_escape_fn(::handlebars::no_escape);
+            ::libimaginteraction::format::register_all_color_helpers(&mut hb);
+            ::libimaginteraction::format::register_all_format_helpers(&mut hb);
+
+            Ok(hb)
+        })
+}
+
+pub fn build_data_object_for_handlebars<'a>(i: usize, event: &Event<'a>)
+    -> BTreeMap<&'static str, String>
+{
+    macro_rules! process_opt {
+        ($t:expr, $text:expr) => {
+            ($t).map(|obj| obj.into_raw()).unwrap_or_else(|| String::from($text))
+        }
+    }
+
+    let mut data = BTreeMap::new();
+
+    data.insert("i"           , format!("{}", i));
+    data.insert("dtend"       , process_opt!(event.dtend()       , "<no dtend>"));
+    data.insert("dtstart"     , process_opt!(event.dtstart()     , "<no dtstart>"));
+    data.insert("dtstamp"     , process_opt!(event.dtstamp()     , "<no dtstamp>"));
+    data.insert("uid"         , process_opt!(event.uid()         , "<no uid>"));
+    data.insert("description" , process_opt!(event.description() , "<no description>"));
+    data.insert("summary"     , process_opt!(event.summary()     , "<no summary>"));
+    data.insert("url"         , process_opt!(event.url()         , "<no url>"));
+    data.insert("location"    , process_opt!(event.location()    , "<no location>"));
+    data.insert("class"       , process_opt!(event.class()       , "<no class>"));
+    data.insert("categories"  , process_opt!(event.categories()  , "<no categories>"));
+    data.insert("transp"      , process_opt!(event.transp()      , "<no transp>"));
+    data.insert("rrule"       , process_opt!(event.rrule()       , "<no rrule>"));
+
+    data
+}

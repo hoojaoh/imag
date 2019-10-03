@@ -60,6 +60,13 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
         .subcommand(SubCommand::with_name("list")
                    .about("List calendar entries")
                    .version("0.1")
+                   .arg(Arg::with_name("format")
+                        .long("format")
+                        .short("F")
+                        .takes_value(true)
+                        .required(false)
+                        .multiple(false)
+                        .help("Override the format used to list one event"))
                    )
 }
 

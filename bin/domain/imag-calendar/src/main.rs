@@ -39,6 +39,7 @@
 extern crate clap;
 extern crate toml_query;
 extern crate walkdir;
+extern crate handlebars;
 
 #[macro_use] extern crate libimagrt;
 extern crate libimagcalendar;
@@ -163,7 +164,10 @@ fn import(rt: &Runtime) {
 fn list(rt: &Runtime) {
     use util::*;
 
-    let scmd            = rt.cli().subcommand_matches("list").unwrap(); // safe by clap
+    let scmd        = rt.cli().subcommand_matches("list").unwrap(); // safe by clap
+    let list_format = get_event_print_format("calendar.list_format", rt, &scmd)
+        .map_err_trace_exit_unwrap();
+
     let ref_config      = rt.config()
         .ok_or_else(|| format_err!("No configuration, cannot continue!"))
         .map_err_trace_exit_unwrap()
@@ -173,7 +177,13 @@ fn list(rt: &Runtime) {
         .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))
         .map_err_trace_exit_unwrap();
 
+
+    debug!("List format: {:?}", list_format);
+    debug!("Ref config : {:?}", ref_config);
+
     let event_filter = |pefle: &ParsedEventFLE| true; // TODO: impl filtering
+
+    let mut listed_events = 0;
 
     rt.store()
         .all_events()
@@ -186,37 +196,25 @@ fn list(rt: &Runtime) {
         .map(|ev| ParsedEventFLE::parse(ev, &ref_config))
         .trace_unwrap_exit()
         .filter(|e| event_filter(e))
-        .for_each(|parsed_event| {
-            for event in parsed_event.get_data().events().filter_map(RResult::ok) {
-                macro_rules! get_data {
-                    ($t:expr, $text:expr) => {
-                        ($t).map(|obj| obj.into_raw()).unwrap_or_else(|| String::from($text))
-                    }
-                }
+        .for_each(|parsed_entry| {
+            parsed_entry
+                .get_data()
+                .events()
+                .filter_map(RResult::ok)
+                .filter(event_filter)
+                .for_each(|event| {
+                    listed_events = listed_events + 1;
+                    let data      = build_data_object_for_handlebars(listed_events, &event);
 
-                let summary     = get_data!(event.summary(), "<no summary>");
-                let uid         = get_data!(event.uid(), "<no uid>");
-                let description = get_data!(event.description(), "<no description>");
-                let dtstart     = get_data!(event.dtstart(), "<no start date>");
-                let dtend       = get_data!(event.dtend(), "<no end date>");
-                let location    = get_data!(event.location(), "<no location>");
+                    let rendered = list_format
+                        .render("format", &data)
+                        .map_err(Error::from)
+                        .map_err_trace_exit_unwrap();
 
-                let summary_underline = std::iter::repeat('-').take(summary.len()).collect::<String>();
+                    writeln!(rt.stdout(), "{}", rendered).to_exit_code().unwrap_or_exit()
+                });
 
-                writeln!(rt.stdout(),
-                    "{summary}\n{summary_underline}\n\n{uid}\n{description}\n{dtstart}\n{dtend}\n{location}\n\n",
-                    summary           = summary,
-                    summary_underline = summary_underline,
-                    uid               = uid,
-                    description       = description,
-                    dtstart           = dtstart,
-                    dtend             = dtend,
-                    location          = location)
-                    .to_exit_code()
-                    .unwrap_or_exit();
-            }
-
-            rt.report_touched(parsed_event.get_entry().get_location()).unwrap_or_exit();
+            rt.report_touched(parsed_entry.get_entry().get_location()).unwrap_or_exit();
         });
 }
 
@@ -224,4 +222,5 @@ fn list(rt: &Runtime) {
 fn is_not_hidden(entry: &DirEntry) -> bool {
     !entry.file_name().to_str().map(|s| s.starts_with(".")).unwrap_or(false)
 }
+
 
