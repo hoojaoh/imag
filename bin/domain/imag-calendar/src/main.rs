@@ -171,7 +171,7 @@ fn list(rt: &Runtime) {
     let list_format = get_event_print_format("calendar.list_format", rt, &scmd)
         .map_err_trace_exit_unwrap();
 
-    let do_filter_past = !scmd.is_present("list-past");
+    let do_filter_past   = !scmd.is_present("list-past");
 
     let ref_config      = rt.config()
         .ok_or_else(|| format_err!("No configuration, cannot continue!"))
@@ -185,11 +185,19 @@ fn list(rt: &Runtime) {
 
     debug!("List format: {:?}", list_format);
     debug!("Ref config : {:?}", ref_config);
+    let today = ::chrono::Local::now().naive_local();
 
     let event_filter = |e: &'_ Event| { // what a crazy hack to make the compiler happy
         debug!("Filtering event: {:?}", e);
-        let f = filters::filter_past(do_filter_past, chrono::Local::now().naive_local());
-        f(e)
+
+        // generate a function `filter_past` which filters out the past or not
+        let allow_all_past_events = |event| if do_filter_past {
+            filters::event_is_before(event, &today)
+        } else {
+            true
+        };
+
+        allow_all_past_events(e)
     };
 
     let mut listed_events = 0;
