@@ -45,3 +45,28 @@ pub fn datetime_from_string<S>(s: S) -> Result<NaiveDateTime, ParseError>
     NaiveDateTime::parse_from_str(s.as_ref(), NAIVE_DATETIME_STRING_FORMAT)
 }
 
+/// Try to parse `s` with all formats from `fmts`
+///
+/// The function returns an `Option<NaiveDateTime>`, so that the user of the function can generate
+/// the appropriate error message themselves.
+///
+pub fn try_to_parse_datetime_from_string<'a, S, Formats, Format>(s: S, fmts: Formats) -> Option<NaiveDateTime>
+    where S: AsRef<str>,
+          Formats: Iterator<Item = Format>,
+          Format: AsRef<str>
+{
+    fmts.fold(None, |a, f| a.or_else(|| NaiveDateTime::parse_from_str(s.as_ref(), f.as_ref()).ok()))
+}
+
+#[test]
+fn test_try_to_parse_datetime_from_string() {
+    let formats = vec![
+        "%Y%m%dT%H%M%S",
+        "%Y%m%dT%H%M%SZ"
+    ];
+
+    let text = "20190730T160527Z";
+
+    assert!(try_to_parse_datetime_from_string(text, formats.iter()).is_some())
+}
+
