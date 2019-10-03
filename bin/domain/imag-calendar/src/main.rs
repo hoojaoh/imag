@@ -173,6 +173,7 @@ fn list(rt: &Runtime) {
         .map_err_trace_exit_unwrap();
 
     let do_filter_past   = !scmd.is_present("list-past");
+    let do_filter_before = scmd.value_of("list-before");
 
     let ref_config      = rt.config()
         .ok_or_else(|| format_err!("No configuration, cannot continue!"))
@@ -198,7 +199,13 @@ fn list(rt: &Runtime) {
             true
         };
 
-        allow_all_past_events(e)
+        let do_filter_before = do_filter_before.map(|spec| kairos_parse(spec).map_err_trace_exit_unwrap());
+
+        let allow_events_before_date = |event| do_filter_before.as_ref().map(|spec| {
+            filters::event_is_before(event, spec)
+        }).unwrap_or(true);
+
+        allow_all_past_events(e) && allow_events_before_date(e)
     };
 
     let mut listed_events = 0;

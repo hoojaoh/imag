@@ -74,6 +74,13 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                         .required(false)
                         .multiple(false)
                         .help("List past events"))
+
+                   .arg(Arg::with_name("list-before")
+                        .long("before")
+                        .takes_value(true)
+                        .required(false)
+                        .multiple(false)
+                        .help("List events which are dated before certain date"))
                    )
 }
 
