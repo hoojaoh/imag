@@ -31,6 +31,7 @@ use libimagentryref::hasher::default::DefaultHasher;
 use libimagentryref::reference::RefFassade;
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Store;
+use libimagstore::iter::Entries;
 
 use crate::event::IsEvent;
 
@@ -61,6 +62,10 @@ pub trait EventStore<'a> {
 
     fn get_event_by_uid<ID>(&'a self, id: ID) -> Result<Option<FileLockEntry<'a>>>
         where ID: AsRef<str>;
+
+    /// Get all events
+    fn all_events(&'a self) -> Result<Entries<'a>>;
+
 }
 
 impl<'a> EventStore<'a> for Store {
@@ -102,6 +107,13 @@ impl<'a> EventStore<'a> for Store {
         where ID: AsRef<str>
     {
         self.get(crate::module_path::new_id(id.as_ref())?)
+    }
+
+    /// Get all events
+    ///
+    /// Uses Store::entries(), so there might be false positives.
+    fn all_events(&'a self) -> Result<Entries<'a>> {
+        self.entries().and_then(|es| es.in_collection("calendar"))
     }
 }
 
