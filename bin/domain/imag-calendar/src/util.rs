@@ -27,6 +27,7 @@ use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;
 use toml_query::read::TomlValueReadTypeExt;
+use chrono::NaiveDateTime;
 
 use libimagrt::runtime::Runtime;
 use libimagstore::store::FileLockEntry;
@@ -34,6 +35,7 @@ use libimagentryref::reference::fassade::RefFassade;
 use libimagentryref::reference::Ref;
 use libimagentryref::reference::Config;
 use libimagentryref::hasher::default::DefaultHasher;
+use libimagerror::trace::MapErrTrace;
 
 pub struct ParsedEventFLE<'a> {
     inner: FileLockEntry<'a>,
@@ -116,4 +118,27 @@ pub fn build_data_object_for_handlebars<'a>(i: usize, event: &Event<'a>)
     data.insert("rrule"       , process_opt!(event.rrule()       , "<no rrule>"));
 
     data
+}
+
+pub fn kairos_parse(spec: &str) -> Result<NaiveDateTime> {
+    match ::kairos::parser::parse(spec).map_err_trace_exit_unwrap() {
+        ::kairos::parser::Parsed::Iterator(_) => {
+            trace!("before-filter spec resulted in iterator");
+            Err(format_err!("Not a moment in time: {}", spec))
+        }
+
+        ::kairos::parser::Parsed::TimeType(tt) => {
+            trace!("before-filter spec resulted in timetype");
+            let tt = tt.calculate()
+                .map_err_trace_exit_unwrap()
+                .get_moment().unwrap_or_else(|| {
+                    error!("Not a moment in time: {}", spec);
+                    ::std::process::exit(1);
+                })
+                .clone();
+
+            trace!("Before filter spec {} => {}", spec, tt);
+            Ok(tt)
+        }
+    }
 }

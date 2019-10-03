@@ -41,6 +41,7 @@ extern crate toml_query;
 extern crate walkdir;
 extern crate handlebars;
 extern crate chrono;
+extern crate kairos;
 
 #[macro_use] extern crate libimagrt;
 extern crate libimagcalendar;
