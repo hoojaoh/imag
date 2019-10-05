@@ -290,9 +290,8 @@ fn alter_linking<F>(left: &mut Entry, right: &mut Entry, f: F) -> Result<()>
     where F: FnOnce(LinkPartial, LinkPartial) -> Result<(LinkPartial, LinkPartial)>
 {
     debug!("Altering linkage of {:?} and {:?}", left, right);
-
-    let get_partial = |entry: &mut Entry| -> Result<LinkPartial> {
-        Ok(entry.get_header().read_partial::<LinkPartial>()?.unwrap_or_else(LinkPartial::default))
+    let get_partial = |e| -> Result<_> {
+        Ok(get_link_partial(e)?.unwrap_or_else(LinkPartial::default))
     };
 
     let left_partial : LinkPartial = get_partial(left)?;
@@ -312,6 +311,12 @@ fn alter_linking<F>(left: &mut Entry, right: &mut Entry, f: F) -> Result<()>
     debug!("Finished altering linkage!");
     Ok(())
 }
+
+fn get_link_partial(entry: &Entry) -> Result<Option<LinkPartial>> {
+    use failure::Error;
+    entry.get_header().read_partial::<LinkPartial>().map_err(Error::from)
+}
+
 
 #[cfg(test)]
 mod test {
