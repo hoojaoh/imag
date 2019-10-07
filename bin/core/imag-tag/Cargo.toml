@@ -37,7 +37,7 @@ features = ["color", "suggestions", "wrap_help"]
 
 [dev-dependencies]
 toml-query = "0.9.2"
-env_logger = "0.6.1"
+env_logger = "0.7"
 
 [dev-dependencies.libimagutil]
 version          = "0.10.0"
