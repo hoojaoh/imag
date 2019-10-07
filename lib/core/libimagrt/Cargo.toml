@@ -47,7 +47,7 @@ default-features = false
 features = ["std", "serde"]
 
 [dependencies.handlebars]
-version          = "1.1.0"
+version          = "2"
 default-features = false
 features         = ["no_logging"]
 
