@@ -20,11 +20,11 @@ is-it-maintained-open-issues      = { repository = "matthiasbeyer/imag" }
 maintenance                       = { status     = "actively-developed" }
 
 [dependencies]
-env_logger = "0.6.1"
+env_logger = "0.7"
 toml = "0.5.1"
 xdg-basedir = "1.0.0"
 itertools = "0.8.0"
-ansi_term = "0.11.0"
+ansi_term = "0.12"
 atty = "0.2.11"
 failure        = "0.1.5"
 failure_derive = "0.1.5"
@@ -47,7 +47,7 @@ default-features = false
 features = ["std", "serde"]
 
 [dependencies.handlebars]
-version          = "1.1.0"
+version          = "2"
 default-features = false
 features         = ["no_logging"]
 

@@ -22,8 +22,8 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 log = "0.4.6"
 hoedown = "6.0.0"
-url = "1.7.2"
-env_logger = "0.6.1"
+url = "2"
+env_logger = "0.7"
 failure = "0.1.5"
 sha-1   = "0.8.1"
 

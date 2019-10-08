@@ -26,7 +26,7 @@ default = []
 testing = []
 
 [dependencies]
-url = "1.7.2"
+url = "2"
 boolinator = "2.4.0"
 lazy_static = "1.3.0"
 log = "0.4.6"
