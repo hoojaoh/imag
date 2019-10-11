@@ -334,6 +334,21 @@ Email    : {{EMAIL}}
 Address  : {{ADR}}
 """
 
+[calendar]
+list_format = "{{lpad 5 i}} | {{abbrev 5 uid}} | {{summary}} | {{location}}"
+show_format = """
+{{i}} - {{uid}}
+
+Summary  : {{summary}}
+Start    : {{dtstart}}
+End      : {{dtend}}
+Url      : {{url}}
+Location : {{location}}
+
+{{description}}
+
+"""
+
 [log]
 logs = ["default"]
 default = "default"
@@ -353,6 +368,7 @@ execute_in_store = false
 music = "/home/user/music"
 mail = "/home/user/mail"
 contacts = "/home/user/contacts"
+calendars = "/home/user/calendars"
 
 [mail]
 # The name of the mail reference collection
