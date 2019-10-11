@@ -62,6 +62,8 @@ pub trait Linkable {
     /// Remove a directional link: self -> otehr
     fn remove_link_to(&mut self, other: &mut Entry) -> Result<()>;
 
+    /// Check whether an entry is linked to another entry
+    fn is_linked_to(&self, other: &Entry) -> Result<bool>;
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -274,6 +276,35 @@ impl Linkable for Entry {
         })
     }
 
+    /// Check whether an entry is linked to another entry
+    fn is_linked_to(&self, other: &Entry) -> Result<bool> {
+        let left_partial  = get_link_partial(self)?
+            .ok_or_else(|| format_err!("Cannot read links from {}", self.get_location()))?;
+        let right_partial = get_link_partial(&other)?
+            .ok_or_else(|| format_err!("Cannot read links from {}", other.get_location()))?;
+
+        let left_id       = self.get_location();
+        let right_id      = other.get_location();
+
+        let strary_contains = |sary: &Vec<String>, id: &StoreId| -> Result<bool> {
+            sary.iter().map(|e| {
+                StoreId::new(PathBuf::from(e)).map(|e| e == *id)
+            }).fold(Ok(false), |a, e| a.and_then(|_| e))
+        };
+
+        let is_linked_from = |partial: &LinkPartial, id| {
+            partial.from.as_ref().map(|f| strary_contains(f, id)).unwrap_or(Ok(false))
+        };
+        let is_linked_to   = |partial: &LinkPartial, id| {
+            partial.to.as_ref().map(|t| strary_contains(t, id)).unwrap_or(Ok(false))
+        };
+
+        Ok({
+            is_linked_from(&left_partial, &right_id)? && is_linked_from(&right_partial, &left_id)?
+            ||
+            is_linked_to(&left_partial, &right_id)? && is_linked_to(&right_partial, &left_id)?
+        })
+    }
 }
 
 fn link_string_iter_to_link_iter<I>(iter: I) -> Result<LinkIter>
@@ -290,13 +321,12 @@ fn alter_linking<F>(left: &mut Entry, right: &mut Entry, f: F) -> Result<()>
     where F: FnOnce(LinkPartial, LinkPartial) -> Result<(LinkPartial, LinkPartial)>
 {
     debug!("Altering linkage of {:?} and {:?}", left, right);
-
-    let get_partial = |entry: &mut Entry| -> Result<LinkPartial> {
-        Ok(entry.get_header().read_partial::<LinkPartial>()?.unwrap_or_else(LinkPartial::default))
+    let get_partial = |e| -> Result<_> {
+        Ok(get_link_partial(e)?.unwrap_or_else(LinkPartial::default))
     };
 
-    let left_partial : LinkPartial = get_partial(left)?;
-    let right_partial : LinkPartial = get_partial(right)?;
+    let left_partial : LinkPartial = get_partial(&left)?;
+    let right_partial : LinkPartial = get_partial(&right)?;
 
     trace!("Partial left before: {:?}", left_partial);
     trace!("Partial right before: {:?}", right_partial);
@@ -312,6 +342,12 @@ fn alter_linking<F>(left: &mut Entry, right: &mut Entry, f: F) -> Result<()>
     debug!("Finished altering linkage!");
     Ok(())
 }
+
+fn get_link_partial(entry: &Entry) -> Result<Option<LinkPartial>> {
+    use failure::Error;
+    entry.get_header().read_partial::<LinkPartial>().map_err(Error::from)
+}
+
 
 #[cfg(test)]
 mod test {
