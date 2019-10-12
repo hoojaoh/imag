@@ -79,3 +79,18 @@ fn test_init_creates_default_config() {
             assert_eq!(orig, created);
         });
 }
+
+#[test]
+fn test_init_creates_store_directory() {
+    crate::setup_logging();
+    let imag_home = crate::imag::make_temphome();
+    call(&imag_home);
+    let store_path = {
+        let mut path = imag_home.path().to_path_buf();
+        path.push("store");
+        path
+    };
+
+    assert!(store_path.exists(), "imag store path does not exist");
+}
+
