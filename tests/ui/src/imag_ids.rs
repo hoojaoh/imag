@@ -17,3 +17,43 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::process::Command;
+
+use assert_cmd::prelude::*;
+use assert_fs::fixture::TempDir;
+use predicates::prelude::*;
+
+/// Helper to call imag-init
+pub fn call(tempdir: &TempDir) -> Vec<String> {
+    let mut binary = binary(tempdir);
+
+    // ensure that stdin is not used by the child process
+    binary.stdin(std::process::Stdio::inherit());
+
+    let assert = binary.assert();
+    let lines = String::from_utf8(assert.get_output().stdout.clone())
+        .unwrap()
+        .lines()
+        .map(String::from)
+        .collect();
+    assert.success();
+    lines
+}
+
+pub fn binary(tempdir: &TempDir) -> Command {
+    crate::imag::binary(tempdir, "imag-ids")
+}
+
+
+#[test]
+fn test_no_ids_after_init() {
+    crate::setup_logging();
+    let imag_home = crate::imag::make_temphome();
+    crate::imag_init::call(&imag_home);
+
+    binary(&imag_home)
+        .assert()
+        .success()
+        .stdout(predicate::eq(b"" as &[u8]));
+}
+
