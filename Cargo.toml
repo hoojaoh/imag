@@ -61,4 +61,6 @@ members = [
     "lib/etc/libimaginteraction",
     "lib/etc/libimagtimeui",
     "lib/etc/libimagutil",
+
+    "tests/ui",
 ]

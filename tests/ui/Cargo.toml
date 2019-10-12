@@ -1,0 +1,18 @@
+[package]
+name    = "tests-ui"
+version = "0.10.0"
+authors = ["Matthias Beyer <mail@beyermatthias.de>"]
+edition = "2018"
+
+# We do not publish this crate because it contains tests which should only be
+# available during development and CI runs, but there's nothing that a user of
+# any imag command might need, ever.
+publish = false
+
+[dependencies]
+assert_cmd = "0.11"
+assert_fs  = "0.11"
+duct       = "0.13"
+env_logger = "0.7"
+log        = "0.4"
+predicates = "1"
