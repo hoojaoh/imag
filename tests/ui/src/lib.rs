@@ -22,6 +22,7 @@ extern crate assert_fs;
 extern crate env_logger;
 extern crate predicates;
 #[macro_use] extern crate log;
+#[macro_use] extern crate pretty_assertions;
 
 #[cfg(test)] mod imag;
 #[cfg(test)] mod imag_annotate;

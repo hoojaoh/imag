@@ -48,3 +48,34 @@ fn test_init_makes_imag_dir() {
     assert!(imag_home.path().exists(), "imag dir does not exist");
 }
 
+#[test]
+fn test_init_creates_default_config() {
+    use pretty_assertions::assert_eq;
+
+    crate::setup_logging();
+    let imag_home = crate::imag::make_temphome();
+    call(&imag_home);
+
+    const CONFIGURATION_STR : &str = include_str!("../../../imagrc.toml");
+    let config = std::fs::read_to_string({
+        let mut path = imag_home.path().to_path_buf();
+        path.push("imagrc.toml");
+        path
+    })
+    .unwrap();
+
+    // the imagrc is based on the example imagrc from this repository, but the one
+    // thing that differs is that the default level for logging output is "info" rather than
+    // "default"
+    CONFIGURATION_STR
+        .to_string()
+        .replace(
+            r#"level = "debug""#,
+            r#"level = "info""#
+        )
+        .lines()
+        .zip(config.lines())
+        .for_each(|(orig, created)| {
+            assert_eq!(orig, created);
+        });
+}
