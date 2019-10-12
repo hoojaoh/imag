@@ -94,3 +94,17 @@ fn test_init_creates_store_directory() {
     assert!(store_path.exists(), "imag store path does not exist");
 }
 
+#[test]
+fn test_init_creates_empty_store_directory() {
+    crate::setup_logging();
+    let imag_home = crate::imag::make_temphome();
+    call(&imag_home);
+    let store_path = {
+        let mut path = imag_home.path().to_path_buf();
+        path.push("store");
+        path
+    };
+
+    assert_eq!(0, std::fs::read_dir(store_path).unwrap().count(), "imag store directory is not empty after creation");
+}
+
