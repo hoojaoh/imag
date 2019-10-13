@@ -46,6 +46,7 @@ use libimagerror::trace::MapErrTrace;
 use libimagrt::setup::generate_runtime_setup;
 use libimagstore::iter::create::StoreIdCreateIteratorExtension;
 use libimagstore::iter::retrieve::StoreIdRetrieveIteratorExtension;
+use libimagerror::exit::ExitUnwrap;
 
 mod ui;
 
@@ -73,6 +74,11 @@ fn main() {
         ids.into_retrieve_iter(rt.store()).collect::<Result<Vec<_>>>()
     } else {
         ids.into_create_iter(rt.store()).collect::<Result<Vec<_>>>()
-    }.map_err_trace_exit_unwrap();
+    }.map_err_trace_exit_unwrap()
+    .into_iter()
+    .for_each(|el| {
+        rt.report_touched(el.get_location()).unwrap_or_exit();
+        trace!("Entry = {}", el.get_location());
+    });
 }
 
