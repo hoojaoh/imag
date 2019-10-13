@@ -18,6 +18,7 @@
 //
 
 use std::process::Command;
+use std::path::PathBuf;
 
 use assert_fs::fixture::TempDir;
 use assert_cmd::prelude::*;
@@ -36,5 +37,27 @@ pub fn binary(tempdir: &TempDir, binary_name: &str) -> Command {
     cmd.arg("--rtp");
     cmd.arg(path);
     cmd
+}
+
+/// Run the passed command and get the stdout of it.
+///
+/// This function does _not_ ensure that stdin is inherited.
+pub fn stdout_of_command(command: Command) -> Vec<String> {
+    let assert = command.assert();
+    let lines = String::from_utf8(assert.get_output().stdout.clone())
+        .unwrap()
+        .lines()
+        .map(String::from)
+        .collect();
+    assert.success();
+    lines
+}
+
+/// Create a PathBuf for a file in a TempDir
+pub fn file_path(tempdir: &TempDir, path_elements: &[&str]) -> PathBuf {
+    let mut path = tempdir.path().to_path_buf();
+    path_elements.iter().for_each(|el| path.push(el));
+    debug!("Calculated path = {:?}", path);
+    path
 }
 
