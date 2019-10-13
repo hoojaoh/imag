@@ -21,6 +21,7 @@ use std::process::Command;
 
 use assert_cmd::prelude::*;
 use assert_fs::fixture::TempDir;
+use predicates::prelude::*;
 
 pub fn binary(tempdir: &TempDir) -> Command {
     crate::imag::binary(tempdir, "imag-header")
@@ -38,5 +39,25 @@ fn test_no_header_besides_version_after_creation() {
     bin.arg("string");
     bin.arg("imag.version");
     bin.assert().success();
+}
+
+#[test]
+fn test_imag_version_as_semver_string() {
+    crate::setup_logging();
+    let imag_home = crate::imag::make_temphome();
+    crate::imag_init::call(&imag_home);
+    crate::imag_create::call(&imag_home, &["test"]);
+
+    let imag_version = version::version!();
+
+    let mut bin = binary(&imag_home);
+    bin.arg("test");
+    bin.arg("string");
+    bin.arg("imag.version");
+
+    let expected_output_str = format!("test - {}", imag_version);
+    bin.assert()
+        .stdout(predicate::eq(expected_output_str.as_bytes()))
+        .success();
 }
 
