@@ -57,3 +57,14 @@ fn test_no_ids_after_init() {
         .stdout(predicate::eq(b"" as &[u8]));
 }
 
+#[test]
+fn test_one_id_after_creating_one_entry() {
+    crate::setup_logging();
+    let imag_home = crate::imag::make_temphome();
+    crate::imag_init::call(&imag_home);
+    crate::imag_create::call(&imag_home, &["test"]);
+    let ids = call(&imag_home);
+
+    assert_eq!(ids.len(), 1);
+    assert_eq!(ids[0], "test");
+}
