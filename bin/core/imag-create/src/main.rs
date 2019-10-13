@@ -57,6 +57,7 @@ fn main() {
                                     ui::build_ui);
 
     let force = rt.cli().is_present("force");
+    debug!("Detected force = {}", force);
 
     let ids = rt.ids::<crate::ui::PathProvider>()
         .map_err_trace_exit_unwrap()
@@ -65,6 +66,7 @@ fn main() {
             ::std::process::exit(1);
         })
         .into_iter()
+        .map(|id| { debug!("id = {}", id); id })
         .map(Ok);
 
     if force {
