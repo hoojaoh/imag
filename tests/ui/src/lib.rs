@@ -21,6 +21,7 @@ extern crate assert_cmd;
 extern crate assert_fs;
 extern crate env_logger;
 extern crate predicates;
+extern crate semver;
 #[macro_use] extern crate log;
 #[macro_use] extern crate pretty_assertions;
 
