@@ -39,6 +39,7 @@ extern crate clap;
 extern crate log;
 #[macro_use]
 extern crate failure;
+extern crate resiter;
 
 extern crate libimagentrycategory;
 extern crate libimagerror;
@@ -50,19 +51,20 @@ use failure::Fallible as Result;
 use clap::App;
 
 use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
+use libimagerror::iter::IterInnerOkOrElse;
 
 mod ui;
 
 use std::io::Write;
 
+use failure::err_msg;
+use failure::Error;
+use resiter::AndThen;
+
 use libimagentrycategory::store::CategoryStore;
-use libimagstore::storeid::StoreIdIterator;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
-use libimagerror::iter::TraceIterator;
 use libimagentrycategory::entry::EntryCategory;
 use libimagentrycategory::category::Category;
 
@@ -73,25 +75,22 @@ use libimagentrycategory::category::Category;
 pub enum ImagCategory {}
 impl ImagApplication for ImagCategory {
     fn run(rt: Runtime) -> Result<()> {
-        if let Some(name) = rt.cli().subcommand_name() {
-            match name {
-                "set"               => set(&rt),
-                "get"               => get(&rt),
-                "list-category"     => list_category(&rt),
-                "create-category"   => create_category(&rt),
-                "delete-category"   => delete_category(&rt),
-                "list-categories"   => list_categories(&rt),
-                other               => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-category", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
+        match rt.cli().subcommand_name().ok_or_else(|| err_msg("No subcommand called"))? {
+            "set"               => set(&rt),
+            "get"               => get(&rt),
+            "list-category"     => list_category(&rt),
+            "create-category"   => create_category(&rt),
+            "delete-category"   => delete_category(&rt),
+            "list-categories"   => list_categories(&rt),
+            other               => {
+                debug!("Unknown command");
+                if rt.handle_unknown_subcommand("imag-category", other, rt.cli())?.success() {
+                    Ok(())
+                } else {
+                    Err(err_msg("Failed to handle unknown subcommand"))
+                }
+            },
         }
-
-        Ok(())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
@@ -112,125 +111,84 @@ impl ImagApplication for ImagCategory {
 }
 
 
-fn set(rt: &Runtime) {
+fn set(rt: &Runtime) -> Result<()> {
     let scmd = rt.cli().subcommand_matches("set").unwrap(); // safed by main()
     let name = scmd.value_of("set-name").map(String::from).unwrap(); // safed by clap
-    let sids = rt
-        .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
-        .into_iter();
-
-    StoreIdIterator::new(Box::new(sids.map(Ok)))
+    rt.ids::<crate::ui::PathProvider>()?
+        .ok_or_else(|| err_msg("No ids supplied"))?
+        .into_iter()
+        .map(Ok)
         .into_get_iter(rt.store())
-        .trace_unwrap_exit()
-        .map(|o| o.unwrap_or_else(|| {
-            error!("Did not find one entry");
-            ::std::process::exit(1)
-        }))
-        .for_each(|mut entry| {
-            entry
-                .set_category_checked(rt.store(), &name)
-                .map_err_trace_exit_unwrap();
-        })
+        .map_inner_ok_or_else(|| err_msg("Did not find one entry"))
+        .and_then_ok(|mut e| e.set_category_checked(rt.store(), &name))
+        .collect()
 }
 
-fn get(rt: &Runtime) {
+fn get(rt: &Runtime) -> Result<()> {
     let out = rt.stdout();
     let mut outlock = out.lock();
-    let sids = rt
-        .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
-        .into_iter();
-
-    StoreIdIterator::new(Box::new(sids.map(Ok)))
+    rt.ids::<crate::ui::PathProvider>()?
+        .ok_or_else(|| err_msg("No ids supplied"))?
+        .into_iter()
+        .map(Ok)
         .into_get_iter(rt.store())
-        .trace_unwrap_exit()
-        .map(|o| o.unwrap_or_else(|| {
-            error!("Did not find one entry");
-            ::std::process::exit(1)
-        }))
-        .map(|entry| entry.get_category().map_err_trace_exit_unwrap())
-        .for_each(|name| {
-            writeln!(outlock, "{}", name).to_exit_code().unwrap_or_exit();
-        })
+        .map(|el| el.and_then(|o| o.ok_or_else(|| err_msg("Did not find one entry"))))
+        .map(|entry| entry.and_then(|e| e.get_category()))
+        .map(|name| name.and_then(|n| writeln!(outlock, "{}", n).map_err(Error::from)))
+        .collect()
 }
 
-fn list_category(rt: &Runtime) {
+fn list_category(rt: &Runtime) -> Result<()> {
     let scmd = rt.cli().subcommand_matches("list-category").unwrap(); // safed by main()
     let name = scmd.value_of("list-category-name").map(String::from).unwrap(); // safed by clap
 
-    if let Some(category) = rt.store().get_category_by_name(&name).map_err_trace_exit_unwrap() {
+    if let Some(category) = rt.store().get_category_by_name(&name)? {
         let out         = rt.stdout();
         let mut outlock = out.lock();
 
         category
             .get_entries(rt.store())
             .map_err_trace_exit_unwrap()
-            .for_each(|entry| {
-                writeln!(outlock, "{}", entry.map_err_trace_exit_unwrap().get_location())
-                    .to_exit_code()
-                    .unwrap_or_exit();
-            })
+            .map(|entry| writeln!(outlock, "{}", entry?.get_location()).map_err(Error::from))
+            .collect()
     } else {
-        info!("No category named '{}'", name);
-        ::std::process::exit(1)
+        Err(format_err!("No category named '{}'", name))
     }
 }
 
-fn create_category(rt: &Runtime) {
+fn create_category(rt: &Runtime) -> Result<()> {
     let scmd = rt.cli().subcommand_matches("create-category").unwrap(); // safed by main()
     let name = scmd.value_of("create-category-name").map(String::from).unwrap(); // safed by clap
-
-    let _ = rt
-        .store()
-        .create_category(&name)
-        .map_err_trace_exit_unwrap();
+    rt.store().create_category(&name).map(|_| ())
 }
 
-fn delete_category(rt: &Runtime) {
+fn delete_category(rt: &Runtime) -> Result<()> {
     use libimaginteraction::ask::ask_bool;
 
     let scmd   = rt.cli().subcommand_matches("delete-category").unwrap(); // safed by main()
     let name   = scmd.value_of("delete-category-name").map(String::from).unwrap(); // safed by clap
     let ques   = format!("Do you really want to delete category '{}' and remove links to all categorized enties?", name);
 
-    let mut input = rt.stdin().unwrap_or_else(|| {
-        error!("No input stream. Cannot ask for permission");
-        ::std::process::exit(1)
-    });
+    let mut input  = rt.stdin().ok_or_else(|| err_msg("No input stream. Cannot ask for permission"))?;
     let mut output = rt.stdout();
-    let answer = ask_bool(&ques, Some(false), &mut input, &mut output).map_err_trace_exit_unwrap();
+    let answer = ask_bool(&ques, Some(false), &mut input, &mut output)?;
 
     if answer {
         info!("Deleting category '{}'", name);
-        rt
-            .store()
-            .delete_category(&name)
-            .map_err_trace_exit_unwrap();
+        rt.store().delete_category(&name).map(|_| ())
     } else {
         info!("Not doing anything");
+        Ok(())
     }
 }
 
-fn list_categories(rt: &Runtime) {
+fn list_categories(rt: &Runtime) -> Result<()> {
     let out         = rt.stdout();
     let mut outlock = out.lock();
 
     rt.store()
-        .all_category_names()
-        .map_err_trace_exit_unwrap()
-        .for_each(|name| {
-            writeln!(outlock, "{}", name.map_err_trace_exit_unwrap())
-                .to_exit_code()
-                .unwrap_or_exit();
-        })
+        .all_category_names()?
+        .map(|name| name.and_then(|n| writeln!(outlock, "{}", n).map_err(Error::from)))
+        .collect()
 }
 
