@@ -36,6 +36,7 @@
 
 extern crate clap;
 #[macro_use] extern crate log;
+#[macro_use] extern crate failure;
 extern crate walkdir;
 extern crate toml;
 extern crate toml_query;
@@ -44,11 +45,10 @@ extern crate toml_query;
 extern crate libimagerror;
 
 use std::env;
-use std::process::exit;
 use std::process::Command;
 use std::process::Stdio;
 use std::io::ErrorKind;
-use std::io::{stdout, Stdout, Write};
+use std::io::{stdout, Write};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
@@ -56,12 +56,13 @@ use walkdir::WalkDir;
 use clap::{Arg, ArgMatches, AppSettings, SubCommand};
 use toml::Value;
 use toml_query::read::TomlValueReadExt;
+use failure::Error;
+use failure::ResultExt;
+use failure::err_msg;
+use failure::Fallible as Result;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::spec::CliSpec;
-use libimagerror::io::ToExitCode;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::trace::trace_error;
 use libimagrt::configuration::InternalConfiguration;
 
 /// Returns the helptext, putting the Strings in cmds as possible
@@ -107,54 +108,44 @@ fn help_text(cmds: Vec<String>) -> String {
 }
 
 /// Returns the list of imag-* executables found in $PATH
-fn get_commands(out: &mut Stdout) -> Vec<String> {
-    let mut v = match env::var("PATH") {
-        Err(e) => {
-            writeln!(out, "PATH error: {:?}", e)
-                .to_exit_code()
-                .unwrap_or_exit();
-            exit(1)
-        },
-
-        Ok(path) => path
-            .split(':')
-            .flat_map(|elem| {
-                WalkDir::new(elem)
-                    .max_depth(1)
-                    .into_iter()
-                    .filter(|path| match *path {
-                        Ok(ref p) => p.file_name().to_str().map_or(false, |f| f.starts_with("imag-")),
-                        Err(_)    => false,
-                    })
-                    .filter_map(Result::ok)
-                    .filter_map(|path| path
-                        .file_name()
-                       .to_str()
-                       .and_then(|s| s.splitn(2, '-').nth(1).map(String::from))
-                    )
-            })
-            .filter(|path| if cfg!(debug_assertions) {
-                // if we compile in debug mode during development, ignore everything that ends with
-                // ".d", as developers might use the ./target/debug/ directory directly in `$PATH`.
-                !path.ends_with(".d")
-            } else {
-                true
-            })
-            .collect::<Vec<String>>()
-    };
+fn get_commands() -> Result<Vec<String>> {
+    let mut v = env::var("PATH")?
+        .split(':')
+        .flat_map(|elem| {
+            WalkDir::new(elem)
+                .max_depth(1)
+                .into_iter()
+                .filter(|path| match *path {
+                    Ok(ref p) => p.file_name().to_str().map_or(false, |f| f.starts_with("imag-")),
+                    Err(_)    => false,
+                })
+                .filter_map(|r| r.ok())
+                .filter_map(|path| path
+                    .file_name()
+                   .to_str()
+                   .and_then(|s| s.splitn(2, '-').nth(1).map(String::from))
+                )
+        })
+        .filter(|path| if cfg!(debug_assertions) {
+            // if we compile in debug mode during development, ignore everything that ends with
+            // ".d", as developers might use the ./target/debug/ directory directly in `$PATH`.
+            !path.ends_with(".d")
+        } else {
+            true
+        })
+        .collect::<Vec<String>>();
 
     v.sort();
-    v
+    Ok(v)
 }
 
 
-fn main() {
+fn main() -> Result<()> {
     // Initialize the Runtime and build the CLI
     let appname  = "imag";
     let version  = make_imag_version!();
     let about    = "imag - the PIM suite for the commandline";
-    let mut out  = stdout();
-    let commands = get_commands(&mut out);
+    let commands = get_commands()?;
     let helptext = help_text(commands.clone());
     let mut app  = Runtime::get_default_cli_builder(appname, &version, about)
         .settings(&[AppSettings::AllowExternalSubcommands, AppSettings::ArgRequiredElseHelp])
@@ -175,174 +166,131 @@ fn main() {
 
     let long_help = {
         let mut v = vec![];
-        if let Err(e) = app.write_long_help(&mut v) {
-            eprintln!("Error: {:?}", e);
-            exit(1);
-        }
-        String::from_utf8(v).unwrap_or_else(|_| { eprintln!("UTF8 Error"); exit(1) })
+        app.write_long_help(&mut v)?;
+        String::from_utf8(v).map_err(|_| err_msg("UTF8 Error"))?
     };
-    {
-        let print_help = app.clone().get_matches().subcommand_name().map(|h| h == "help").unwrap_or(false);
-        if print_help {
-            writeln!(out, "{}", long_help)
-                .to_exit_code()
-                .unwrap_or_exit();
-            exit(0)
+    let print_help = app.clone().get_matches().subcommand_name().map(|h| h == "help").unwrap_or(false);
+
+    let mut out  = stdout();
+    if print_help {
+        writeln!(out, "{}", long_help).map_err(Error::from)
+    } else {
+        let enable_logging = app.enable_logging();
+        let matches = app.matches();
+
+        let rtp = ::libimagrt::runtime::get_rtp_match(&matches)?;
+        let configpath = matches
+            .value_of("config")
+            .map_or_else(|| rtp.clone(), PathBuf::from);
+        debug!("Config path = {:?}", configpath);
+        let config = ::libimagrt::configuration::fetch_config(&configpath)?;
+
+        if enable_logging {
+            Runtime::init_logger(&matches, config.as_ref())
         }
-    }
 
-    let enable_logging = app.enable_logging();
-    let matches = app.matches();
+        debug!("matches: {:?}", matches);
 
-    let rtp = ::libimagrt::runtime::get_rtp_match(&matches)
-        .unwrap_or_else(|e| {
-            trace_error(&e);
-            exit(1)
-        });
-    let configpath = matches
-        .value_of("config")
-        .map_or_else(|| rtp.clone(), PathBuf::from);
-    debug!("Config path = {:?}", configpath);
-    let config = ::libimagrt::configuration::fetch_config(&configpath)
-        .unwrap_or_else(|e| {
-            trace_error(&e);
-            exit(1)
-        });
+        // Begin checking for arguments
 
-    if enable_logging {
-        Runtime::init_logger(&matches, config.as_ref())
-    }
+        if matches.is_present("version") {
+            debug!("Showing version");
+            writeln!(out, "imag {}", env!("CARGO_PKG_VERSION")).map_err(Error::from)
+        } else {
+            if matches.is_present("versions") {
+                debug!("Showing versions");
+                commands
+                    .iter()
+                    .map(|command| {
+                        match Command::new(format!("imag-{}", command))
+                            .stdin(::std::process::Stdio::inherit())
+                            .stdout(::std::process::Stdio::piped())
+                            .stderr(::std::process::Stdio::inherit())
+                            .arg("--version")
+                            .output()
+                            .map(|v| v.stdout)
+                        {
+                            Ok(s) => match String::from_utf8(s) {
+                                Ok(s) => format!("{:15} -> {}", command, s),
+                                Err(e) => format!("UTF8 Error while working with output of imag{}: {:?}", command, e),
+                            },
+                            Err(e) => format!("Failed calling imag-{} -> {:?}", command, e),
+                        }
+                    })
+                    .fold(Ok(()), |_, line| {
+                        // The amount of newlines may differ depending on the subprocess
+                        writeln!(out, "{}", line.trim()).map_err(Error::from)
+                    })
+            } else {
+                let aliases = fetch_aliases(config.as_ref())
+                    .map_err(Error::from)
+                    .context("Error while fetching aliases from configuration file")?;
 
-    debug!("matches: {:?}", matches);
+                // Matches any subcommand given, except calling for example 'imag --versions', as this option
+                // does not exit. There's nothing to do in such a case
+                if let (subcommand, Some(scmd)) = matches.subcommand() {
+                    // Get all given arguments and further subcommands to pass to
+                    // the imag-<> binary
+                    // Providing no arguments is OK, and is therefore ignored here
+                    let mut subcommand_args : Vec<String> = match scmd.values_of("") {
+                        Some(values) => values.map(String::from).collect(),
+                        None => Vec::new()
+                    };
 
-    // Begin checking for arguments
+                    debug!("Processing forwarding of commandline arguments");
+                    forward_commandline_arguments(&matches, &mut subcommand_args);
 
-    if matches.is_present("version") {
-        debug!("Showing version");
-        writeln!(out, "imag {}", env!("CARGO_PKG_VERSION"))
-            .to_exit_code()
-            .unwrap_or_exit();
-        exit(0);
-    }
+                    let subcommand = String::from(subcommand);
+                    let subcommand = aliases.get(&subcommand).cloned().unwrap_or(subcommand);
 
-    if matches.is_present("versions") {
-        debug!("Showing versions");
-        commands
-            .iter()
-            .map(|command| {
-                match Command::new(format!("imag-{}", command))
-                    .stdin(::std::process::Stdio::inherit())
-                    .stdout(::std::process::Stdio::piped())
-                    .stderr(::std::process::Stdio::inherit())
-                    .arg("--version")
-                    .output()
-                    .map(|v| v.stdout)
-                {
-                    Ok(s) => match String::from_utf8(s) {
-                        Ok(s) => format!("{:15} -> {}", command, s),
-                        Err(e) => format!("UTF8 Error while working with output of imag{}: {:?}", command, e),
-                    },
-                    Err(e) => format!("Failed calling imag-{} -> {:?}", command, e),
-                }
-            })
-            .fold((), |_, line| {
-                // The amount of newlines may differ depending on the subprocess
-                writeln!(out, "{}", line.trim())
-                    .to_exit_code()
-                    .unwrap_or_exit();
-            });
+                    debug!("Calling 'imag-{}' with args: {:?}", subcommand, subcommand_args);
 
-        exit(0);
-    }
+                    // Create a Command, and pass it the gathered arguments
+                    match Command::new(format!("imag-{}", subcommand))
+                        .stdin(Stdio::inherit())
+                        .stdout(Stdio::inherit())
+                        .stderr(Stdio::inherit())
+                        .args(&subcommand_args[..])
+                        .spawn()
+                        .and_then(|mut c| c.wait())
+                    {
+                        Ok(exit_status) => if !exit_status.success() {
+                            debug!("imag-{} exited with non-zero exit code: {:?}", subcommand, exit_status);
+                            Err(format_err!("imag-{} exited with non-zero exit code", subcommand))
+                        } else {
+                            debug!("Successful exit!");
+                            Ok(())
+                        },
 
-    let aliases = match fetch_aliases(config.as_ref()) {
-        Ok(aliases) => aliases,
-        Err(e)      => {
-            writeln!(out, "Error while fetching aliases from configuration file")
-                .to_exit_code()
-                .unwrap_or_exit();
-            debug!("Error = {:?}", e);
-            writeln!(out, "Aborting")
-                .to_exit_code()
-                .unwrap_or_exit();
-            exit(1);
-        }
-    };
-
-    // Matches any subcommand given, except calling for example 'imag --versions', as this option
-    // does not exit. There's nothing to do in such a case
-    if let (subcommand, Some(scmd)) = matches.subcommand() {
-        // Get all given arguments and further subcommands to pass to
-        // the imag-<> binary
-        // Providing no arguments is OK, and is therefore ignored here
-        let mut subcommand_args : Vec<String> = match scmd.values_of("") {
-            Some(values) => values.map(String::from).collect(),
-            None => Vec::new()
-        };
-
-        debug!("Processing forwarding of commandline arguments");
-        forward_commandline_arguments(&matches, &mut subcommand_args);
-
-        let subcommand = String::from(subcommand);
-        let subcommand = aliases.get(&subcommand).cloned().unwrap_or(subcommand);
-
-        debug!("Calling 'imag-{}' with args: {:?}", subcommand, subcommand_args);
-
-        // Create a Command, and pass it the gathered arguments
-        match Command::new(format!("imag-{}", subcommand))
-            .stdin(Stdio::inherit())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .args(&subcommand_args[..])
-            .spawn()
-            .and_then(|mut c| c.wait())
-        {
-            Ok(exit_status) => {
-                if !exit_status.success() {
-                    debug!("imag-{} exited with non-zero exit code: {:?}", subcommand, exit_status);
-                    eprintln!("imag-{} exited with non-zero exit code", subcommand);
-                    exit(exit_status.code().unwrap_or(1));
-                }
-                debug!("Successful exit!");
-            },
-
-            Err(e) => {
-                debug!("Error calling the subcommand");
-                match e.kind() {
-                    ErrorKind::NotFound => {
-                        writeln!(out, "No such command: 'imag-{}'", subcommand)
-                            .to_exit_code()
-                            .unwrap_or_exit();
-                        writeln!(out, "See 'imag --help' for available subcommands")
-                            .to_exit_code()
-                            .unwrap_or_exit();
-                        exit(1);
-                    },
-                    ErrorKind::PermissionDenied => {
-                        writeln!(out, "No permission to execute: 'imag-{}'", subcommand)
-                            .to_exit_code()
-                            .unwrap_or_exit();
-                        exit(1);
-                    },
-                    _ => {
-                        writeln!(out, "Error spawning: {:?}", e)
-                            .to_exit_code()
-                            .unwrap_or_exit();
-                        exit(1);
+                        Err(e) => {
+                            debug!("Error calling the subcommand");
+                            match e.kind() {
+                                ErrorKind::NotFound => {
+                                    writeln!(out, "No such command: 'imag-{}'", subcommand)?;
+                                    writeln!(out, "See 'imag --help' for available subcommands").map_err(Error::from)
+                                },
+                                ErrorKind::PermissionDenied => {
+                                    writeln!(out, "No permission to execute: 'imag-{}'", subcommand).map_err(Error::from)
+                                },
+                                _ => writeln!(out, "Error spawning: {:?}", e).map_err(Error::from),
+                            }
+                        }
                     }
+                } else {
+                    Ok(())
                 }
             }
         }
     }
 }
 
-fn fetch_aliases(config: Option<&Value>) -> Result<BTreeMap<String, String>, String> {
-    let cfg   = config.ok_or_else(|| String::from("No configuration found"))?;
+fn fetch_aliases(config: Option<&Value>) -> Result<BTreeMap<String, String>> {
+    let cfg   = config.ok_or_else(|| err_msg("No configuration found"))?;
     let value = cfg
         .read("imag.aliases")
-        .map_err(|_| String::from("Reading from config failed"));
+        .map_err(|_| err_msg("Reading from config failed"))?;
 
-    match value? {
+    match value {
         None                         => Ok(BTreeMap::new()),
         Some(&Value::Table(ref tbl)) => {
             let mut alias_mappings = BTreeMap::new();
@@ -359,7 +307,7 @@ fn fetch_aliases(config: Option<&Value>) -> Result<BTreeMap<String, String>, Str
                                     alias_mappings.insert(s.clone(), k.clone());
                                 },
                                 _ => {
-                                    let e = format!("Not all values are a String in 'imag.aliases.{}'", k);
+                                    let e = format_err!("Not all values are a String in 'imag.aliases.{}'", k);
                                     return Err(e);
                                 }
                             }
@@ -367,7 +315,7 @@ fn fetch_aliases(config: Option<&Value>) -> Result<BTreeMap<String, String>, Str
                     },
 
                     _ => {
-                        let msg = format!("Type Error: 'imag.aliases.{}' is not a table or string", k);
+                        let msg = format_err!("Type Error: 'imag.aliases.{}' is not a table or string", k);
                         return Err(msg);
                     },
                 }
@@ -376,7 +324,7 @@ fn fetch_aliases(config: Option<&Value>) -> Result<BTreeMap<String, String>, Str
             Ok(alias_mappings)
         },
 
-        Some(_) => Err(String::from("Type Error: 'imag.aliases' is not a table")),
+        Some(_) => Err(err_msg("Type Error: 'imag.aliases' is not a table")),
     }
 }
 
