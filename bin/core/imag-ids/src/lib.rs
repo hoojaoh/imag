@@ -39,6 +39,7 @@ extern crate clap;
 extern crate toml;
 extern crate toml_query;
 #[macro_use] extern crate failure;
+extern crate resiter;
 
 #[cfg(test)]
 extern crate env_logger;
@@ -48,18 +49,17 @@ extern crate libimagstore;
 extern crate libimagrt;
 
 use std::io::Write;
-use std::result::Result as RResult;
 
 use failure::Fallible as Result;
+use failure::err_msg;
+use failure::Error;
+use resiter::Map;
+use resiter::AndThen;
 use clap::App;
 
 use libimagstore::storeid::StoreId;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::iter::TraceIterator;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
 
 mod ui;
 
@@ -72,48 +72,42 @@ impl ImagApplication for ImagIds {
     fn run(rt: Runtime) -> Result<()> {
         let print_storepath = rt.cli().is_present("print-storepath");
 
-        let iterator = if rt.ids_from_stdin() {
-            debug!("Fetching IDs from stdin...");
-            let ids = rt
-                .ids::<crate::ui::PathProvider>()
-                .map_err_trace_exit_unwrap()
-                .unwrap_or_else(|| {
-                    error!("No ids supplied");
-                    ::std::process::exit(1);
-                });
-            Box::new(ids.into_iter().map(Ok))
-                as Box<dyn Iterator<Item = RResult<StoreId, _>>>
-        } else {
-            Box::new(rt.store().entries().map_err_trace_exit_unwrap())
-                as Box<dyn Iterator<Item = RResult<StoreId, _>>>
-        }
-        .trace_unwrap_exit()
-            .map(|id| if print_storepath {
-                (Some(rt.store().path()), id)
-            } else {
-                (None, id)
-            });
-
         let mut stdout = rt.stdout();
         trace!("Got output: {:?}", stdout);
 
-        iterator.for_each(|(storepath, id)| {
-            rt.report_touched(&id).unwrap_or_exit();
-            if !rt.output_is_pipe() {
-                let id = id.to_str().map_err_trace_exit_unwrap();
-                trace!("Writing to {:?}", stdout);
+        let mut process = |iter: &mut dyn Iterator<Item = Result<StoreId>>| -> Result<()> {
+            iter.map_ok(|id| if print_storepath {
+                (Some(rt.store().path()), id)
+            } else {
+                (None, id)
+            }).and_then_ok(|(storepath, id)| {
+                if !rt.output_is_pipe() {
+                    let id = id.to_str()?;
+                    trace!("Writing to {:?}", stdout);
 
-                let result = if let Some(store) = storepath {
-                    writeln!(stdout, "{}/{}", store.display(), id)
-                } else {
-                    writeln!(stdout, "{}", id)
-                };
+                    if let Some(store) = storepath {
+                        writeln!(stdout, "{}/{}", store.display(), id)?;
+                    } else {
+                        writeln!(stdout, "{}", id)?;
+                    }
+                }
 
-                result.to_exit_code().unwrap_or_exit();
-            }
-        });
+                rt.report_touched(&id).map_err(Error::from)
+            })
+            .collect::<Result<()>>()
+        };
 
-        Ok(())
+        if rt.ids_from_stdin() {
+            debug!("Fetching IDs from stdin...");
+            let mut iter = rt.ids::<crate::ui::PathProvider>()?
+                .ok_or_else(|| err_msg("No ids supplied"))?
+                .into_iter()
+                .map(Ok);
+
+            process(&mut iter)
+        } else {
+            process(&mut rt.store().entries()?)
+        }
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
