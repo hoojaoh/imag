@@ -38,12 +38,11 @@ extern crate clap;
 #[macro_use] extern crate log;
 extern crate toml;
 extern crate toml_query;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 extern crate libimagrt;
 extern crate libimagerror;
 
-use std::io::Write;
 use std::io::ErrorKind;
 use std::process::Command;
 
@@ -51,9 +50,9 @@ use toml::Value;
 use toml_query::read::TomlValueReadExt;
 use clap::App;
 use failure::Fallible as Result;
+use failure::ResultExt;
+use failure::err_msg;
 
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 
@@ -68,29 +67,19 @@ impl ImagApplication for ImagGit {
     fn run(rt: Runtime) -> Result<()> {
         let execute_in_store = rt
             .config()
-            .unwrap_or_else(|| {
-                error!("No configuration. Please use git yourself, not via imag-git");
-                error!("Won't continue without configuration.");
-                ::std::process::exit(1);
-            })
+            .ok_or_else(|| err_msg("No configuration. Please use git yourself, not via imag-git"))
+            .context("Won't continue without configuration.")
+            ?
             .read("git.execute_in_store")
-            .unwrap_or_else(|e| {
-                error!("Failed to read config setting 'git.execute_in_store'");
-                error!("-> {:?}", e);
-                ::std::process::exit(1)
-            })
-            .unwrap_or_else(|| {
-                error!("Missing config setting 'git.execute_in_store'");
-                ::std::process::exit(1)
-            });
+            .context("Failed to read config setting 'git.execute_in_store'")
+            ?
+            .ok_or_else(|| err_msg("Missing config setting 'git.execute_in_store'"))
+            ?;
 
         let execute_in_store = match *execute_in_store {
-            Value::Boolean(b) => b,
-            _ => {
-                error!("Type error: 'git.execute_in_store' is not a boolean!");
-                ::std::process::exit(1)
-            }
-        };
+            Value::Boolean(b) => Ok(b),
+            _ => Err(err_msg("Type error: 'git.execute_in_store' is not a boolean!")),
+        }?;
 
         let execpath = if execute_in_store {
             rt.store().path().to_str()
@@ -98,11 +87,7 @@ impl ImagApplication for ImagGit {
             rt.rtp().to_str()
         }
         .map(String::from)
-            .unwrap_or_else(|| {
-                error!("Cannot parse to string: {:?}", rt.store().path());
-                ::std::process::exit(1)
-            });
-
+        .ok_or_else(|| format_err!("Cannot parse to string: {:?}", rt.store().path()))?;
 
         let mut command = Command::new("git");
         command
@@ -120,21 +105,16 @@ impl ImagApplication for ImagGit {
         debug!("Adding args = {:?}", args);
         command.args(&args);
 
-        match rt.cli().subcommand() {
-            (external, Some(ext_m)) => {
-                command.arg(external);
-                let args = ext_m
-                    .values_of("")
-                    .map(|vs| vs.map(String::from).collect())
-                    .unwrap_or_else(|| vec![]);
+        if let (external, Some(ext_m)) = rt.cli().subcommand() {
+            command.arg(external);
+            let args = ext_m
+                .values_of("")
+                .map(|vs| vs.map(String::from).collect())
+                .unwrap_or_else(|| vec![]);
 
-                debug!("Adding subcommand '{}' and args = {:?}", external, args);
-                command.args(&args);
-            },
-            _ => {},
+            debug!("Adding subcommand '{}' and args = {:?}", external, args);
+            command.args(&args);
         }
-
-        let mut out = rt.stdout();
 
         debug!("Calling: {:?}", command);
 
@@ -142,41 +122,22 @@ impl ImagApplication for ImagGit {
             Ok(exit_status) => {
                 if !exit_status.success() {
                     debug!("git exited with non-zero exit code: {:?}", exit_status);
-                    let mut err = rt.stderr();
-                    writeln!(err, "git exited with non-zero exit code")
-                        .to_exit_code()
-                        .unwrap_or_exit();
-                    ::std::process::exit(exit_status.code().unwrap_or(1));
+                    Err(format_err!("git exited with non-zero exit code: {:?}", exit_status))
+                } else {
+                    debug!("Successful exit!");
+                    Ok(())
                 }
-                debug!("Successful exit!");
             },
 
             Err(e) => {
                 debug!("Error calling git");
-                match e.kind() {
-                    ErrorKind::NotFound => {
-                        let _ = writeln!(out, "Cannot find 'git' executable")
-                            .to_exit_code()
-                            .unwrap_or_exit();
-                        ::std::process::exit(1);
-                    },
-                    ErrorKind::PermissionDenied => {
-                        let _ = writeln!(out, "No permission to execute: 'git'")
-                            .to_exit_code()
-                            .unwrap_or_exit();
-                        ::std::process::exit(1);
-                    },
-                    _ => {
-                        let _ = writeln!(out, "Error spawning: {:?}", e)
-                            .to_exit_code()
-                            .unwrap_or_exit();
-                        ::std::process::exit(1);
-                    }
-                }
+                Err(match e.kind() {
+                    ErrorKind::NotFound         => err_msg("Cannot find 'git' executable"),
+                    ErrorKind::PermissionDenied => err_msg("No permission to execute: 'git'"),
+                    _                           => format_err!("Error spawning: {:?}", e),
+                })
             }
         }
-
-        Ok(())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
