@@ -36,21 +36,19 @@
 
 extern crate clap;
 extern crate failure;
-#[macro_use] extern crate log;
 
 extern crate libimagerror;
 extern crate libimagrt;
 extern crate libimagstore;
 
 use failure::Fallible as Result;
+use failure::err_msg;
 use clap::App;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
-use libimagerror::trace::MapErrTrace;
 use libimagstore::iter::create::StoreIdCreateIteratorExtension;
 use libimagstore::iter::retrieve::StoreIdRetrieveIteratorExtension;
-use libimagerror::exit::ExitUnwrap;
 
 mod ui;
 
@@ -60,30 +58,17 @@ pub enum ImagCreate {}
 impl ImagApplication for ImagCreate {
     fn run(rt: Runtime) -> Result<()> {
         let force = rt.cli().is_present("force");
-        debug!("Detected force = {}", force);
 
-        let ids = rt.ids::<crate::ui::PathProvider>()
-            .map_err_trace_exit_unwrap()
-            .unwrap_or_else(|| {
-                error!("No ids supplied");
-                ::std::process::exit(1);
-            })
+        let ids = rt.ids::<crate::ui::PathProvider>()?
+            .ok_or_else(|| err_msg("No ids supplied"))?
             .into_iter()
-            .map(|id| { debug!("id = {}", id); id })
             .map(Ok);
 
         if force {
             ids.into_retrieve_iter(rt.store()).collect::<Result<Vec<_>>>()
         } else {
             ids.into_create_iter(rt.store()).collect::<Result<Vec<_>>>()
-        }.map_err_trace_exit_unwrap()
-        .into_iter()
-        .for_each(|el| {
-            rt.report_touched(el.get_location()).unwrap_or_exit();
-            trace!("Entry = {}", el.get_location());
-        });
-
-        Ok(())
+        }.map(|_| ())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
