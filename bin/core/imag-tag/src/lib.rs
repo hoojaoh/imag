@@ -38,7 +38,7 @@ extern crate clap;
 #[macro_use] extern crate log;
 
 #[cfg(test)] extern crate toml;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 extern crate libimagstore;
 extern crate libimagrt;
@@ -60,19 +60,17 @@ extern crate env_logger;
 
 use std::io::Write;
 
+use failure::Fallible as Result;
+use failure::Error;
+use failure::err_msg;
+
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 use libimagentrytag::tagable::Tagable;
 use libimagentrytag::tag::Tag;
-use libimagerror::trace::trace_error;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::io::ToExitCode;
-use libimagerror::exit::ExitUnwrap;
 use libimagstore::storeid::StoreId;
-use libimagutil::warn_exit::warn_exit;
 
 use clap::{App, ArgMatches};
-use failure::Fallible as Result;
 
 mod ui;
 
@@ -84,43 +82,40 @@ mod ui;
 pub enum ImagTag {}
 impl ImagApplication for ImagTag {
     fn run(rt: Runtime) -> Result<()> {
-        let ids = rt
-            .ids::<crate::ui::PathProvider>()
-            .map_err_trace_exit_unwrap()
-            .unwrap_or_else(|| {
-                error!("No ids supplied");
-                ::std::process::exit(1);
-            })
+        let ids = rt.ids::<crate::ui::PathProvider>()?
+            .ok_or_else(|| err_msg("No ids supplied"))?
             .into_iter();
 
         if let Some(name) = rt.cli().subcommand_name() {
             match name {
-                "list" => for id in ids {
-                    list(id, &rt)
-                },
-                "remove" => for id in ids {
+                "list" => ids.into_iter().map(|id| list(id, &rt)).collect(),
+
+                "remove" => ids.into_iter().map(|id| {
                     let add = None;
-                    let rem = get_remove_tags(rt.cli());
+                    let rem = get_remove_tags(rt.cli())?;
                     debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
-                    alter(&rt, id, add, rem);
-                },
-                "add" => for id in ids {
-                    let add = get_add_tags(rt.cli());
+                    alter(&rt, id, add, rem)
+                }).collect(),
+
+                "add" => ids.into_iter().map(|id| {
+                    let add = get_add_tags(rt.cli())?;
                     let rem = None;
                     debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
-                    alter(&rt, id, add, rem);
-                },
+                    alter(&rt, id, add, rem)
+                }).collect(),
+
                 other => {
                     debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-tag", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
+                    if rt.handle_unknown_subcommand("imag-tag", other, rt.cli())?.success() {
+                        Ok(())
+                    } else {
+                        Err(format_err!("Subcommand failed"))
+                    }
                 },
             }
+        } else {
+            Ok(())
         }
-
-        Ok(())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
@@ -140,63 +135,46 @@ impl ImagApplication for ImagTag {
     }
 }
 
-fn alter(rt: &Runtime, path: StoreId, add: Option<Vec<Tag>>, rem: Option<Vec<Tag>>) {
-    match rt.store().get(path.clone()) {
-        Ok(Some(mut e)) => {
+fn alter(rt: &Runtime, path: StoreId, add: Option<Vec<Tag>>, rem: Option<Vec<Tag>>) -> Result<()> {
+    match rt.store().get(path.clone())? {
+        Some(mut e) => {
             debug!("Entry header now = {:?}", e.get_header());
 
             if let Some(tags) = add {
                 debug!("Adding tags = '{:?}'", tags);
-                for tag in tags {
+                tags.into_iter().map(|tag| {
                     debug!("Adding tag '{:?}'", tag);
-                    if let Err(e) = e.add_tag(tag) {
-                        trace_error(&e);
-                    } else {
-                        debug!("Adding tag worked");
-                    }
-                }
+                    e.add_tag(tag)
+                }).collect::<Result<Vec<_>>>()?;
             } // it is okay to ignore a None here
 
             debug!("Entry header now = {:?}", e.get_header());
 
             if let Some(tags) = rem {
                 debug!("Removing tags = '{:?}'", tags);
-                for tag in tags {
+                tags.into_iter().map(|tag| {
                     debug!("Removing tag '{:?}'", tag);
-                    if let Err(e) = e.remove_tag(tag) {
-                        trace_error(&e);
-                    }
-                }
+                    e.remove_tag(tag)
+                }).collect::<Result<Vec<_>>>()?;
             } // it is okay to ignore a None here
 
             debug!("Entry header now = {:?}", e.get_header());
-
         },
 
-        Ok(None) => {
+        None => {
             info!("No entry found.");
-        },
-
-        Err(e) => {
-            info!("No entry.");
-            trace_error(&e);
         },
     }
 
-    rt.report_touched(&path).unwrap_or_exit();
+    rt.report_touched(&path).map_err(Error::from)
 }
 
-fn list(path: StoreId, rt: &Runtime) {
-    let entry = match rt.store().get(path.clone()).map_err_trace_exit_unwrap() {
-        Some(e) => e,
-        None => warn_exit("No entry found.", 1),
-    };
-
-    let scmd = rt.cli().subcommand_matches("list").unwrap(); // safe, we checked in main()
-
-    let json_out = scmd.is_present("json");
-    let line_out = scmd.is_present("linewise");
-    let sepp_out = scmd.is_present("sep");
+fn list(path: StoreId, rt: &Runtime) -> Result<()> {
+    let entry        = rt.store().get(path.clone())?.ok_or_else(|| err_msg("No entry found"))?;
+    let scmd         = rt.cli().subcommand_matches("list").unwrap(); // safe, we checked in main()
+    let json_out     = scmd.is_present("json");
+    let line_out     = scmd.is_present("linewise");
+    let sepp_out     = scmd.is_present("sep");
     let mut comm_out = scmd.is_present("commasep");
 
     if !vec![json_out, line_out, comm_out, sepp_out].iter().any(|v| *v) {
@@ -204,7 +182,7 @@ fn list(path: StoreId, rt: &Runtime) {
         comm_out = true;
     }
 
-    let tags = entry.get_tags().map_err_trace_exit_unwrap();
+    let tags = entry.get_tags()?;
 
     if json_out {
         unimplemented!()
@@ -212,53 +190,44 @@ fn list(path: StoreId, rt: &Runtime) {
 
     if line_out {
         for tag in &tags {
-            writeln!(rt.stdout(), "{}", tag)
-                .to_exit_code()
-                .unwrap_or_exit();
+            writeln!(rt.stdout(), "{}", tag)?;
         }
     }
 
     if sepp_out {
         let sepp = scmd.value_of("sep").unwrap(); // we checked before
-        writeln!(rt.stdout(), "{}", tags.join(sepp))
-            .to_exit_code()
-            .unwrap_or_exit();
+        writeln!(rt.stdout(), "{}", tags.join(sepp))?;
     }
 
     if comm_out {
-        writeln!(rt.stdout(), "{}", tags.join(", "))
-            .to_exit_code()
-            .unwrap_or_exit();
+        writeln!(rt.stdout(), "{}", tags.join(", "))?;
     }
 
-    rt.report_touched(&path).unwrap_or_exit();
+    rt.report_touched(&path).map_err(Error::from)
 }
 
 /// Get the tags which should be added from the commandline
 ///
 /// Returns none if the argument was not specified
-fn get_add_tags(matches: &ArgMatches) -> Option<Vec<Tag>> {
+fn get_add_tags(matches: &ArgMatches) -> Result<Option<Vec<Tag>>> {
     retrieve_tags(matches, "add", "add-tags")
 }
 
 /// Get the tags which should be removed from the commandline
 ///
 /// Returns none if the argument was not specified
-fn get_remove_tags(matches: &ArgMatches) -> Option<Vec<Tag>> {
+fn get_remove_tags(matches: &ArgMatches) -> Result<Option<Vec<Tag>>> {
     retrieve_tags(matches, "remove", "remove-tags")
 }
 
-fn retrieve_tags(m: &ArgMatches, s: &'static str, v: &'static str) -> Option<Vec<Tag>> {
-    Some(m
+fn retrieve_tags(m: &ArgMatches, s: &'static str, v: &'static str) -> Result<Option<Vec<Tag>>> {
+    Ok(Some(m
          .subcommand_matches(s)
-         .unwrap_or_else(|| {
-             error!("Expected subcommand '{}', but was not specified", s);
-             ::std::process::exit(1)
-         })
+         .ok_or_else(|| format_err!("Expected subcommand '{}', but was not specified", s))?
          .values_of(v)
          .unwrap() // enforced by clap
          .map(String::from)
-         .collect())
+         .collect()))
 }
 
 #[cfg(test)]
@@ -314,7 +283,7 @@ mod tests {
     }
 
     #[test]
-    fn test_tag_add_adds_tag() {
+    fn test_tag_add_adds_tag() -> Result<()> {
         setup_logging();
         debug!("Generating runtime");
         let name = "test-tag-add-adds-tags";
@@ -325,11 +294,11 @@ mod tests {
         let id = PathBuf::from(String::from(name));
 
         debug!("Getting 'add' tags");
-        let add = get_add_tags(rt.cli());
+        let add = get_add_tags(rt.cli())?;
         debug!("Add-tags: {:?}", add);
 
         debug!("Altering things");
-        alter(&rt, StoreId::new(id.clone()).unwrap(), add, None);
+        alter(&rt, StoreId::new(id.clone()).unwrap(), add, None)?;
         debug!("Altered");
 
         let test_entry = rt.store().get(id).unwrap().unwrap();
@@ -343,10 +312,11 @@ mod tests {
 
         assert_ne!(*test_tags, tags_toml_value(vec![]));
         assert_eq!(*test_tags, tags_toml_value(vec!["foo"]));
+        Ok(())
     }
 
     #[test]
-    fn test_tag_remove_removes_tag() {
+    fn test_tag_remove_removes_tag() -> Result<()> {
         setup_logging();
         debug!("Generating runtime");
         let name = "test-tag-remove-removes-tag";
@@ -360,21 +330,22 @@ mod tests {
         let add = Some(vec![ "foo".to_owned() ]);
 
         debug!("Getting 'remove' tags");
-        let rem = get_remove_tags(rt.cli());
+        let rem = get_remove_tags(rt.cli())?;
         debug!("Rem-tags: {:?}", rem);
 
         debug!("Altering things");
-        alter(&rt, StoreId::new(id.clone()).unwrap(), add, rem);
+        alter(&rt, StoreId::new(id.clone()).unwrap(), add, rem)?;
         debug!("Altered");
 
         let test_entry = rt.store().get(id).unwrap().unwrap();
         let test_tags  = get_entry_tags(&test_entry).unwrap().unwrap();
 
         assert_eq!(*test_tags, tags_toml_value(vec![]));
+        Ok(())
     }
 
     #[test]
-    fn test_tag_remove_removes_only_to_remove_tag() {
+    fn test_tag_remove_removes_only_to_remove_tag() -> Result<()> {
         setup_logging();
         debug!("Generating runtime");
         let name = "test-tag-remove-removes-only-to-remove-tag-doesnt-crash-on-nonexistent-tag";
@@ -388,21 +359,22 @@ mod tests {
         let add = Some(vec![ "foo".to_owned(), "bar".to_owned() ]);
 
         debug!("Getting 'remove' tags");
-        let rem = get_remove_tags(rt.cli());
+        let rem = get_remove_tags(rt.cli())?;
         debug!("Rem-tags: {:?}", rem);
 
         debug!("Altering things");
-        alter(&rt, StoreId::new(id.clone()).unwrap(), add, rem);
+        alter(&rt, StoreId::new(id.clone()).unwrap(), add, rem)?;
         debug!("Altered");
 
         let test_entry = rt.store().get(id).unwrap().unwrap();
         let test_tags  = get_entry_tags(&test_entry).unwrap().unwrap();
 
         assert_eq!(*test_tags, tags_toml_value(vec!["bar"]));
+        Ok(())
     }
 
     #[test]
-    fn test_tag_remove_removes_but_doesnt_crash_on_nonexistent_tag() {
+    fn test_tag_remove_removes_but_doesnt_crash_on_nonexistent_tag() -> Result<()> {
         setup_logging();
         debug!("Generating runtime");
         let name = "test-tag-remove-removes-but-doesnt-crash-on-nonexistent-tag";
@@ -416,17 +388,18 @@ mod tests {
         let add = Some(vec![ "foo".to_owned() ]);
 
         debug!("Getting 'remove' tags");
-        let rem = get_remove_tags(rt.cli());
+        let rem = get_remove_tags(rt.cli())?;
         debug!("Rem-tags: {:?}", rem);
 
         debug!("Altering things");
-        alter(&rt, StoreId::new(id.clone()).unwrap(), add, rem);
+        alter(&rt, StoreId::new(id.clone()).unwrap(), add, rem)?;
         debug!("Altered");
 
         let test_entry = rt.store().get(id).unwrap().unwrap();
         let test_tags  = get_entry_tags(&test_entry).unwrap().unwrap();
 
         assert_eq!(*test_tags, tags_toml_value(vec![]));
+        Ok(())
     }
 
 }
