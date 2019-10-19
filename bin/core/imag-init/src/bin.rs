@@ -41,6 +41,5 @@ extern crate libimaginitcmd;
 
 
 fn main() -> Result<()> {
-    libimaginitcmd::imag_init();
-    Ok(())
+    libimaginitcmd::imag_init()
 }
