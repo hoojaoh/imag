@@ -35,33 +35,29 @@
 )]
 
 #[macro_use] extern crate log;
+#[macro_use] extern crate failure;
 extern crate clap;
-extern crate failure;
 
 extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagerror;
 extern crate libimagentrylink;
 
-use std::process::exit;
-
 mod ui;
 
 use std::path::PathBuf;
-use std::result::Result as RResult;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::iter::TraceIterator;
-use libimagerror::exit::ExitUnwrap;
 use libimagstore::storeid::StoreId;
 use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagentrylink::linkable::Linkable;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
+use libimagerror::iter::IterInnerOkOrElse;
 
 use failure::Fallible as Result;
+use failure::err_msg;
 use clap::App;
 
 
@@ -77,72 +73,50 @@ impl ImagApplication for ImagMv {
             .value_of("source")
             .map(PathBuf::from)
             .map(StoreId::new)
-            .unwrap() // unwrap safe by clap
-            .map_err_trace_exit_unwrap();
+            .unwrap()?; // unwrap safe by clap
 
         let destname = rt
             .cli()
             .value_of("dest")
             .map(PathBuf::from)
             .map(StoreId::new)
-            .unwrap() // unwrap safe by clap
-            .map_err_trace_exit_unwrap();
+            .unwrap()?; // unwrap safe by clap
 
         // remove links to entry, and re-add them later
-        let mut linked_entries = {
-            rt.store()
-                .get(sourcename.clone())
-                .map_err_trace_exit_unwrap()
-                .unwrap_or_else(|| {
-                    error!("Funny things happened: Entry moved to destination did not fail, but entry does not exist");
-                    exit(1)
-                })
-                .links()
-                .map_err_trace_exit_unwrap()
-                .map(|link| Ok(link.get_store_id().clone()) as RResult<_, _>)
-                .into_get_iter(rt.store())
-                .trace_unwrap_exit()
-                .map(|e| {
-                    e.unwrap_or_else(|| {
-                        error!("Linked entry does not exist");
-                        exit(1)
-                    })
-                })
-                .collect::<Vec<_>>()
-        };
+        let mut linked_entries = rt.store()
+            .get(sourcename.clone())?
+            .ok_or_else(|| format_err!("Entry does not exist: {}", sourcename))?
+            .links()?
+            .map(|link| link.get_store_id().clone())
+            .map(Ok)
+            .into_get_iter(rt.store())
+            .map_inner_ok_or_else(|| err_msg("Linked entry does not exist"))
+            .collect::<Result<Vec<_>>>()?;
 
         { // remove links to linked entries from source
             let mut entry = rt
                 .store()
-                .get(sourcename.clone())
-                .map_err_trace_exit_unwrap()
-                .unwrap_or_else(|| {
-                    error!("Source Entry does not exist");
-                    exit(1)
-                });
+                .get(sourcename.clone())?
+                .ok_or_else(|| err_msg("Source Entry does not exist"))?;
 
             for link in linked_entries.iter_mut() {
-                let _ = entry.remove_link(link).map_err_trace_exit_unwrap();
+                entry.remove_link(link)?;
             }
         }
 
-        let _ = rt
-            .store()
-            .move_by_id(sourcename.clone(), destname.clone())
-            .map_err(|e| { // on error, re-add links
-                debug!("Re-adding links to source entry because moving failed");
-                relink(rt.store(), sourcename.clone(), &mut linked_entries);
-                e
-            })
-            .map_err_trace_exit_unwrap();
+        if let Err(e) = rt.store().move_by_id(sourcename.clone(), destname.clone()) {
+            debug!("Re-adding links to source entry because moving failed");
+            relink(rt.store(), sourcename.clone(), &mut linked_entries)?;
 
-        let _ = rt.report_touched(&destname).unwrap_or_exit();
+            return Err(e);
+        }
+
+        rt.report_touched(&destname)?;
 
         // re-add links to moved entry
-        relink(rt.store(), destname, &mut linked_entries);
+        relink(rt.store(), destname, &mut linked_entries)?;
 
         info!("Ok.");
-
         Ok(())
     }
 
@@ -165,17 +139,15 @@ impl ImagApplication for ImagMv {
 
 
 
-fn relink<'a>(store: &'a Store, target: StoreId, linked_entries: &mut Vec<FileLockEntry<'a>>) {
+fn relink<'a>(store: &'a Store, target: StoreId, linked_entries: &mut Vec<FileLockEntry<'a>>) -> Result<()> {
     let mut entry = store
-        .get(target)
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("Funny things happened: Entry moved to destination did not fail, but entry does not exist");
-            exit(1)
-        });
-
+        .get(target)?
+        .ok_or_else(|| err_msg("Funny things happened: Entry moved to destination did not fail, but entry does not exist"))?;
 
     for mut link in linked_entries {
-        let _ = entry.add_link(&mut link).map_err_trace_exit_unwrap();
+        let _ = entry.add_link(&mut link)?;
     }
+
+    Ok(())
 }
+
