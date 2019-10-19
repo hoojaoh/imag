@@ -47,22 +47,20 @@ extern crate libimagutil;
 
 mod ui;
 
-use std::process::exit;
 use std::io::Write;
 
-use failure::Error;
 use failure::Fallible as Result;
+use failure::Error;
+use failure::err_msg;
 use clap::App;
 
-use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
 use libimagrt::application::ImagApplication;
 use libimagrt::runtime::Runtime;
 use libimagentryref::reference::Ref;
-use libimagentryref::reference::MutRef;
 use libimagentryref::reference::RefFassade;
 use libimagentryref::hasher::default::DefaultHasher;
 use libimagentryref::util::get_ref_config;
+use libimagentryref::reference::MutRef;
 
 /// Marker enum for implementing ImagApplication on
 ///
@@ -80,15 +78,16 @@ impl ImagApplication for ImagRef {
                 "list-dead" => list_dead(&rt),
                 other => {
                     debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-ref", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
+                    if rt.handle_unknown_subcommand("imag-ref", other, rt.cli())?.success() {
+                        Ok(())
+                    } else {
+                        Err(format_err!("Subcommand failed"))
+                    }
                 },
             }
-        };
-
-        Ok(())
+        } else {
+            Ok(())
+        }
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
@@ -108,23 +107,18 @@ impl ImagApplication for ImagRef {
     }
 }
 
-fn deref(rt: &Runtime) {
+fn deref(rt: &Runtime) -> Result<()> {
     let cmd         = rt.cli().subcommand_matches("deref").unwrap();
     let basepath    = cmd.value_of("override-basepath");
-    let cfg         = get_ref_config(&rt, "imag-ref").map_err_trace_exit_unwrap();
+    let cfg         = get_ref_config(&rt, "imag-ref")?;
     let out         = rt.stdout();
     let mut outlock = out.lock();
 
-    rt
-        .ids::<::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
+    rt.ids::<::ui::PathProvider>()?
+        .ok_or_else(|| err_msg("No ids supplied"))?
         .into_iter()
-        .for_each(|id| {
-            match rt.store().get(id.clone()).map_err_trace_exit_unwrap() {
+        .map(|id| {
+            match rt.store().get(id.clone())? {
                 Some(entry) => {
                     let r_entry = entry.as_ref_with_hasher::<DefaultHasher>();
 
@@ -132,89 +126,63 @@ fn deref(rt: &Runtime) {
                         r_entry.get_path_with_basepath_setting(&cfg, alternative_basepath)
                     } else {
                         r_entry.get_path(&cfg)
-                    }
-                    .map_err_trace_exit_unwrap()
+                    }?
                     .to_str()
-                    .ok_or_else(|| ::libimagerror::errors::ErrorMsg::UTF8Error)
-                    .map_err(Error::from)
-                    .and_then(|s| writeln!(outlock, "{}", s).map_err(Error::from))
-                    .map_err_trace_exit_unwrap();
+                    .ok_or_else(|| Error::from(::libimagerror::errors::ErrorMsg::UTF8Error))
+                    .and_then(|s| writeln!(outlock, "{}", s).map_err(Error::from))?;
 
-                    rt.report_touched(&id).unwrap_or_exit();
+                    rt.report_touched(&id).map_err(Error::from)
                 },
-                None => {
-                    error!("No entry for id '{}' found", id);
-                    exit(1)
-                },
+                None => Err(format_err!("No entry for id '{}' found", id))
             }
-        });
+        })
+        .collect()
 }
 
-fn remove(rt: &Runtime) {
+fn remove(rt: &Runtime) -> Result<()> {
     use libimaginteraction::ask::ask_bool;
 
-    let cmd = rt.cli().subcommand_matches("remove").unwrap();
-    let yes = cmd.is_present("yes");
-
-    let mut input = rt.stdin().unwrap_or_else(|| {
-        error!("No input stream. Cannot ask for permission");
-        exit(1);
-    });
-
+    let cmd        = rt.cli().subcommand_matches("remove").unwrap();
+    let yes        = cmd.is_present("yes");
+    let mut input  = rt.stdin().ok_or_else(|| err_msg("No input stream. Cannot ask for permission"))?;
     let mut output = rt.stdout();
 
-    rt
-        .ids::<::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
+    rt.ids::<::ui::PathProvider>()?
+        .ok_or_else(|| err_msg("No ids supplied"))?
         .into_iter()
-        .for_each(|id| {
-            match rt.store().get(id.clone()).map_err_trace_exit_unwrap() {
+        .map(|id| {
+            match rt.store().get(id.clone())? {
+                None            => Err(format_err!("No entry for id '{}' found", id)),
                 Some(mut entry) => {
-                    if yes ||
-                        ask_bool(&format!("Delete ref from entry '{}'", id), None, &mut input, &mut output)
-                            .map_err_trace_exit_unwrap()
-                    {
-                        entry.as_ref_with_hasher_mut::<DefaultHasher>()
-                            .remove_ref()
-                            .map_err_trace_exit_unwrap();
+                    if yes || ask_bool(&format!("Delete ref from entry '{}'", id), None, &mut input, &mut output)?  {
+                        entry.as_ref_with_hasher_mut::<DefaultHasher>().remove_ref()
                     } else {
                         info!("Aborted");
+                        Ok(())
                     }
                 },
-                None => {
-                    error!("No entry for id '{}' found", id);
-                    exit(1)
-                },
             }
-        });
+        })
+        .collect()
 }
 
-fn list_dead(rt: &Runtime) {
-    let cfg        = get_ref_config(&rt, "imag-ref").map_err_trace_exit_unwrap();
+fn list_dead(rt: &Runtime) -> Result<()> {
+    let cfg        = get_ref_config(&rt, "imag-ref")?;
     let cmd        = rt.cli().subcommand_matches("list-dead").unwrap(); // safe by main()
     let list_path  = cmd.is_present("list-dead-pathes");
     let list_id    = cmd.is_present("list-dead-ids");
     let mut output = rt.stdout();
 
-    rt
-        .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
+    rt.ids::<crate::ui::PathProvider>()?
+        .ok_or_else(|| err_msg("No ids supplied"))?
         .into_iter()
-        .for_each(|id| {
-            match rt.store().get(id.clone()).map_err_trace_exit_unwrap() {
+        .map(|id| {
+            match rt.store().get(id.clone())? {
                 Some(entry) => {
                     let entry_ref = entry.as_ref_with_hasher::<DefaultHasher>();
 
-                    if entry_ref.is_ref().map_err_trace_exit_unwrap() { // we only care if the entry is a ref
-                        let entry_path = entry_ref.get_path(&cfg).map_err_trace_exit_unwrap();
+                    if entry_ref.is_ref()? { // we only care if the entry is a ref
+                        let entry_path = entry_ref.get_path(&cfg)?;
 
                         if !entry_path.exists() {
                             if list_id {
@@ -223,24 +191,24 @@ fn list_dead(rt: &Runtime) {
                                 writeln!(output, "{}", entry_path.display())
                             } else {
                                 unimplemented!()
-                            }
-                            .map_err(Error::from)
-                            .map_err_trace_exit_unwrap();
+                            }?;
 
-                            rt.report_touched(entry.get_location()).unwrap_or_exit();
+                            rt.report_touched(entry.get_location()).map_err(Error::from)
+                        } else {
+                            Ok(())
                         }
+                    } else {
+                        Ok(())
                     }
                 }
 
-                None => {
-                    error!("Does not exist: {}", id.local().display());
-                    exit(1)
-                }
+                None => Err(format_err!("Does not exist: {}", id.local().display())),
             }
-        });
+        })
+        .collect()
 }
 
-fn create(_rt: &Runtime) {
+fn create(_rt: &Runtime) -> Result<()> {
     unimplemented!()
 }
 
