@@ -40,7 +40,8 @@ extern crate handlebars;
 extern crate tempfile;
 extern crate toml;
 extern crate toml_query;
-extern crate failure;
+#[macro_use] extern crate failure;
+extern crate resiter;
 
 extern crate libimagentryview;
 extern crate libimagerror;
@@ -52,26 +53,23 @@ use std::str::FromStr;
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::process::Command;
-use std::process::exit;
 
 use handlebars::Handlebars;
 use toml_query::read::TomlValueReadTypeExt;
 use failure::Error;
 use failure::err_msg;
 use failure::Fallible as Result;
+use resiter::AndThen;
 use clap::App;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::iter::TraceIterator;
-use libimagerror::io::ToExitCode;
-use libimagerror::exit::ExitUnwrap;
 use libimagentryview::builtin::stdout::StdoutViewer;
 use libimagentryview::builtin::md::MarkdownViewer;
 use libimagentryview::viewer::Viewer;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagstore::store::FileLockEntry;
+use libimagerror::iter::IterInnerOkOrElse;
 
 mod ui;
 
@@ -85,61 +83,42 @@ impl ImagApplication for ImagView {
         let view_header  = rt.cli().is_present("view-header");
         let hide_content = rt.cli().is_present("not-view-content");
         let entries      = rt
-            .ids::<::ui::PathProvider>()
-            .map_err_trace_exit_unwrap()
-            .unwrap_or_else(|| {
-                error!("No ids supplied");
-                ::std::process::exit(1);
-            })
+            .ids::<::ui::PathProvider>()?
+            .ok_or_else(|| err_msg("No ids supplied"))?
             .into_iter()
             .map(Ok)
             .into_get_iter(rt.store())
-            .trace_unwrap_exit()
-            .map(|e| {
-                e.ok_or_else(|| err_msg("Entry not found"))
-                    .map_err(Error::from)
-                    .map_err_trace_exit_unwrap()
-            });
+            .map_inner_ok_or_else(|| err_msg("Entry not found, please report this as a bug"));
 
         if rt.cli().is_present("in") {
             let files = entries
-                .map(|entry| {
-                    let tmpfile = create_tempfile_for(&entry, view_header, hide_content);
-                    rt.report_touched(entry.get_location()).unwrap_or_exit();
-                    tmpfile
+                .and_then_ok(|entry| {
+                    let tmpfile = create_tempfile_for(&entry, view_header, hide_content)?;
+                    rt.report_touched(entry.get_location())?;
+                    Ok(tmpfile)
                 })
-                .collect::<Vec<_>>();
+                .collect::<Result<Vec<_>>>()?;
 
             let mut command = {
                 let viewer = rt
                     .cli()
                     .value_of("in")
-                    .ok_or_else(|| Error::from(err_msg("No viewer given")))
-                    .map_err_trace_exit_unwrap();
+                    .ok_or_else(|| err_msg("No viewer given"))?;
 
                 let config = rt
                     .config()
-                    .ok_or_else(|| Error::from(err_msg("No configuration, cannot continue")))
-                    .map_err_trace_exit_unwrap();
+                    .ok_or_else(|| err_msg("No configuration, cannot continue"))?;
 
                 let query = format!("view.viewers.{}", viewer);
 
                 let viewer_template = config
-                    .read_string(&query)
-                    .map_err(Error::from)
-                    .map_err_trace_exit_unwrap()
-                    .unwrap_or_else(|| {
-                        error!("Cannot find '{}' in config", query);
-                        exit(1)
-                    });
+                    .read_string(&query)?
+                    .ok_or_else(|| format_err!("Cannot find '{}' in config", query))?;
 
                 let mut handlebars = Handlebars::new();
                 handlebars.register_escape_fn(::handlebars::no_escape);
 
-                let _ = handlebars
-                    .register_template_string("template", viewer_template)
-                    .map_err(Error::from)
-                    .map_err_trace_exit_unwrap();
+                handlebars.register_template_string("template", viewer_template)?;
 
                 let mut data = BTreeMap::new();
 
@@ -151,15 +130,9 @@ impl ImagApplication for ImagView {
 
                 data.insert("entries", file_paths);
 
-                let call = handlebars
-                    .render("template", &data)
-                    .map_err(Error::from)
-                    .map_err_trace_exit_unwrap();
+                let call = handlebars .render("template", &data)?;
                 let mut elems = call.split_whitespace();
-                let command_string = elems
-                    .next()
-                    .ok_or_else(|| Error::from(err_msg("No command")))
-                    .map_err_trace_exit_unwrap();
+                let command_string = elems.next().ok_or_else(|| err_msg("No command"))?;
                 let mut cmd = Command::new(command_string);
 
                 for arg in elems {
@@ -172,15 +145,14 @@ impl ImagApplication for ImagView {
             debug!("Calling: {:?}", command);
 
             if !command
-                .status()
-                .map_err(Error::from)
-                .map_err_trace_exit_unwrap()
+                .status()?
                 .success()
             {
-                exit(1)
+                return Err(err_msg("Failed to execute command"))
             }
 
             drop(files);
+            Ok(())
         } else {
             let out         = rt.stdout();
             let mut outlock = out.lock();
@@ -202,32 +174,30 @@ impl ImagApplication for ImagView {
                 let viewer    = MarkdownViewer::new(&rt);
                 let seperator = basesep.map(|s| build_seperator(s, sep_width));
 
-                entries
-                    .enumerate()
-                    .for_each(|(n, entry)| {
-                        if n != 0 {
-                            seperator
-                                .as_ref()
-                                .map(|s| writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit());
-                        }
+                let mut i = 0; // poor mans enumerate()
 
-                        if let Err(e) = viewer.view_entry(&entry, &mut outlock) {
-                            handle_error(e);
+                entries.and_then_ok(|entry| {
+                    if i != 0 {
+                        if let Some(s) = seperator.as_ref() {
+                            writeln!(outlock, "{}", s)?;
                         }
+                    }
 
-                        rt.report_touched(entry.get_location()).unwrap_or_exit();
-                    });
+                    viewer.view_entry(&entry, &mut outlock)?;
+
+                    i += 1;
+                    rt.report_touched(entry.get_location()).map_err(Error::from)
+                })
+                .collect()
             } else {
                 let mut viewer = StdoutViewer::new(view_header, !hide_content);
 
                 if rt.cli().occurrences_of("autowrap") != 0 {
                     let width = rt.cli().value_of("autowrap").unwrap(); // ensured by clap
-                    let width = usize::from_str(width).unwrap_or_else(|e| {
-                        error!("Failed to parse argument to number: autowrap = {:?}",
-                               rt.cli().value_of("autowrap").map(String::from));
-                        error!("-> {:?}", e);
-                        ::std::process::exit(1)
-                    });
+                    let width = usize::from_str(width).map_err(|_| {
+                        format_err!("Failed to parse argument to number: autowrap = {:?}",
+                               rt.cli().value_of("autowrap").map(String::from))
+                    })?;
 
                     // Copying this value over, so that the seperator has the right len as well
                     sep_width = width;
@@ -236,25 +206,22 @@ impl ImagApplication for ImagView {
                 }
 
                 let seperator = basesep.map(|s| build_seperator(s, sep_width));
-                entries
-                    .enumerate()
-                    .for_each(|(n, entry)| {
-                        if n != 0 {
-                            seperator
-                                .as_ref()
-                                .map(|s| writeln!(outlock, "{}", s).to_exit_code().unwrap_or_exit());
+                let mut i = 0; // poor mans enumerate()
+                entries.and_then_ok(|entry| {
+                    if i != 0 {
+                        if let Some(s) = seperator.as_ref() {
+                            writeln!(outlock, "{}", s)?;
                         }
+                    }
 
-                        if let Err(e) = viewer.view_entry(&entry, &mut outlock) {
-                            handle_error(e);
-                        }
+                    viewer.view_entry(&entry, &mut outlock)?;
 
-                        rt.report_touched(entry.get_location()).unwrap_or_exit();
-                    });
+                    i += 1;
+                    rt.report_touched(entry.get_location()).map_err(Error::from)
+                })
+                .collect()
             }
         }
-
-        Ok(())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
@@ -275,41 +242,25 @@ impl ImagApplication for ImagView {
 }
 
 fn create_tempfile_for<'a>(entry: &FileLockEntry<'a>, view_header: bool, hide_content: bool)
-    -> (tempfile::NamedTempFile, String)
+    -> Result<(tempfile::NamedTempFile, String)>
 {
-    let mut tmpfile = tempfile::NamedTempFile::new()
-        .map_err(Error::from)
-        .map_err_trace_exit_unwrap();
+    let mut tmpfile = tempfile::NamedTempFile::new()?;
 
     if view_header {
-        let hdr = toml::ser::to_string_pretty(entry.get_header())
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap();
-        let _ = tmpfile.write(format!("---\n{}---\n", hdr).as_bytes())
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap();
+        let hdr = toml::ser::to_string_pretty(entry.get_header())?;
+        let _ = tmpfile.write(format!("---\n{}---\n", hdr).as_bytes())?;
     }
 
     if !hide_content {
-        let _ = tmpfile.write(entry.get_content().as_bytes())
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap();
+        let _ = tmpfile.write(entry.get_content().as_bytes())?;
     }
 
     let file_path = tmpfile
         .path()
         .to_str()
         .map(String::from)
-        .ok_or_else(|| Error::from(err_msg("Cannot build path")))
-        .map_err_trace_exit_unwrap();
+        .ok_or_else(|| Error::from(err_msg("Cannot build path")))?;
 
-    (tmpfile, file_path)
+    Ok((tmpfile, file_path))
 }
 
-fn handle_error(e: ::libimagentryview::error::Error) {
-    use libimagentryview::error::Error;
-    match e {
-        Error::Io(e)    => Err(e).to_exit_code().unwrap_or_exit(),
-        Error::Other(e) => Err(e).map_err_trace_exit_unwrap()
-    }
-}
