@@ -20,22 +20,23 @@
 use std::ops::DerefMut;
 use std::path::PathBuf;
 
+use failure::Fallible as Result;
+use failure::Error;
+
 use libimagrt::runtime::Runtime;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
 use libimagstore::storeid::StoreId;
 
 use crate::util::build_toml_header;
 
-pub fn update(rt: &Runtime) {
+pub fn update(rt: &Runtime) -> Result<()> {
     let scmd  = rt.cli().subcommand_matches("update").unwrap();
     let id    = scmd.value_of("id").unwrap(); // Safe by clap
     let path  = PathBuf::from(id);
-    let path  = StoreId::new(path).map_err_trace_exit_unwrap();
+    let path  = StoreId::new(path)?;
 
-    let _ = rt.store()
+    rt.store()
         .retrieve(path)
-        .map(|mut locked_e| {
+        .and_then(|mut locked_e| {
             {
                 let e = locked_e.deref_mut();
 
@@ -48,7 +49,7 @@ pub fn update(rt: &Runtime) {
                 debug!("New header set");
             }
 
-            rt.report_touched(locked_e.get_location()).unwrap_or_exit();
-        });
+            rt.report_touched(locked_e.get_location()).map_err(Error::from)
+        })
 }
 

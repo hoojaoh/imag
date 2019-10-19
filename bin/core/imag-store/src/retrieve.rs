@@ -20,41 +20,32 @@
 use std::path::PathBuf;
 use std::io::Write;
 
+use failure::Fallible as Result;
+use failure::Error;
 use clap::ArgMatches;
 
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
 use libimagrt::runtime::Runtime;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::io::ToExitCode;
-use libimagerror::exit::ExitUnwrap;
-use libimagutil::debug_result::*;
 
-pub fn retrieve(rt: &Runtime) {
-    if let Some(scmd) = rt.cli().subcommand_matches("retrieve") {
-        // unwrap() is safe as arg is required
-        let id    = scmd.value_of("id").unwrap();
-        let path  = PathBuf::from(id);
-        let path  = StoreId::new(path).map_err_trace_exit_unwrap();
-        debug!("path = {:?}", path);
+pub fn retrieve(rt: &Runtime) -> Result<()> {
+    let scmd  = rt.cli().subcommand_matches("retrieve").unwrap();
+    let id    = scmd.value_of("id").unwrap();
+    let path  = PathBuf::from(id);
+    let path  = StoreId::new(path)?;
+    debug!("path = {:?}", path);
 
-        rt.store()
-            .retrieve(path.clone())
-            .map(|e| print_entry(rt, scmd, e))
-            .map_dbg_str("No entry")
-            .map_dbg(|e| format!("{:?}", e))
-            .map_err_trace_exit_unwrap();
+    rt.store()
+        .retrieve(path.clone())
+        .and_then(|e| print_entry(rt, scmd, e))?;
 
-        rt.report_touched(&path).unwrap_or_exit();
-    }
+    rt.report_touched(&path).map_err(Error::from)
 }
 
-pub fn print_entry(rt: &Runtime, scmd: &ArgMatches, e: FileLockEntry) {
+pub fn print_entry(rt: &Runtime, scmd: &ArgMatches, e: FileLockEntry) -> Result<()> {
     if do_print_raw(scmd) {
         debug!("Printing raw content...");
-        writeln!(rt.stdout(), "{}", e.to_str().map_err_trace_exit_unwrap())
-            .to_exit_code()
-            .unwrap_or_exit();
+        writeln!(rt.stdout(), "{}", e.to_str()?)?;
     } else if do_filter(scmd) {
         debug!("Filtering...");
         warn!("Filtering via header specs is currently now supported.");
@@ -71,20 +62,17 @@ pub fn print_entry(rt: &Runtime, scmd: &ArgMatches, e: FileLockEntry) {
                 unimplemented!()
             } else {
                 debug!("Printing header as TOML...");
-                writeln!(rt.stdout(), "{}", e.get_header())
-                    .to_exit_code()
-                    .unwrap_or_exit();
+                writeln!(rt.stdout(), "{}", e.get_header())?;
             }
         }
 
         if do_print_content(scmd) {
             debug!("Printing content...");
-            writeln!(rt.stdout(), "{}", e.get_content())
-                    .to_exit_code()
-                    .unwrap_or_exit();
+            writeln!(rt.stdout(), "{}", e.get_content())?;
         }
-
     }
+
+    Ok(())
 }
 
 fn do_print_header(m: &ArgMatches) -> bool {

@@ -19,22 +19,19 @@
 
 use std::path::PathBuf;
 
-use libimagrt::runtime::Runtime;
-use libimagerror::trace::MapErrTrace;
-use libimagstore::storeid::StoreId;
-use libimagutil::warn_result::*;
+use failure::Fallible as Result;
 
-pub fn delete(rt: &Runtime) {
+use libimagrt::runtime::Runtime;
+use libimagstore::storeid::StoreId;
+
+pub fn delete(rt: &Runtime) -> Result<()> {
     let scmd  = rt.cli().subcommand_matches("delete").unwrap();
     let id    = scmd.value_of("id").unwrap(); // safe by clap
     let path  = PathBuf::from(id);
-    let path  = StoreId::new(path).map_err_trace_exit_unwrap();
+    let path  = StoreId::new(path)?;
     debug!("Deleting file at {:?}", id);
 
-    rt.store()
-        .delete(path)
-        .map_warn_err(|e| format!("Error: {:?}", e))
-        .map_err_trace_exit_unwrap();
+    rt.store().delete(path)
 }
 
 #[cfg(test)]
@@ -59,11 +56,11 @@ mod tests {
         let test_name = "test_create_simple";
         let rt = generate_test_runtime(vec!["create", "test_create_simple"]).unwrap();
 
-        create(&rt);
+        create(&rt).unwrap();
 
         let rt = reset_test_runtime(vec!["delete", "test_create_simple"], rt).unwrap();
 
-        delete(&rt);
+        delete(&rt).unwrap();
 
         let e = rt.store().get(PathBuf::from(test_name));
         assert!(e.is_ok());

@@ -37,8 +37,9 @@
 extern crate clap;
 #[macro_use] extern crate log;
 extern crate toml;
+extern crate resiter;
 #[cfg(test)] extern crate toml_query;
-extern crate failure;
+#[macro_use] extern crate failure;
 
 extern crate libimagrt;
 extern crate libimagstore;
@@ -53,7 +54,9 @@ extern crate libimagutil;
 
 use libimagrt::application::ImagApplication;
 use libimagrt::runtime::Runtime;
-use libimagerror::trace::MapErrTrace;
+
+use failure::Fallible as Result;
+use failure::err_msg;
 
 mod create;
 mod delete;
@@ -66,7 +69,6 @@ mod util;
 
 use std::ops::Deref;
 
-use failure::Fallible as Result;
 use clap::App;
 
 use crate::create::create;
@@ -83,9 +85,7 @@ use crate::verify::verify;
 pub enum ImagStore {}
 impl ImagApplication for ImagStore {
     fn run(rt: Runtime) -> Result<()> {
-        let command = rt.cli().subcommand_name().map(String::from);
-
-        if let Some(command) = command {
+        if let Some(command) = rt.cli().subcommand_name() {
             debug!("Call: {}", command);
             match command.deref() {
                 "create"   => create(&rt),
@@ -96,17 +96,16 @@ impl ImagApplication for ImagStore {
                 "verify"   => verify(&rt),
                 other      => {
                     debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-store", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
+                    if rt.handle_unknown_subcommand("imag-store", other, rt.cli())?.success() {
+                        Ok(())
+                    } else {
+                        Err(format_err!("Subcommand failed"))
+                    }
                 },
-            };
+            }
         } else {
-            debug!("No command");
+            Err(err_msg("No command"))
         }
-
-        Ok(())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {

@@ -19,27 +19,29 @@
 
 use std::path::PathBuf;
 
+use failure::Fallible as Result;
+use failure::Error;
+use failure::err_msg;
+
 use libimagrt::runtime::Runtime;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
 use libimagstore::storeid::StoreId;
 
 use crate::retrieve::print_entry;
 
-pub fn get(rt: &Runtime) {
+pub fn get(rt: &Runtime) -> Result<()> {
     let scmd = rt.cli().subcommand_matches("get").unwrap();
 
     let id    = scmd.value_of("id").unwrap(); // safe by clap
     let path  = PathBuf::from(id);
-    let path  = StoreId::new(path).map_err_trace_exit_unwrap();
+    let path  = StoreId::new(path)?;
     debug!("path = {:?}", path);
 
-    match rt.store().get(path.clone()).map_err_trace_exit_unwrap() {
+    match rt.store().get(path.clone())? {
+        None        => Err(err_msg("No entry found")),
         Some(entry) => {
-            print_entry(rt, scmd, entry);
-            rt.report_touched(&path).unwrap_or_exit();
+            print_entry(rt, scmd, entry)?;
+            rt.report_touched(&path).map_err(Error::from)
         },
-        None        => info!("No entry found"),
-    };
+    }
 }
 
