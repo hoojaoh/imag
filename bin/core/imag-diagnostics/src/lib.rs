@@ -39,6 +39,7 @@ extern crate toml;
 extern crate toml_query;
 extern crate indicatif;
 extern crate failure;
+extern crate resiter;
 #[macro_use] extern crate log;
 
 extern crate libimagrt;
@@ -50,20 +51,18 @@ use std::io::Write;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::io::ToExitCode;
-use libimagerror::exit::ExitUnwrap;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
 use libimagentrylink::linkable::Linkable;
+use libimagerror::iter::IterInnerOkOrElse;
 
 use toml::Value;
 use toml_query::read::TomlValueReadExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use failure::Fallible as Result;
-use failure::Error;
 use failure::err_msg;
 use clap::App;
+use resiter::AndThen;
 
 use std::collections::BTreeMap;
 
@@ -106,20 +105,6 @@ impl Diagnostic {
     }
 }
 
-macro_rules! do_write {
-    ($dest:ident, $pattern:tt) => {
-        let _ = writeln!($dest, $pattern)
-            .to_exit_code()
-            .unwrap_or_exit();
-    };
-
-    ($dest:ident, $pattern:tt, $( $args:expr ),*) => {
-        let _ = writeln!($dest, $pattern, $( $args ),*)
-            .to_exit_code()
-            .unwrap_or_exit();
-    }
-}
-
 /// Marker enum for implementing ImagApplication on
 ///
 /// This is used by binaries crates to execute business logic
@@ -127,8 +112,8 @@ macro_rules! do_write {
 pub enum ImagDiagnostics {}
 impl ImagApplication for ImagDiagnostics {
     fn run(rt: Runtime) -> Result<()> {
-        let template    = get_config(&rt, "rt.progressbar_style");
-        let tick_chars  = get_config(&rt, "rt.progressticker_chars");
+        let template    = get_config(&rt, "rt.progressbar_style")?;
+        let tick_chars  = get_config(&rt, "rt.progressticker_chars")?;
         let verbose     = rt.cli().is_present("more-output");
 
         let style = if let Some(tick_chars) = tick_chars {
@@ -143,22 +128,16 @@ impl ImagApplication for ImagDiagnostics {
         spinner.set_message("Accumulating data");
 
         let diags = rt.store()
-            .entries()
-            .map_err_trace_exit_unwrap()
+            .entries()?
             .into_get_iter()
-            .map(|e| {
-                e.map_err_trace_exit_unwrap()
-                    .ok_or_else(|| Error::from(err_msg("Unable to get entry".to_owned())))
-                    .map_err_trace_exit_unwrap()
-            })
-            .map(|e| {
+            .map_inner_ok_or_else(|| err_msg("Unable to get entry"))
+            .and_then_ok(|e| {
                 let diag = Diagnostic::for_entry(&e);
                 debug!("Diagnostic for '{:?}' = {:?}", e.get_location(), diag);
                 drop(e);
                 diag
             })
-            .collect::<Result<Vec<_>>>()
-            .map_err_trace_exit_unwrap();
+            .collect::<Result<Vec<_>>>()?;
 
         spinner.finish();
         let n                = diags.len();
@@ -220,38 +199,37 @@ impl ImagApplication for ImagDiagnostics {
 
         let mut out = rt.stdout();
 
-        do_write!(out, "imag version {}", { env!("CARGO_PKG_VERSION") });
-        do_write!(out, "");
-        do_write!(out, "{} entries", n);
+        write!(out, "imag version {}", { env!("CARGO_PKG_VERSION") })?;
+        write!(out, "")?;
+        write!(out, "{} entries", n)?;
 
         for (k, v) in version_counts {
-            do_write!(out, "{} entries with store version '{}'", v, k);
+            write!(out, "{} entries with store version '{}'", v, k)?;
         }
         if n != 0 {
-            do_write!(out, "{} header sections in the average entry", sum_header_sections / n);
-            do_write!(out, "{} average content bytecount", sum_bytecount_content / n);
-            do_write!(out, "{} average overall bytecount", sum_overall_byte_size / n);
+            write!(out, "{} header sections in the average entry", sum_header_sections / n)?;
+            write!(out, "{} average content bytecount", sum_bytecount_content / n)?;
+            write!(out, "{} average overall bytecount", sum_overall_byte_size / n)?;
 
             if let Some((num, path)) = max_overall_byte_size {
-                do_write!(out, "Largest Entry ({} bytes): {}", num, path.local_display_string());
+                write!(out, "Largest Entry ({} bytes): {}", num, path.local_display_string())?;
             }
 
-            do_write!(out, "{} average internal link count per entry", num_links / n);
+            write!(out, "{} average internal link count per entry", num_links / n)?;
 
             if let Some((num, path)) = max_links {
-                do_write!(out, "Entry with most internal links ({}): {}",
-                          num,
-                          path.local_display_string());
+                write!(out, "Entry with most internal links ({}): {}",
+                         num,
+                         path.local_display_string())?;
             }
-            do_write!(out, "{} verified entries", verified_count);
-            do_write!(out, "{} unverified entries", unverified_count);
+            write!(out, "{} verified entries", verified_count)?;
+            write!(out, "{} unverified entries", unverified_count)?;
             if verbose {
                 for unve in unverified_entries.iter() {
-                    do_write!(out, "Unverified: {}", unve);
+                    write!(out, "Unverified: {}", unve)?;
                 }
             }
         }
-
         Ok(())
     }
 
@@ -272,17 +250,12 @@ impl ImagApplication for ImagDiagnostics {
     }
 }
 
-fn get_config(rt: &Runtime, s: &'static str) -> Option<String> {
-    rt.config().and_then(|cfg| {
-        cfg.read(s)
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap()
-            .map(|opt| match opt {
-                &Value::String(ref s) => s.to_owned(),
-                _ => {
-                    error!("Config type wrong: 'rt.progressbar_style' should be a string");
-                    ::std::process::exit(1)
-                }
-            })
-    })
+fn get_config(rt: &Runtime, s: &'static str) -> Result<Option<String>> {
+    let cfg = rt.config().ok_or_else(|| err_msg("No configuration"))?;
+
+    match cfg.read(s)? {
+        Some(&Value::String(ref s)) => Ok(Some(s.to_owned())),
+        Some(_) => Err(err_msg("Config type wrong: 'rt.progressbar_style' should be a string")),
+        None => Ok(None),
+    }
 }
