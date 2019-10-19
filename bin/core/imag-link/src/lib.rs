@@ -37,7 +37,7 @@
 #[macro_use] extern crate log;
 extern crate clap;
 extern crate url;
-extern crate failure;
+#[macro_use] extern crate failure;
 #[macro_use] extern crate prettytable;
 #[cfg(test)] extern crate toml;
 #[cfg(test)] extern crate toml_query;
@@ -65,18 +65,14 @@ use failure::err_msg;
 use libimagentryurl::linker::UrlLinker;
 use libimagentrylink::linkable::Linkable;
 use libimagentrylink::storecheck::StoreLinkConsistentExt;
-use libimagerror::trace::{MapErrTrace, trace_error};
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
-use libimagutil::warn_exit::warn_exit;
-use libimagutil::warn_result::*;
 
 use url::Url;
 use failure::Fallible as Result;
+use failure::Error;
 use clap::App;
 
 mod ui;
@@ -89,46 +85,31 @@ pub enum ImagLink {}
 impl ImagApplication for ImagLink {
     fn run(rt: Runtime) -> Result<()> {
         if rt.cli().is_present("check-consistency") {
-            let exit_code = match rt.store().check_link_consistency() {
-                Ok(_) => {
-                    info!("Store is consistent");
-                    0
-                }
-                Err(e) => {
-                    trace_error(&e);
-                    1
-                }
-            };
-            ::std::process::exit(exit_code);
+            rt.store().check_link_consistency()?;
+            info!("Store is consistent");
         }
 
-        let _ = rt.cli()
-            .subcommand_name()
-            .map(|name| {
-                match name {
-                    "remove" => remove_linking(&rt),
-                    "unlink" => unlink(&rt),
-                    "list"   => list_linkings(&rt),
-                    other    => {
-                        debug!("Unknown command");
-                        let _ = rt.handle_unknown_subcommand("imag-link", other, rt.cli())
-                            .map_err_trace_exit_unwrap()
-                            .code()
-                            .map(::std::process::exit);
-                    },
-                }
-            })
-            .or_else(|| {
-                if let (Some(from), Some(to)) = (rt.cli().value_of("from"), rt.cli().values_of("to")) {
-                    Some(link_from_to(&rt, from, to))
-                } else {
-                    warn_exit("No commandline call", 1)
-                }
-            })
-            .ok_or_else(|| err_msg("No commandline call".to_owned()))
-            .map_err_trace_exit_unwrap();
-
-        Ok(())
+        if let Some(name) = rt.cli().subcommand_name() {
+            match name {
+                "remove" => remove_linking(&rt),
+                "unlink" => unlink(&rt),
+                "list"   => list_linkings(&rt),
+                other    => {
+                    debug!("Unknown command");
+                    if rt.handle_unknown_subcommand("imag-link", other, rt.cli())?.success() {
+                        Ok(())
+                    } else {
+                        Err(format_err!("Subcommand failed"))
+                    }
+                },
+            }
+        } else {
+            if let (Some(from), Some(to)) = (rt.cli().value_of("from"), rt.cli().values_of("to")) {
+                link_from_to(&rt, from, to)
+            } else {
+                Err(err_msg("No commandline call"))
+            }
+        }
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
@@ -156,144 +137,103 @@ fn get_entry_by_name<'a>(rt: &'a Runtime, name: &str) -> Result<Option<FileLockE
     result
 }
 
-fn link_from_to<'a, I>(rt: &'a Runtime, from: &'a str, to: I)
+fn link_from_to<'a, I>(rt: &'a Runtime, from: &'a str, to: I) -> Result<()>
     where I: Iterator<Item = &'a str>
 {
-    let mut from_entry = match get_entry_by_name(rt, from).map_err_trace_exit_unwrap() {
-        Some(e) => e,
-        None    => {
-            debug!("No 'from' entry");
-            warn_exit("No 'from' entry", 1)
-        },
-    };
+    let mut from_entry = get_entry_by_name(rt, from)?.ok_or_else(|| err_msg("No 'from' entry"))?;
 
     for entry in to {
         debug!("Handling 'to' entry: {:?}", entry);
-        if rt.store().get(PathBuf::from(entry)).map_err_trace_exit_unwrap().is_none() {
+        if rt.store().get(PathBuf::from(entry))?.is_none() {
             debug!("Linking externally: {:?} -> {:?}", from, entry);
-            let url = Url::parse(entry).unwrap_or_else(|e| {
-                error!("Error parsing URL: {:?}", e);
-                ::std::process::exit(1);
-            });
+            let url = Url::parse(entry).map_err(|e| format_err!("Error parsing URL: {:?}", e))?;
 
             let iter = from_entry
-                .add_url(rt.store(), url)
-                .map_err_trace_exit_unwrap()
+                .add_url(rt.store(), url)?
                 .into_iter();
 
-            rt.report_all_touched(iter).unwrap_or_exit();
+            rt.report_all_touched(iter)?;
         } else {
             debug!("Linking internally: {:?} -> {:?}", from, entry);
 
-            let from_id = StoreId::new(PathBuf::from(from)).map_err_trace_exit_unwrap();
-            let entr_id = StoreId::new(PathBuf::from(entry)).map_err_trace_exit_unwrap();
+            let from_id = StoreId::new(PathBuf::from(from))?;
+            let entr_id = StoreId::new(PathBuf::from(entry))?;
 
             if from_id == entr_id {
-                error!("Cannot link entry with itself. Exiting");
-                ::std::process::exit(1)
+                return Err(err_msg("Cannot link entry with itself. Exiting"))
             }
 
-            let mut to_entry = match rt.store().get(entr_id).map_err_trace_exit_unwrap() {
-                Some(e) => e,
-                None    => {
-                    warn!("No 'to' entry: {}", entry);
-                    ::std::process::exit(1)
-                },
-            };
-            from_entry
-                .add_link(&mut to_entry)
-                .map_err_trace_exit_unwrap();
+            let mut to_entry = rt
+                .store()
+                .get(entr_id)?
+                .ok_or_else(|| format_err!("No 'to' entry: {}", entry))?;
 
-            rt.report_touched(to_entry.get_location()).unwrap_or_exit();
+            from_entry.add_link(&mut to_entry)?;
+
+            rt.report_touched(to_entry.get_location())?;
         }
-
 
         info!("Ok: {} -> {}", from, entry);
     }
 
-    rt.report_touched(from_entry.get_location()).unwrap_or_exit();
+    rt.report_touched(from_entry.get_location()).map_err(Error::from)
 }
 
-fn remove_linking(rt: &Runtime) {
-    let mut from = rt.cli()
+fn remove_linking(rt: &Runtime) -> Result<()> {
+    let mut from : FileLockEntry = rt.cli()
         .subcommand_matches("remove")
         .unwrap() // safe, we know there is an "remove" subcommand
         .value_of("from")
         .map(PathBuf::from)
-        .map(|id| {
-            rt.store()
-                .get(id)
-                .map_err_trace_exit_unwrap()
-                .ok_or_else(|| warn_exit("No 'from' entry", 1))
-                .unwrap() // safe by line above
-        })
-        .unwrap();
+        .and_then(|id| rt.store().get(id).transpose())
+        .ok_or_else(|| err_msg("No 'from' entry"))??;
 
     rt
-        .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
+        .ids::<crate::ui::PathProvider>()?
+        .ok_or_else(|| err_msg("No ids supplied"))?
         .into_iter()
-        .for_each(|id| match rt.store().get(id.clone()) {
-            Err(e) => trace_error(&e),
-            Ok(Some(mut to_entry)) => {
-                to_entry
-                    .remove_link(&mut from)
-                    .map_err_trace_exit_unwrap();
-
-                rt.report_touched(to_entry.get_location()).unwrap_or_exit();
+        .map(|id| match rt.store().get(id.clone())? {
+            Some(mut to_entry) => {
+                to_entry.remove_link(&mut from)?;
+                rt.report_touched(to_entry.get_location()).map_err(Error::from)
             },
-            Ok(None) => {
+
+            None => {
                 // looks like this is not an entry, but a filesystem URI and therefor an
                 // external link...?
                 if id.local().is_file() {
-                    let pb = id.local().to_str().unwrap_or_else(|| {
-                        warn!("Not StoreId and not a Path: {}", id);
-                        ::std::process::exit(1);
-                    });
-                    let url = Url::parse(pb).unwrap_or_else(|e| {
-                        error!("Error parsing URL: {:?}", e);
-                        ::std::process::exit(1);
-                    });
-                    from.remove_url(rt.store(), url).map_err_trace_exit_unwrap();
+                    let pb = id.local().to_str().ok_or_else(|| format_err!("Not StoreId and not a Path: {}", id))?;
+                    let url = Url::parse(pb).map_err(|e| format_err!("Error parsing URL: {:?}", e))?;
+                    from.remove_url(rt.store(), url)?;
                     info!("Ok: {}", id);
+                    Ok(())
                 } else {
-                    warn!("Entry not found: {:?}", id);
+                    Err(format_err!("Entry not found: {:?}", id))
                 }
             }
-        });
-
-    rt.report_touched(from.get_location()).unwrap_or_exit();
-}
-
-fn unlink(rt: &Runtime) {
-    rt
-        .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
         })
-        .into_iter()
-        .for_each(|id| {
-            rt.store()
-                .get(id.clone())
-                .map_err_trace_exit_unwrap()
-                .unwrap_or_else(|| {
-                    warn!("No entry for {}", id);
-                    ::std::process::exit(1)
-                })
-                .unlink(rt.store())
-                .map_err_trace_exit_unwrap();
+        .collect::<Result<Vec<_>>>()?;
 
-            rt.report_touched(&id).unwrap_or_exit();
-        });
+    rt.report_touched(from.get_location()).map_err(Error::from)
 }
 
-fn list_linkings(rt: &Runtime) {
+fn unlink(rt: &Runtime) -> Result<()> {
+    rt
+        .ids::<crate::ui::PathProvider>()?
+        .ok_or_else(|| err_msg("No ids supplied"))?
+        .into_iter()
+        .map(|id| {
+            rt.store()
+                .get(id.clone())?
+                .ok_or_else(|| format_err!("No entry for {}", id))?
+                .unlink(rt.store())?;
+
+            rt.report_touched(&id).map_err(Error::from)
+        })
+        .collect()
+}
+
+fn list_linkings(rt: &Runtime) -> Result<()> {
     let cmd = rt.cli()
         .subcommand_matches("list")
         .unwrap(); // safed by clap
@@ -304,70 +244,50 @@ fn list_linkings(rt: &Runtime) {
     let mut tab = ::prettytable::Table::new();
     tab.set_titles(row!["#", "Link"]);
 
-    rt
-        .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
+    rt.ids::<crate::ui::PathProvider>()?
+        .ok_or_else(|| err_msg("No ids supplied"))?
         .into_iter()
-        .for_each(|id| {
-            match rt.store().get(id.clone()) {
-                Ok(Some(entry)) => {
-                    for (i, link) in entry.links().map_err_trace_exit_unwrap().enumerate() {
-                        let link = link
-                            .to_str()
-                            .map_warn_err(|e| format!("Failed to convert StoreId to string: {:?}", e))
-                            .ok();
+        .map(|id| {
+            let entry = rt.store().get(id.clone())?.ok_or_else(|| format_err!("Not found: {}", id))?;
 
-                        if let Some(link) = link {
-                            if list_plain {
-                                writeln!(rt.stdout(), "{: <3}: {}", i, link)
-                                    .to_exit_code()
-                                    .unwrap_or_exit();
-                            } else {
-                                tab.add_row(row![i, link]);
-                            }
-                        }
-                    }
+            for (i, link) in entry.links()?.enumerate() {
+                let link = link.to_str()?;
 
-                    if list_externals {
-                        entry.get_urls(rt.store())
-                            .map_err_trace_exit_unwrap()
-                            .enumerate()
-                            .for_each(|(i, link)| {
-                                let link = link
-                                    .map_err_trace_exit_unwrap()
-                                    .into_string();
-
-                                if list_plain {
-                                    writeln!(rt.stdout(), "{: <3}: {}", i, link)
-                                        .to_exit_code()
-                                        .unwrap_or_exit();
-                                } else {
-                                    tab.add_row(row![i, link]);
-                                }
-                            })
-                    }
-
-                    rt.report_touched(entry.get_location()).unwrap_or_exit();
-
-                },
-                Ok(None)        => warn!("Not found: {}", id),
-                Err(e)          => trace_error(&e),
+                if list_plain {
+                    writeln!(rt.stdout(), "{: <3}: {}", i, link)?;
+                } else {
+                    tab.add_row(row![i, link]);
+                }
             }
 
-            rt.report_touched(&id).unwrap_or_exit();
-        });
+            if list_externals {
+                entry.get_urls(rt.store())?
+                    .enumerate()
+                    .map(|(i, link)| {
+                        let link = link?.into_string();
+
+                        if list_plain {
+                            writeln!(rt.stdout(), "{: <3}: {}", i, link)?;
+                        } else {
+                            tab.add_row(row![i, link]);
+                        }
+
+                        Ok(())
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+            }
+
+            rt.report_touched(entry.get_location()).map_err(Error::from)
+        })
+        .collect::<Result<Vec<_>>>()?;
 
     if !list_plain {
         let out      = rt.stdout();
         let mut lock = out.lock();
-        tab.print(&mut lock)
-            .to_exit_code()
-            .unwrap_or_exit();
+        tab.print(&mut lock)?;
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -449,7 +369,7 @@ mod tests {
 
         debug!("Entries created");
 
-        link_from_to(&rt, "test1", vec!["test2"].into_iter());
+        link_from_to(&rt, "test1", vec!["test2"].into_iter()).unwrap();
 
         debug!("Linking done");
 
@@ -480,7 +400,7 @@ mod tests {
 
         debug!("Test entries created");
 
-        link_from_to(&rt, "test1", vec!["test2"].into_iter());
+        link_from_to(&rt, "test1", vec!["test2"].into_iter()).unwrap();
 
         debug!("Linking done");
 
@@ -509,8 +429,8 @@ mod tests {
 
         debug!("Test entries created");
 
-        link_from_to(&rt, "test1", vec!["test2"].into_iter());
-        link_from_to(&rt, "test1", vec!["test2"].into_iter());
+        link_from_to(&rt, "test1", vec!["test2"].into_iter()).unwrap();
+        link_from_to(&rt, "test1", vec!["test2"].into_iter()).unwrap();
 
         debug!("Linking done");
 
@@ -540,8 +460,8 @@ mod tests {
 
         debug!("Test entries created");
 
-        link_from_to(&rt, "test1", vec!["test2", "test3"].into_iter());
-        link_from_to(&rt, "test1", vec!["test2", "test3"].into_iter());
+        link_from_to(&rt, "test1", vec!["test2", "test3"].into_iter()).unwrap();
+        link_from_to(&rt, "test1", vec!["test2", "test3"].into_iter()).unwrap();
 
         debug!("Linking done");
 
@@ -576,14 +496,14 @@ mod tests {
 
         debug!("Test entries created");
 
-        link_from_to(&rt, "test1", vec!["test2"].into_iter());
+        link_from_to(&rt, "test1", vec!["test2"].into_iter()).unwrap();
 
         debug!("Linking done");
 
         let rt = reset_test_runtime(vec!["remove", "test1", "test2"], rt)
             .unwrap();
 
-        remove_linking(&rt);
+        remove_linking(&rt).unwrap();
 
         debug!("Linking removed");
 
@@ -613,14 +533,14 @@ mod tests {
 
         debug!("Test entries created");
 
-        link_from_to(&rt, "test1", vec!["test2", "test3"].into_iter());
+        link_from_to(&rt, "test1", vec!["test2", "test3"].into_iter()).unwrap();
 
         debug!("linking done");
 
         let rt = reset_test_runtime(vec!["remove", "test1", "test2", "test3"], rt)
             .unwrap();
 
-        remove_linking(&rt);
+        remove_linking(&rt).unwrap();
 
         debug!("linking removed");
 
