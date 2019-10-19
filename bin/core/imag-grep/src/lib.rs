@@ -35,9 +35,10 @@
 )]
 
 #[macro_use] extern crate log;
+#[macro_use] extern crate failure;
 extern crate clap;
 extern crate regex;
-extern crate failure;
+extern crate resiter;
 
 extern crate libimagstore;
 extern crate libimagrt;
@@ -46,15 +47,17 @@ extern crate libimagerror;
 use std::io::Write;
 
 use regex::Regex;
-use failure::Fallible as Result;
 use clap::App;
+use failure::Error;
+use failure::Fallible as Result;
+use failure::err_msg;
+use resiter::AndThen;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 use libimagstore::store::Entry;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
+use libimagerror::iter::IterInnerOkOrElse;
+
 
 mod ui;
 
@@ -82,34 +85,32 @@ impl ImagApplication for ImagGrep {
             .value_of("pattern")
             .map(Regex::new)
             .unwrap() // ensured by clap
-            .unwrap_or_else(|e| {
-                error!("Regex building error: {:?}", e);
-                ::std::process::exit(1)
-            });
+            .map_err(|e| format_err!("Regex building error: {:?}", e))?;
 
         let overall_count = rt
             .store()
-            .entries()
-            .map_err_trace_exit_unwrap()
+            .entries()?
             .into_get_iter()
-            .filter_map(|res| res.map_err_trace_exit_unwrap())
-            .filter_map(|entry| if pattern.is_match(entry.get_content()) {
-                show(&rt, &entry, &pattern, &opts, &mut count);
-                Some(())
-            } else {
-                None
+            .map_inner_ok_or_else(|| err_msg("Entry from entries missing"))
+            .and_then_ok(|entry| {
+                if pattern.is_match(entry.get_content()) {
+                    debug!("Matched: {}", entry.get_location());
+                    show(&rt, &entry, &pattern, &opts, &mut count)
+                } else {
+                    debug!("Not matched: {}", entry.get_location());
+                    Ok(())
+                }
             })
-            .count();
+            .collect::<Result<Vec<_>>>()?
+            .len();
 
         if opts.count {
-            writeln!(rt.stdout(), "{}", count).to_exit_code().unwrap_or_exit();
+            writeln!(rt.stdout(), "{}", count)?;
         } else if !opts.files_with_matches {
             writeln!(rt.stdout(), "Processed {} files, {} matches, {} nonmatches",
                      overall_count,
                      count,
-                     overall_count - count)
-                .to_exit_code()
-                .unwrap_or_exit();
+                     overall_count - count)?;
         }
 
         Ok(())
@@ -130,27 +131,28 @@ impl ImagApplication for ImagGrep {
     fn version() -> &'static str {
         env!("CARGO_PKG_VERSION")
     }
+
 }
 
-fn show(rt: &Runtime, e: &Entry, re: &Regex, opts: &Options, count: &mut usize) {
+fn show(rt: &Runtime, e: &Entry, re: &Regex, opts: &Options, count: &mut usize) -> Result<()> {
     if opts.files_with_matches {
-        writeln!(rt.stdout(), "{}", e.get_location()).to_exit_code().unwrap_or_exit();
+        writeln!(rt.stdout(), "{}", e.get_location())?;
     } else if opts.count {
         *count += 1;
     } else {
-        writeln!(rt.stdout(), "{}:", e.get_location()).to_exit_code().unwrap_or_exit();
+        writeln!(rt.stdout(), "{}:", e.get_location())?;
         for capture in re.captures_iter(e.get_content()) {
             for mtch in capture.iter() {
                 if let Some(m) = mtch {
-                    writeln!(rt.stdout(), " '{}'", m.as_str()).to_exit_code().unwrap_or_exit();
+                    writeln!(rt.stdout(), " '{}'", m.as_str())?;
                 }
             }
         }
 
-        writeln!(rt.stdout()).to_exit_code().unwrap_or_exit();
+        writeln!(rt.stdout())?;
         *count += 1;
     }
 
-    rt.report_touched(e.get_location()).unwrap_or_exit();
+    rt.report_touched(e.get_location()).map_err(Error::from)
 }
 
