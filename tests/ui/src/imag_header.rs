@@ -27,6 +27,14 @@ pub fn binary(tempdir: &TempDir) -> Command {
     crate::imag::binary(tempdir, "imag-header")
 }
 
+pub fn call(tmpdir: &TempDir, args: &[&str]) -> Vec<String> {
+    let mut binary = binary(tmpdir);
+    binary.stdin(std::process::Stdio::inherit());
+    binary.args(args);
+    debug!("Command = {:?}", binary);
+    crate::imag::stdout_of_command(binary)
+}
+
 #[test]
 fn test_no_header_besides_version_after_creation() {
     crate::setup_logging();
