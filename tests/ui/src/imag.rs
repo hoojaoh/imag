@@ -55,7 +55,16 @@ pub fn stdout_of_command(mut command: Command) -> Vec<String> {
 
 /// Create a PathBuf for a file in a TempDir
 pub fn file_path(tempdir: &TempDir, path_elements: &[&str]) -> PathBuf {
+    create_path_for(tempdir.path().to_path_buf(), path_elements)
+}
+
+pub fn store_path(tempdir: &TempDir, path_elements: &[&str]) -> PathBuf {
     let mut path = tempdir.path().to_path_buf();
+    path.push("store");
+    create_path_for(path, path_elements)
+}
+
+fn create_path_for(mut path: PathBuf, path_elements: &[&str]) -> PathBuf {
     path_elements.iter().for_each(|el| path.push(el));
     debug!("Calculated path = {:?}", path);
     path

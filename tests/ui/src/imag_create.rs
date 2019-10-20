@@ -50,7 +50,7 @@ fn test_creating_works() {
 
     call(&imag_home, &["test"]);
 
-    let entry_path = crate::imag::file_path(&imag_home, &["store", "test"]);
+    let entry_path = crate::imag::store_path(&imag_home, &["test"]);
 
     assert!(entry_path.exists(), "Entry was not created: {:?}", entry_path);
     assert!(entry_path.is_file() , "Entry is not a file: {:?}", entry_path);
