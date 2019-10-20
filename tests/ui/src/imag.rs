@@ -22,6 +22,7 @@ use std::path::PathBuf;
 
 use assert_fs::fixture::TempDir;
 use assert_cmd::prelude::*;
+use assert_cmd::assert::Assert;
 
 pub fn make_temphome() -> TempDir {
     TempDir::new().unwrap().persist_if(std::env::var("IMAG_UI_TEST_PERSIST").is_ok())
@@ -51,6 +52,19 @@ pub fn stdout_of_command(mut command: Command) -> Vec<String> {
         .collect();
     assert.success();
     lines
+}
+
+/// Run the passed command and get the stderr of it.
+///
+/// This function does _not_ ensure that stdin is inherited.
+pub fn stderr_of_command(command: &mut Command) -> (Assert, Vec<String>) {
+    let assert = command.assert();
+    let lines = String::from_utf8(assert.get_output().stderr.clone())
+        .unwrap()
+        .lines()
+        .map(String::from)
+        .collect();
+    (assert, lines)
 }
 
 /// Create a PathBuf for a file in a TempDir
