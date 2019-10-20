@@ -124,6 +124,7 @@ fn read<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
     debug!("Processing headers: reading value");
     let header_path = get_header_path(mtch, "header-value-path");
     let mut output = rt.stdout();
+    trace!("Got output: {:?}", output);
 
     iter.fold(0, |accu, entry| {
         trace!("Processing headers: working on {:?}", entry.get_location());
