@@ -47,10 +47,12 @@ extern crate libimagutil;
 
 use std::io::Write;
 use std::str::FromStr;
+use std::string::ToString;
 
 use clap::ArgMatches;
 use filters::filter::Filter;
 use failure::Error;
+use toml::Value;
 
 use libimagerror::exit::ExitCode;
 use libimagerror::exit::ExitUnwrap;
@@ -134,10 +136,23 @@ fn read<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
             .map_err_trace_exit_unwrap()
             .map(|value| {
                 trace!("Processing headers: Got value {:?}", value);
-                writeln!(output, "{}", value)
-                    .to_exit_code()
-                    .map(|_| accu)
-                    .unwrap_or_else(ExitCode::code)
+
+                let string_representation = match value {
+                    Value::String(s)  => Some(s.to_owned()),
+                    Value::Integer(i) => Some(i.to_string()),
+                    Value::Float(f)   => Some(f.to_string()),
+                    Value::Boolean(b) => Some(b.to_string()),
+                    _ => None,
+                };
+
+                if let Some(repr) = string_representation {
+                    writeln!(output, "{}", repr)
+                } else {
+                    writeln!(output, "{}", value)
+                }
+                .to_exit_code()
+                .map(|_| accu)
+                .unwrap_or_else(ExitCode::code)
             })
             .unwrap_or_else(|| {
                 // if value not present and configured
