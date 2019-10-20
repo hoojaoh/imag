@@ -18,10 +18,10 @@
 //
 
 use std::process::Command;
+use std::str::FromStr;
 
 use assert_cmd::prelude::*;
 use assert_fs::fixture::TempDir;
-use predicates::prelude::*;
 
 pub fn binary(tempdir: &TempDir) -> Command {
     crate::imag::binary(tempdir, "imag-header")
@@ -56,16 +56,25 @@ fn test_imag_version_as_semver_string() {
     crate::imag_init::call(&imag_home);
     crate::imag_create::call(&imag_home, &["test"]);
 
-    let imag_version = version::version!();
+    let output              = call(&imag_home, &["--ignore-ids", "test", "read", "imag.version"]);
+    let version             = version::version!();
+    let imag_version        = format!("\"{}\"", version);
+    debug!("output =  {:?}", output);
+    assert_eq!(output.len(), 1);
+    assert_eq!(output[0], imag_version);
 
-    let mut bin = binary(&imag_home);
-    bin.arg("test");
-    bin.arg("string");
-    bin.arg("imag.version");
+    let version = semver::Version::from_str(&version).unwrap();
+    let parsed  = {
+        let output_version = output[0].replace("\"", "");
+        semver::Version::from_str(&output_version)
+    };
 
-    let expected_output_str = format!("test - {}", imag_version);
-    bin.assert()
-        .stdout(predicate::eq(expected_output_str.as_bytes()))
-        .success();
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+
+    assert_eq!(parsed.major, version.major);
+    assert_eq!(parsed.minor, version.minor);
+    assert_eq!(parsed.patch, version.patch);
+    assert_eq!(parsed.pre,   version.pre);
 }
 
