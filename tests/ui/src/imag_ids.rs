@@ -29,15 +29,7 @@ pub fn call(tempdir: &TempDir) -> Vec<String> {
 
     // ensure that stdin is not used by the child process
     binary.stdin(std::process::Stdio::inherit());
-
-    let assert = binary.assert();
-    let lines = String::from_utf8(assert.get_output().stdout.clone())
-        .unwrap()
-        .lines()
-        .map(String::from)
-        .collect();
-    assert.success();
-    lines
+    crate::imag::stdout_of_command(binary)
 }
 
 pub fn binary(tempdir: &TempDir) -> Command {

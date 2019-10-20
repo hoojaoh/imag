@@ -42,7 +42,7 @@ pub fn binary(tempdir: &TempDir, binary_name: &str) -> Command {
 /// Run the passed command and get the stdout of it.
 ///
 /// This function does _not_ ensure that stdin is inherited.
-pub fn stdout_of_command(command: Command) -> Vec<String> {
+pub fn stdout_of_command(mut command: Command) -> Vec<String> {
     let assert = command.assert();
     let lines = String::from_utf8(assert.get_output().stdout.clone())
         .unwrap()
