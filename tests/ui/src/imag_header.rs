@@ -58,16 +58,12 @@ fn test_imag_version_as_semver_string() {
 
     let output              = call(&imag_home, &["--ignore-ids", "test", "read", "imag.version"]);
     let version             = version::version!();
-    let imag_version        = format!("\"{}\"", version);
     debug!("output =  {:?}", output);
     assert_eq!(output.len(), 1);
-    assert_eq!(output[0], imag_version);
+    assert_eq!(output[0], version);
 
     let version = semver::Version::from_str(&version).unwrap();
-    let parsed  = {
-        let output_version = output[0].replace("\"", "");
-        semver::Version::from_str(&output_version)
-    };
+    let parsed  = semver::Version::from_str(&output[0]);
 
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
