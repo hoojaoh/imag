@@ -37,6 +37,7 @@
 extern crate clap;
 #[macro_use] extern crate log;
 extern crate failure;
+extern crate resiter;
 
 extern crate libimagentryedit;
 extern crate libimagerror;
@@ -44,16 +45,16 @@ extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagutil;
 
-use libimagerror::trace::MapErrTrace;
-use libimagerror::iter::TraceIterator;
 use libimagentryedit::edit::Edit;
 use libimagentryedit::edit::EditHeader;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
-use libimagstore::storeid::StoreIdIterator;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
+use libimagerror::iter::IterInnerOkOrElse;
 
 use failure::Fallible as Result;
+use failure::err_msg;
+use resiter::AndThen;
 use clap::App;
 
 mod ui;
@@ -68,39 +69,23 @@ impl ImagApplication for ImagEdit {
         let edit_header = rt.cli().is_present("edit-header");
         let edit_header_only = rt.cli().is_present("edit-header-only");
 
-        let sids = rt
-            .ids::<crate::ui::PathProvider>()
-            .map_err_trace_exit_unwrap()
-            .unwrap_or_else(|| {
-                error!("No ids supplied");
-                ::std::process::exit(1);
-            })
-            .into_iter();
-
-        StoreIdIterator::new(Box::new(sids.into_iter().map(Ok)))
+        rt.ids::<crate::ui::PathProvider>()?
+            .ok_or_else(|| err_msg("No ids supplied"))?
+            .into_iter()
+            .map(Ok)
             .into_get_iter(rt.store())
-            .trace_unwrap_exit()
-            .map(|o| o.unwrap_or_else(|| {
-                error!("Did not find one entry");
-                ::std::process::exit(1)
-            }))
-            .for_each(|mut entry| {
+            .map_inner_ok_or_else(|| err_msg("Did not find one entry"))
+            .inspect(|e| debug!("Editing = {:?}", e))
+            .and_then_ok(|mut entry| {
                 if edit_header {
-                    let _ = entry
-                        .edit_header_and_content(&rt)
-                        .map_err_trace_exit_unwrap();
+                    entry.edit_header_and_content(&rt)
                 } else if edit_header_only {
-                    let _ = entry
-                        .edit_header(&rt)
-                        .map_err_trace_exit_unwrap();
+                    entry.edit_header(&rt)
                 } else {
-                    let _ = entry
-                        .edit_content(&rt)
-                        .map_err_trace_exit_unwrap();
+                    entry.edit_content(&rt)
                 }
-            });
-
-        Ok(())
+            })
+            .collect()
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
