@@ -849,6 +849,11 @@ impl Entry {
         &self.content
     }
 
+    /// Set the content of the Entry
+    pub fn set_content(&mut self, content: EntryContent) {
+        self.content = content;
+    }
+
     /// Get the content mutably of the Entry
     pub fn get_content_mut(&mut self) -> &mut EntryContent {
         &mut self.content
