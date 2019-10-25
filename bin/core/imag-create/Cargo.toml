@@ -27,3 +27,10 @@ version = "2.33.0"
 default-features = false
 features = ["suggestions", "color", "wrap_help"]
 
+[lib]
+name = "libimagcreatecmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-create"
+path = "src/bin.rs"

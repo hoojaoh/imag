@@ -30,6 +30,8 @@ use libimagrt::application::ImagApplication;
 
 #[cfg(feature = "cc-imag-annotate")]
 extern crate libimagannotatecmd;
+#[cfg(feature = "cc-imag-create")]
+extern crate libimagcreatecmd;
 #[cfg(feature = "cc-imag-diagnostics")]
 extern crate libimagdiagnosticscmd;
 #[cfg(feature = "cc-imag-edit")]
@@ -105,6 +107,8 @@ fn main() {
     // TODO: This feels tedious, can we automate this?
     #[cfg(feature = "cc-imag-annotate")]
     let app = app.subcommand(build_subcommand!("annotate",    libimagannotatecmd, ImagAnnotate));
+    #[cfg(feature = "cc-imag-create")]
+    let app = app.subcommand(build_subcommand!("create",      libimagcreatecmd, ImagCreate));
     #[cfg(feature = "cc-imag-diagnostics")]
     let app = app.subcommand(build_subcommand!("diagnostics", libimagdiagnosticscmd, ImagDiagnostics));
     #[cfg(feature = "cc-imag-edit")]

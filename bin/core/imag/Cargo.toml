@@ -25,6 +25,7 @@ log             = "0.4.6"
 
 # Build time dependencies for cli completion
 imag-annotate = { optional = true, path = "../imag-annotate" }
+imag-create = { optional = true, path = "../imag-create" }
 imag-diagnostics = { optional = true, path = "../imag-diagnostics" }
 imag-edit = { optional = true, path = "../imag-edit" }
 imag-gps = { optional = true, path = "../imag-gps" }
@@ -79,6 +80,7 @@ default = [ "cc-all" ]
 # Features for enabling cli completion files for individual subcommands
 cc-all = [
   "cc-imag-annotate",
+  "cc-imag-create",
   "cc-imag-diagnostics",
   "cc-imag-edit",
   "cc-imag-gps",
@@ -103,6 +105,7 @@ cc-all = [
   "cc-imag-wiki",
 ]
 cc-imag-annotate = [ "imag-annotate" ]
+cc-imag-create = [ "imag-create" ]
 cc-imag-diagnostics = [ "imag-diagnostics" ]
 cc-imag-edit = [ "imag-edit" ]
 cc-imag-gps = [ "imag-gps" ]
