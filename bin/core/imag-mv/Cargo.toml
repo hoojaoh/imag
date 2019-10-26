@@ -22,6 +22,7 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 log     = "0.4.6"
 failure = "0.1.5"
+resiter = "0.4.0"
 
 libimagrt        = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }

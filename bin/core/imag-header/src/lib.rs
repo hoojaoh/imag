@@ -58,12 +58,12 @@ use failure::Fallible as Result;
 use failure::err_msg;
 use resiter::FilterMap;
 use resiter::AndThen;
+use resiter::IterInnerOkOrElse;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagstore::store::FileLockEntry;
-use libimagerror::iter::IterInnerOkOrElse;
 
 use toml_query::read::TomlValueReadExt;
 use toml_query::read::TomlValueReadTypeExt;

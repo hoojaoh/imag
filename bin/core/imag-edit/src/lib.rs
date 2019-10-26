@@ -50,11 +50,11 @@ use libimagentryedit::edit::EditHeader;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
-use libimagerror::iter::IterInnerOkOrElse;
 
 use failure::Fallible as Result;
 use failure::err_msg;
 use resiter::AndThen;
+use resiter::IterInnerOkOrElse;
 use clap::App;
 
 mod ui;
