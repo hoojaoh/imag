@@ -44,7 +44,6 @@ pub mod errors;
 pub mod exit;
 pub mod io;
 pub mod iter;
-pub mod result;
 pub mod str;
 pub mod trace;
 
