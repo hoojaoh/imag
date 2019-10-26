@@ -20,7 +20,6 @@ libimagerror    = { version = "0.10.0", path = "../../../lib/core/libimagerror" 
 libimagstore    = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagentrytag = { version = "0.10.0", path = "../../../lib/entry/libimagentrytag" }
 libimagutil     = { version = "0.10.0", path = "../../../lib/etc/libimagutil" }
-failure	        = "0.1.5"
 log             = "0.4.6"
 
 # Build time dependencies for cli completion
@@ -61,6 +60,7 @@ walkdir = "2.2.8"
 log = "0.4.6"
 toml = "0.5.1"
 toml-query = "0.9.2"
+failure    = "0.1.5"
 
 libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
 libimagstore = { version = "0.10.0", path = "../../../lib/core/libimagstore" }

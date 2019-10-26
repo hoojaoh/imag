@@ -53,17 +53,15 @@ use std::io::Write;
 
 use failure::Error;
 use failure::Fallible as Result;
+use failure::ResultExt;
+use failure::err_msg;
 use toml_query::read::TomlValueReadTypeExt;
 use clap::App;
 
 use libimagentryannotation::annotateable::*;
 use libimagentryannotation::annotation_fetcher::*;
 use libimagentryedit::edit::*;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
 use libimagerror::errors::ErrorMsg as EM;
-use libimagerror::iter::TraceIterator;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 use libimagstore::store::FileLockEntry;
@@ -75,22 +73,19 @@ mod ui;
 pub enum ImagAnnotate {}
 impl ImagApplication for ImagAnnotate {
     fn run(rt: Runtime) -> Result<()> {
-        if let Some(name) = rt.cli().subcommand_name() {
-            match name {
-                "add"    => add(&rt),
-                "remove" => remove(&rt),
-                "list"   => list(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-annotation", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            }
+        match rt.cli().subcommand_name().ok_or_else(|| err_msg("No command called"))? {
+            "add"    => add(&rt),
+            "remove" => remove(&rt),
+            "list"   => list(&rt),
+            other    => {
+                debug!("Unknown command");
+                if rt.handle_unknown_subcommand("imag-annotation", other, rt.cli())?.success() {
+                    Ok(())
+                } else {
+                    Err(err_msg("Failed to handle unknown subcommand"))
+                }
+            },
         }
-
-        Ok(())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
@@ -110,149 +105,119 @@ impl ImagApplication for ImagAnnotate {
     }
 }
 
-fn add(rt: &Runtime) {
+fn add(rt: &Runtime) -> Result<()> {
     let scmd = rt.cli().subcommand_matches("add").unwrap(); // safed by main()
     let mut ids = rt
         .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No StoreId supplied");
-            ::std::process::exit(1);
-        })
+        .context("No StoreId supplied")?
+        .ok_or_else(|| err_msg("No ids supplied"))?
         .into_iter();
 
     if let Some(first) = ids.next() {
         let mut annotation = rt.store()
-            .get(first.clone())
-            .map_err_trace_exit_unwrap()
-            .ok_or_else(|| EM::EntryNotFound(first.local_display_string()))
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap()
-            .annotate(rt.store())
-            .map_err_trace_exit_unwrap();
+            .get(first.clone())?
+            .ok_or_else(|| EM::EntryNotFound(first.local_display_string()))?
+            .annotate(rt.store())?;
 
-        annotation.edit_content(&rt).map_err_trace_exit_unwrap();
+        annotation.edit_content(&rt)?;
 
         for id in ids {
-            let mut entry = rt.store().get(id.clone())
-                .map_err_trace_exit_unwrap()
-                .ok_or_else(|| format_err!("Not found: {}", id.local_display_string()))
-                .map_err_trace_exit_unwrap();
+            let mut entry = rt.store().get(id.clone())?
+                .ok_or_else(|| format_err!("Not found: {}", id.local_display_string()))?;
 
-            entry.add_link(&mut annotation).map_err_trace_exit_unwrap();
+            entry.add_link(&mut annotation)?;
         }
 
         if !scmd.is_present("dont-print-name") {
             if let Some(annotation_id) = annotation
                 .get_header()
-                .read_string("annotation.name")
-                .map_err(Error::from)
-                .map_err_trace_exit_unwrap()
+                .read_string("annotation.name")?
             {
-                writeln!(rt.stdout(), "Name of the annotation: {}", annotation_id)
-                    .to_exit_code()
-                    .unwrap_or_exit();
+                writeln!(rt.stdout(), "Name of the annotation: {}", annotation_id)?;
             } else {
-                error!("Unnamed annotation: {:?}", annotation.get_location());
-                error!("This is most likely a BUG, please report!");
+                Err(format_err!("Unnamed annotation: {:?}", annotation.get_location()))
+                    .context("This is most likely a BUG, please report!")?;
             }
         }
     } else {
         debug!("No entries to annotate");
     }
+
+    Ok(())
 }
 
-fn remove(rt: &Runtime) {
-    let scmd = rt.cli().subcommand_matches("remove").unwrap(); // safed by main()
+fn remove(rt: &Runtime) -> Result<()> {
+    let scmd            = rt.cli().subcommand_matches("remove").unwrap(); // safed by main()
     let annotation_name = scmd.value_of("annotation_name").unwrap(); // safed by clap
-    let delete = scmd.is_present("delete-annotation");
-    let ids = rt
-        .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
-        .into_iter();
+    let delete          = scmd.is_present("delete-annotation");
 
-    ids.for_each(|id| {
-        let mut entry = rt.store()
-            .get(id.clone())
-            .map_err_trace_exit_unwrap()
-            .ok_or_else(|| EM::EntryNotFound(id.local_display_string()))
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap();
+    rt.ids::<crate::ui::PathProvider>()
+        .context("No ids supplied")?
+        .ok_or_else(|| err_msg("No ids supplied"))?
+        .into_iter()
+        .map(|id| {
+            let mut entry = rt.store()
+                .get(id.clone())?
+                .ok_or_else(|| EM::EntryNotFound(id.local_display_string()))?;
 
-        let annotation = entry
-            .denotate(rt.store(), annotation_name)
-            .map_err_trace_exit_unwrap();
+            let annotation = entry.denotate(rt.store(), annotation_name)?;
 
-        if delete {
-            debug!("Deleting annotation object");
-            if let Some(an) = annotation {
-                let loc = an.get_location().clone();
-                drop(an);
+            if delete {
+                debug!("Deleting annotation object");
+                if let Some(an) = annotation {
+                    let loc = an.get_location().clone();
+                    drop(an);
 
-                rt
-                    .store()
-                    .delete(loc)
-                    .map_err_trace_exit_unwrap();
+                    rt.store().delete(loc)?;
+                } else {
+                    warn!("Not having annotation object, cannot delete!");
+                }
             } else {
-                warn!("Not having annotation object, cannot delete!");
+                debug!("Not deleting annotation object");
             }
-        } else {
-            debug!("Not deleting annotation object");
-        }
-    })
 
+            Ok(())
+        })
+        .collect()
 }
 
-fn list(rt: &Runtime) {
-    let scmd = rt.cli().subcommand_matches("list").unwrap(); // safed by clap
+fn list(rt: &Runtime) -> Result<()> {
+    let scmd      = rt.cli().subcommand_matches("list").unwrap(); // safed by clap
     let with_text = scmd.is_present("list-with-text");
     let ids = rt
         .ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
-        .into_iter();
+        .context("No ids supplied")?
+        .ok_or_else(|| err_msg("No ids supplied"))?;
 
     if ids.len() != 0 {
-        ids
-            .for_each(|id| {
-                rt
-                    .store()
-                    .get(id.clone())
-                    .map_err_trace_exit_unwrap()
-                    .ok_or_else(|| EM::EntryNotFound(id.local_display_string()))
-                    .map_err(Error::from)
-                    .map_err_trace_exit_unwrap()
-                    .annotations()
-                    .map_err_trace_exit_unwrap()
+        ids.into_iter()
+            .map(|id| -> Result<_> {
+                let lds = id.local_display_string();
+                Ok(rt.store()
+                    .get(id)?
+                    .ok_or_else(|| EM::EntryNotFound(lds))?
+                    .annotations()?
                     .into_get_iter(rt.store())
-                    .trace_unwrap_exit()
-                    .map(|opt| opt.ok_or_else(|| format_err!("Cannot find entry")))
-                    .trace_unwrap_exit()
+                    .map(|el| el.and_then(|o| o.ok_or_else(|| format_err!("Cannot find entry"))))
                     .enumerate()
-                    .for_each(|(i, entry)| list_annotation(&rt, i, entry, with_text));
-            });
+                    .map(|(i, entry)| entry.and_then(|e| list_annotation(&rt, i, e, with_text)))
+                    .collect())
+            })
+            .flatten()
+            .collect()
     } else { // ids.len() == 0
         // show them all
         rt.store()
-            .all_annotations()
-            .map_err_trace_exit_unwrap()
+            .all_annotations()?
             .into_get_iter()
-            .trace_unwrap_exit()
-            .map(|opt| opt.ok_or_else(|| format_err!("Cannot find entry")))
-            .trace_unwrap_exit()
+            .map(|el| el.and_then(|opt| opt.ok_or_else(|| format_err!("Cannot find entry"))))
             .enumerate()
-            .for_each(|(i, entry)| list_annotation(&rt, i, entry, with_text));
+            .map(|(i, entry)| entry.and_then(|e| list_annotation(&rt, i, e, with_text)))
+            .collect()
     }
 }
 
-fn list_annotation<'a>(rt: &Runtime, i: usize, a: FileLockEntry<'a>, with_text: bool) {
+fn list_annotation<'a>(rt: &Runtime, i: usize, a: FileLockEntry<'a>, with_text: bool) -> Result<()> {
     if with_text {
         writeln!(rt.stdout(),
                  "--- {i: >5} | {id}\n{text}\n\n",
@@ -261,8 +226,6 @@ fn list_annotation<'a>(rt: &Runtime, i: usize, a: FileLockEntry<'a>, with_text: 
                  text = a.get_content())
     } else {
         writeln!(rt.stdout(), "{: >5} | {}", i, a.get_location())
-    }
-    .to_exit_code()
-    .unwrap_or_exit();
+    }.map_err(Error::from)
 }
 

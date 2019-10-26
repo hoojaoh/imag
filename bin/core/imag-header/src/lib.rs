@@ -34,10 +34,11 @@
 
 extern crate clap;
 #[macro_use] extern crate log;
+#[macro_use] extern crate failure;
 extern crate toml;
 extern crate toml_query;
 extern crate filters;
-extern crate failure;
+extern crate resiter;
 
 extern crate libimagentryedit;
 extern crate libimagerror;
@@ -52,18 +53,17 @@ use std::string::ToString;
 use clap::{App, ArgMatches};
 use filters::filter::Filter;
 use toml::Value;
-use failure::{Fallible as Result, Error};
+use failure::Error;
+use failure::Fallible as Result;
+use failure::err_msg;
+use resiter::FilterMap;
+use resiter::AndThen;
 
-use libimagerror::exit::ExitCode;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
-use libimagerror::iter::TraceIterator;
-use libimagerror::trace::MapErrTrace;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagstore::store::FileLockEntry;
-use libimagstore::storeid::StoreIdIterator;
+use libimagerror::iter::IterInnerOkOrElse;
 
 use toml_query::read::TomlValueReadExt;
 use toml_query::read::TomlValueReadTypeExt;
@@ -85,22 +85,16 @@ impl ImagApplication for ImagHeader {
         trace!("list_output_with_ids     = {:?}", list_output_with_ids );
         trace!("list_output_with_ids_fmt = {:?}", list_output_with_ids_fmt);
 
-        let sids = rt
-            .ids::<crate::ui::PathProvider>()
-            .map_err_trace_exit_unwrap()
-            .unwrap_or_else(|| {
-                error!("No ids supplied");
-                ::std::process::exit(1);
-            })
-            .into_iter();
-
-        let iter = StoreIdIterator::new(Box::new(sids.map(Ok)))
+        let iter = rt
+            .ids::<crate::ui::PathProvider>()?
+            .ok_or_else(|| err_msg("No ids supplied"))?
+            .into_iter()
+            .map(Ok)
             .into_get_iter(rt.store())
-            .trace_unwrap_exit()
-            .filter_map(|x| x);
+            .map_inner_ok_or_else(|| err_msg("Did not find one entry"));
 
         match rt.cli().subcommand() {
-            ("read", Some(mtch))   => ::std::process::exit(read(&rt, mtch, iter)),
+            ("read", Some(mtch))   => read(&rt, mtch, iter),
             ("has", Some(mtch))    => has(&rt, mtch, iter),
             ("hasnt", Some(mtch))  => hasnt(&rt, mtch, iter),
             ("int", Some(mtch))    => int(&rt, mtch, iter),
@@ -109,16 +103,16 @@ impl ImagApplication for ImagHeader {
             ("bool", Some(mtch))   => boolean(&rt, mtch, iter),
             (other, _mtchs) => {
                 debug!("Unknown command");
-                ::std::process::exit({
-                    rt.handle_unknown_subcommand("imag-header", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .unwrap_or(1)
-                });
+                if rt.handle_unknown_subcommand("imag-header", other, rt.cli())
+                    .map_err(Error::from)?
+                    .success()
+                {
+                    Ok(())
+                } else {
+                    Err(format_err!("Subcommand failed"))
+                }
             },
-        };
-
-        Ok(())
+        }
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
@@ -138,21 +132,20 @@ impl ImagApplication for ImagHeader {
     }
 }
 
-fn read<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
-    where I: Iterator<Item = FileLockEntry<'e>>
+fn read<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> Result<()>
+    where I: Iterator<Item = Result<FileLockEntry<'e>>>
 {
     debug!("Processing headers: reading value");
     let header_path = get_header_path(mtch, "header-value-path");
     let mut output = rt.stdout();
     trace!("Got output: {:?}", output);
 
-    iter.fold(0, |accu, entry| {
+    iter.and_then_ok(|entry| {
         trace!("Processing headers: working on {:?}", entry.get_location());
         entry.get_header()
-            .read(header_path)
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap()
-            .map(|value| {
+            .read(header_path)?
+            .ok_or_else(|| format_err!("Value not present for entry {} at {}", entry.get_location(), header_path))
+            .and_then(|value| {
                 trace!("Processing headers: Got value {:?}", value);
 
                 let string_representation = match value {
@@ -164,65 +157,56 @@ fn read<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> i32
                 };
 
                 if let Some(repr) = string_representation {
-                    writeln!(output, "{}", repr)
+                    writeln!(output, "{}", repr)?;
                 } else {
-                    writeln!(output, "{}", value)
+                    writeln!(output, "{}", value)?;
                 }
-                .to_exit_code()
-                .map(|_| accu)
-                .unwrap_or_else(ExitCode::code)
-            })
-            .unwrap_or_else(|| {
-                // if value not present and configured
-                error!("Value not present for entry {} at {}", entry.get_location(), header_path);
-                1
+                Ok(())
             })
     })
+    .collect::<Result<()>>()
 }
 
-fn has<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
-    where I: Iterator<Item = FileLockEntry<'e>>
+fn has<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> Result<()>
+    where I: Iterator<Item = Result<FileLockEntry<'e>>>
 {
     debug!("Processing headers: has value");
     let header_path = get_header_path(mtch, "header-value-path");
     let mut output = rt.stdout();
 
-    iter.for_each(|entry| {
+    iter.and_then_ok(|entry| {
         trace!("Processing headers: working on {:?}", entry.get_location());
-        if entry.get_header()
-            .read(header_path)
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap()
-            .is_some()
-            {
-                rt.report_touched(entry.get_location()).unwrap_or_exit();
-                if !rt.output_is_pipe() {
-                    writeln!(output, "{}", entry.get_location()).to_exit_code().unwrap_or_exit();
-                }
+        if let Some(_) = entry.get_header().read(header_path)?  {
+            if !rt.output_is_pipe() {
+                writeln!(output, "{}", entry.get_location())?;
             }
+            rt.report_touched(entry.get_location()).map_err(Error::from)
+        } else {
+            Ok(())
+        }
     })
+    .collect::<Result<()>>()
 }
 
-fn hasnt<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
-    where I: Iterator<Item = FileLockEntry<'e>>
+fn hasnt<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> Result<()>
+    where I: Iterator<Item = Result<FileLockEntry<'e>>>
 {
     debug!("Processing headers: hasnt value");
     let header_path = get_header_path(mtch, "header-value-path");
     let mut output = rt.stdout();
 
-    iter.for_each(|entry| {
+    iter.and_then_ok(|entry| {
         trace!("Processing headers: working on {:?}", entry.get_location());
-        if entry.get_header()
-            .read(header_path)
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap()
-            .is_none() {
-                rt.report_touched(entry.get_location()).unwrap_or_exit();
-                if !rt.output_is_pipe() {
-                    writeln!(output, "{}", entry.get_location()).to_exit_code().unwrap_or_exit();
-                }
+        if let Some(_) = entry.get_header().read(header_path)? {
+            Ok(())
+        } else {
+            if !rt.output_is_pipe() {
+                writeln!(output, "{}", entry.get_location())?;
             }
+            rt.report_touched(entry.get_location()).map_err(Error::from)
+        }
     })
+    .collect()
 }
 
 macro_rules! implement_compare {
@@ -238,8 +222,8 @@ macro_rules! implement_compare {
     }}
 }
 
-fn int<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
-    where I: Iterator<Item = FileLockEntry<'e>>
+fn int<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> Result<()>
+    where I: Iterator<Item = Result<FileLockEntry<'e>>>
 {
     debug!("Processing headers: int value");
     let header_path = get_header_path(mtch, "header-value-path");
@@ -264,20 +248,20 @@ fn int<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
             implement_compare!(mtch, "header-int-gte", i64, |cmp| *i >= cmp)
         });
 
-    iter.filter(|entry| if let Some(hdr) = entry.get_header()
-            .read_int(header_path)
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap()
-        {
-            filter.filter(&hdr)
+    iter.and_then_ok(|entry| {
+        if let Some(hdr) = entry.get_header().read_int(header_path)?  {
+            Ok((filter.filter(&hdr), entry))
         } else {
-            false
-        })
-        .for_each(|entry| rt.report_touched(entry.get_location()).unwrap_or_exit())
+            Ok((false, entry))
+        }
+    })
+    .filter_map_ok(|(b, e)| if b { Some(e) } else { None })
+    .and_then_ok(|entry| rt.report_touched(entry.get_location()).map_err(Error::from))
+    .collect()
 }
 
-fn float<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
-    where I: Iterator<Item = FileLockEntry<'e>>
+fn float<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> Result<()>
+    where I: Iterator<Item = Result<FileLockEntry<'e>>>
 {
     debug!("Processing headers: float value");
     let header_path = get_header_path(mtch, "header-value-path");
@@ -302,20 +286,20 @@ fn float<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
             implement_compare!(mtch, "header-float-gte", f64, |cmp| *i >= cmp)
         });
 
-    iter.filter(|entry| if let Some(hdr) = entry.get_header()
-            .read_float(header_path)
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap()
-        {
-            filter.filter(&hdr)
+    iter.and_then_ok(|entry| {
+        if let Some(hdr) = entry.get_header().read_float(header_path)? {
+            Ok((filter.filter(&hdr), entry))
         } else {
-            false
-        })
-        .for_each(|entry| rt.report_touched(entry.get_location()).unwrap_or_exit())
+            Ok((false, entry))
+        }
+    })
+    .filter_map_ok(|(b, e)| if b { Some(e) } else { None })
+    .and_then_ok(|entry| rt.report_touched(entry.get_location()).map_err(Error::from))
+    .collect()
 }
 
-fn string<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
-    where I: Iterator<Item = FileLockEntry<'e>>
+fn string<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> Result<()>
+    where I: Iterator<Item = Result<FileLockEntry<'e>>>
 {
     debug!("Processing headers: string value");
     let header_path = get_header_path(mtch, "header-value-path");
@@ -328,20 +312,20 @@ fn string<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
             implement_compare!(mtch, "header-string-neq", String, |cmp| *i != cmp)
         });
 
-    iter.filter(|entry| if let Some(hdr) = entry.get_header()
-            .read_string(header_path)
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap()
-        {
-            filter.filter(&hdr)
+    iter.and_then_ok(|entry| {
+        if let Some(hdr) = entry.get_header().read_string(header_path)?  {
+            Ok((filter.filter(&hdr), entry))
         } else {
-            false
-        })
-        .for_each(|entry| rt.report_touched(entry.get_location()).unwrap_or_exit())
+            Ok((false, entry))
+        }
+    })
+    .filter_map_ok(|(b, e)| if b { Some(e) } else { None })
+    .and_then_ok(|entry| rt.report_touched(entry.get_location()).map_err(Error::from))
+    .collect()
 }
 
-fn boolean<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
-    where I: Iterator<Item = FileLockEntry<'e>>
+fn boolean<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I) -> Result<()>
+    where I: Iterator<Item = Result<FileLockEntry<'e>>>
 {
     debug!("Processing headers: bool value");
     let header_path = get_header_path(mtch, "header-value-path");
@@ -350,16 +334,16 @@ fn boolean<'a, 'e, I>(rt: &Runtime, mtch: &ArgMatches<'a>, iter: I)
         .and(|i: &bool| -> bool { *i })
         .and(|i: &bool| -> bool { *i });
 
-    iter.filter(|entry| if let Some(hdr) = entry.get_header()
-            .read_bool(header_path)
-            .map_err(Error::from)
-            .map_err_trace_exit_unwrap()
-        {
-            filter.filter(&hdr)
+    iter.and_then_ok(|entry| {
+        if let Some(hdr) = entry.get_header().read_bool(header_path)?  {
+            Ok((filter.filter(&hdr), entry))
         } else {
-            false
-        })
-        .for_each(|entry| rt.report_touched(entry.get_location()).unwrap_or_exit())
+            Ok((false, entry))
+        }
+    })
+    .filter_map_ok(|(b, e)| if b { Some(e) } else { None })
+    .and_then_ok(|entry| rt.report_touched(entry.get_location()).map_err(Error::from))
+    .collect()
 }
 
 

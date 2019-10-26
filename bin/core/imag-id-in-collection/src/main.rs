@@ -51,12 +51,12 @@ extern crate libimagstore;
 use std::io::Write;
 
 use filters::filter::Filter;
+use failure::Fallible as Result;
+use failure::Error;
+use failure::err_msg;
 
 use libimagstore::storeid::StoreId;
 use libimagrt::setup::generate_runtime_setup;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
 
 mod ui;
 
@@ -83,7 +83,7 @@ impl<'a, A> Filter<StoreId> for IsInCollectionsFilter<'a, A>
 }
 
 
-fn main() {
+fn main() -> Result<()> {
     let version = make_imag_version!();
     let rt = generate_runtime_setup("imag-id-in-collection",
                                     &version,
@@ -99,22 +99,19 @@ fn main() {
     let mut stdout = rt.stdout();
     trace!("Got output: {:?}", stdout);
 
-
-    rt.ids::<crate::ui::PathProvider>()
-        .map_err_trace_exit_unwrap()
-        .unwrap_or_else(|| {
-            error!("No ids supplied");
-            ::std::process::exit(1);
-        })
+    rt.ids::<crate::ui::PathProvider>()?
+        .ok_or_else(|| err_msg("No ids supplied"))?
         .iter()
         .filter(|id| collection_filter.filter(id))
-        .for_each(|id| {
-            rt.report_touched(&id).unwrap_or_exit();
+        .map(|id| {
             if !rt.output_is_pipe() {
-                let id = id.to_str().map_err_trace_exit_unwrap();
+                let id = id.to_str()?;
                 trace!("Writing to {:?}", stdout);
-                writeln!(stdout, "{}", id).to_exit_code().unwrap_or_exit();
+                writeln!(stdout, "{}", id)?;
             }
+
+            rt.report_touched(&id).map_err(Error::from)
         })
+        .collect()
 }
 

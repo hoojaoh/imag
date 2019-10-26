@@ -23,6 +23,7 @@ maintenance                       = { status     = "actively-developed" }
 [dependencies]
 log        = "0.4.6"
 failure    = "0.1.5"
+resiter    = "0.3.0"
 
 libimagstore         = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
 libimagrt            = { version = "0.10.0", path = "../../../lib/core/libimagrt" }

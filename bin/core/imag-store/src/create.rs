@@ -17,34 +17,32 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::ops::DerefMut;
 use std::path::PathBuf;
 use std::io::stdin;
 use std::fs::OpenOptions;
 use std::io::Read;
-use std::ops::DerefMut;
 
 use clap::ArgMatches;
 use toml::Value;
 use failure::Fallible as Result;
+use failure::Error;
 use failure::err_msg;
 
 use libimagrt::runtime::Runtime;
 use libimagstore::store::Entry;
 use libimagstore::storeid::StoreId;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
-use libimagutil::debug_result::*;
 
 use crate::util::build_toml_header;
 
-pub fn create(rt: &Runtime) {
+pub fn create(rt: &Runtime) -> Result<()> {
     let scmd = rt.cli().subcommand_matches("create").unwrap();
     debug!("Found 'create' subcommand...");
 
     // unwrap is safe as value is required
     let path  = scmd.value_of("path").unwrap();
     let path  = PathBuf::from(path);
-    let path  = StoreId::new(path).map_err_trace_exit_unwrap();
+    let path  = StoreId::new(path)?;
 
     debug!("path = {:?}", path);
 
@@ -55,15 +53,13 @@ pub fn create(rt: &Runtime) {
             .or_else(|_| create_with_content_and_header(rt,
                                                         &path,
                                                         String::new(),
-                                                        Entry::default_header()))
+                                                        Entry::default_header()))?;
     } else {
         debug!("Creating entry");
-        create_with_content_and_header(rt, &path, String::new(),
-            Entry::default_header())
+        create_with_content_and_header(rt, &path, String::new(), Entry::default_header())?;
     }
-    .map_err_trace_exit_unwrap();
 
-    rt.report_touched(&path).unwrap_or_exit();
+    rt.report_touched(&path).map_err(Error::from)
 }
 
 fn create_from_cli_spec(rt: &Runtime, matches: &ArgMatches, path: &StoreId) -> Result<()> {
@@ -99,19 +95,13 @@ fn create_from_source(rt: &Runtime, matches: &ArgMatches, path: &StoreId) -> Res
     debug!("Content with len = {}", content.len());
 
     Entry::from_str(path.clone(), &content[..])
-        .map_dbg_err(|e| format!("Error building entry: {:?}", e))
         .and_then(|new_e| {
-            let r = rt.store()
+            rt.store()
                 .create(path.clone())
-                .map_dbg_err(|e| format!("Error in Store::create(): {:?}", e))
                 .map(|mut old_e| {
                     *old_e.deref_mut() = new_e;
-                });
-
-            debug!("Entry build");
-            r
+                })
         })
-        .map_dbg_err(|e| format!("Error storing entry: {:?}", e))
 }
 
 fn create_with_content_and_header(rt: &Runtime,
@@ -122,7 +112,6 @@ fn create_with_content_and_header(rt: &Runtime,
     debug!("Creating entry with content at {:?}", path);
     rt.store()
         .create(path.clone())
-        .map_dbg_err(|e| format!("Error in Store::create(): {:?}", e))
         .map(|mut element| {
             {
                 let e_content = element.get_content_mut();
@@ -177,7 +166,7 @@ mod tests {
         let test_name = "test_create_simple";
         let rt = generate_test_runtime(vec!["create", "test_create_simple"]).unwrap();
 
-        create(&rt);
+        create(&rt).unwrap();
 
         let e = rt.store().get(PathBuf::from(test_name));
         assert!(e.is_ok());

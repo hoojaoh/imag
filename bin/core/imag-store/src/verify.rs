@@ -19,26 +19,25 @@
 
 use std::ops::Deref;
 
+use failure::Fallible as Result;
+use failure::err_msg;
+use resiter::AndThen;
+
 use libimagrt::runtime::Runtime;
-use libimagutil::warn_exit::warn_exit;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::iter::TraceIterator;
+use libimagerror::iter::IterInnerOkOrElse;
 
 /// Verify the store.
 ///
 /// This function is not intended to be called by normal programs but only by `imag-store`.
-pub fn verify(rt: &Runtime) {
+pub fn verify(rt: &Runtime) -> Result<()> {
     info!("Header | Content length | Path");
     info!("-------+----------------+-----");
     let result = rt
         .store()
-        .entries()
-        .map_err_trace_exit_unwrap()
+        .entries()?
         .into_get_iter()
-        .trace_unwrap_exit()
-        .filter_map(|x| x)
-        .all(|fle| {
+        .map_inner_ok_or_else(|| err_msg("Did not find one entry"))
+        .and_then_ok(|fle| {
             let p           = fle.get_location();
             let content_len = fle.get_content().len();
             let (verify, status) = if fle.verify().is_ok() {
@@ -48,14 +47,18 @@ pub fn verify(rt: &Runtime) {
             };
 
             info!("{: >6} | {: >14} | {:?}", verify, content_len, p.deref());
-            rt.report_touched(fle.get_location()).unwrap_or_exit();
-            status
-        });
+            rt.report_touched(fle.get_location())?;
+            Ok(status)
+        })
+        .collect::<Result<Vec<_>>>()?
+        .iter()
+        .all(|x| *x);
 
     if result {
         info!("Store seems to be fine");
+        Ok(())
     } else {
-        warn_exit("Store seems to be broken somehow", 1);
+        Err(err_msg("Store seems to be broken somehow"))
     }
 }
 

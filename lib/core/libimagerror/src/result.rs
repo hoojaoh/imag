@@ -1,6 +1,6 @@
 //
 // imag - the personal information management suite for the commandline
-// Copyright (C) 2015-2019 Matthias Beyer <mail@beyermatthias.de> and contributors
+// Copyright (C) 2015-2019 the imag contributors
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -17,29 +17,22 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-#![forbid(unsafe_code)]
-
-#![deny(
-    non_camel_case_types,
-    non_snake_case,
-    path_statements,
-    trivial_numeric_casts,
-    unstable_features,
-    unused_allocation,
-    unused_import_braces,
-    unused_imports,
-    unused_must_use,
-    unused_mut,
-    unused_qualifications,
-    while_true,
-)]
-
-extern crate failure;
-use failure::Fallible as Result;
-
-extern crate libimaginitcmd;
-
-
-fn main() -> Result<()> {
-    libimaginitcmd::imag_init()
+/// Extension trait for doing `Result<Option<T>, E>  ->  Result<T, E>`
+pub trait ResultOptionExt<T, E, F>
+    where T: Sized,
+          E: Sized,
+          F: FnOnce() -> E
+{
+    fn inner_ok_or_else(self, f: F) -> Result<T, E>;
 }
+
+impl<T, E, F> ResultOptionExt<T, E, F> for Result<Option<T>, E>
+    where T: Sized,
+          E: Sized,
+          F: FnOnce() -> E
+{
+    fn inner_ok_or_else(self, f: F) -> Result<T, E> {
+        self.and_then(|opt| opt.ok_or_else(f))
+    }
+}
+

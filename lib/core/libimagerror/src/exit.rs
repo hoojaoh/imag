@@ -17,6 +17,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
+use std::error::Error;
+use std::fmt::{Formatter, Display};
+
+#[derive(Debug)]
 pub struct ExitCode(i32);
 
 impl From<i32> for ExitCode {
@@ -28,6 +32,26 @@ impl From<i32> for ExitCode {
 impl ExitCode {
     pub fn code(self) -> i32 {
         self.0
+    }
+}
+
+impl Display for ExitCode {
+     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+         write!(f, "ExitCode {}", self.0)
+     }
+}
+
+impl Error for ExitCode {
+    fn description(&self) -> &str {
+        "ExitCode"
+    }
+
+    fn cause(&self) -> Option<&dyn Error> {
+        None
+    }
+
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
     }
 }
 

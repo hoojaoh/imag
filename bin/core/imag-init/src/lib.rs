@@ -35,7 +35,8 @@
 )]
 
 extern crate clap;
-extern crate failure;
+#[macro_use] extern crate failure;
+
 #[cfg(test)]
 extern crate toml;
 
@@ -50,12 +51,14 @@ use std::path::PathBuf;
 use std::path::Path;
 use std::process::Command;
 
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
+use failure::Fallible as Result;
+use failure::ResultExt;
+use failure::Error;
+use failure::err_msg;
+
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 
-use failure::Fallible as Result;
 use clap::App;
 
 const CONFIGURATION_STR : &str = include_str!("../imagrc.toml");
@@ -100,7 +103,7 @@ impl ImagApplication for ImagInit {
     }
 }
 
-pub fn imag_init() {
+pub fn imag_init() -> Result<()> {
     let version = make_imag_version!();
     let app     = ui::build_ui(Runtime::get_default_cli_builder(
         "imag-init",
@@ -109,35 +112,27 @@ pub fn imag_init() {
     let matches = app.get_matches();
     let mut out = ::std::io::stdout();
 
-    let path = matches
-        .value_of("path")
-        .map(String::from)
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            ::std::env::var("HOME")
-                .map(PathBuf::from)
-                .map(|mut p| { p.push(".imag"); p })
-                .map(|path| if path.exists() {
-                    writeln!(out, "Path '{:?}' already exists!", path)
-                        .to_exit_code()
-                        .unwrap_or_exit();
-                    writeln!(out, "Cannot continue.")
-                        .to_exit_code()
-                        .unwrap_or_exit();
-                    ::std::process::exit(1)
-                } else {
-                    path
-                })
-                .expect("Failed to retrieve/build path for imag directory.")
-        });
+    let path = if let Some(p) = matches.value_of("path") {
+        PathBuf::from(String::from(p))
+    } else {
+        ::std::env::var("HOME")
+            .map_err(Error::from)
+            .map(PathBuf::from)
+            .map(|mut p| { p.push(".imag"); p })
+            .and_then(|path| if path.exists() {
+                Err(format_err!("Cannot continue: Path '{}' already exists", path.display()))
+            } else {
+                Ok(path)
+            })
+            .map_err(|_| err_msg("Failed to retrieve/build path for imag directory."))?
+    };
 
     {
         let mut store_path = path.clone();
         store_path.push("store");
         println!("Creating {}", store_path.display());
 
-        ::std::fs::create_dir_all(store_path)
-            .expect("Failed to create directory");
+        ::std::fs::create_dir_all(store_path).context("Failed to create directory")?;
     }
 
     let config_path = {
@@ -146,11 +141,12 @@ pub fn imag_init() {
         config_path
     };
 
-    OpenOptions::new()
+    let _ = OpenOptions::new()
         .write(true)
         .create(true)
         .open(config_path)
-        .map(|mut f| {
+        .map_err(Error::from)
+        .and_then(|mut f| {
             let content = if matches.is_present("devel") {
                 get_config_devel()
             } else {
@@ -158,33 +154,34 @@ pub fn imag_init() {
             };
 
             f.write_all(content.as_bytes())
-                .expect("Failed to write complete config to file");
+                .context("Failed to write complete config to file")
+                .map_err(Error::from)
         })
-        .expect("Failed to open new configuration file");
+        .context("Failed to open new configuration file")?;
 
     if find_command("git").is_some() && !matches.is_present("nogit") {
         // we initialize a git repository
-        writeln!(out, "Going to initialize a git repository in the imag directory...")
-            .to_exit_code()
-            .unwrap_or_exit();
+        writeln!(out, "Going to initialize a git repository in the imag directory...")?;
 
         let gitignore_path = {
             let mut gitignore_path = path.clone();
             gitignore_path.push(".gitignore");
-            gitignore_path.to_str().map(String::from).expect("Cannot convert path to string")
-        };
+            gitignore_path.to_str().map(String::from)
+        }.ok_or_else(|| err_msg("Cannot convert path to string"))?;
 
-        OpenOptions::new()
+        let _ = OpenOptions::new()
             .write(true)
             .create(true)
             .open(gitignore_path.clone())
-            .map(|mut f| {
+            .map_err(Error::from)
+            .and_then(|mut f| {
                 f.write_all(GITIGNORE_STR.as_bytes())
-                    .expect("Failed to write complete gitignore to file");
+                    .context("Failed to write complete gitignore to file")
+                    .map_err(Error::from)
             })
-            .expect("Failed to open new configuration file");
+            .context("Failed to open new configuration file")?;
 
-        let path_str = path.to_str().map(String::from).expect("Cannot convert path to string");
+        let path_str = path.to_str().map(String::from).ok_or_else(|| err_msg("Cannot convert path to string"))?;
         let worktree = format!("--work-tree={}", path_str);
         let gitdir   = format!("--git-dir={}/.git", path_str);
 
@@ -192,20 +189,16 @@ pub fn imag_init() {
             let output = Command::new("git")
                 .args(&[&worktree, &gitdir, "--no-pager", "init"])
                 .output()
-                .expect("Calling 'git init' failed");
+                .context("Calling 'git init' failed")?;
 
             if output.status.success() {
-                writeln!(out, "{}", String::from_utf8(output.stdout).expect("No UTF-8 output"))
-                    .to_exit_code()
-                    .unwrap_or_exit();
-                writeln!(out, "'git {} {} --no-pager init' succeeded", worktree, gitdir)
-                    .to_exit_code()
-                    .unwrap_or_exit();
+                writeln!(out, "{}", String::from_utf8(output.stdout).expect("No UTF-8 output"))?;
+                writeln!(out, "'git {} {} --no-pager init' succeeded", worktree, gitdir)?;
             } else {
-                writeln!(out, "{}", String::from_utf8(output.stderr).expect("No UTF-8 output"))
-                    .to_exit_code()
-                    .unwrap_or_exit();
-                ::std::process::exit(output.status.code().unwrap_or(1));
+                writeln!(out, "{}", String::from_utf8(output.stderr).expect("No UTF-8 output"))?;
+                if !output.status.success() {
+                    return Err(err_msg("Failed to execute git command"));
+                }
             }
         }
 
@@ -213,19 +206,16 @@ pub fn imag_init() {
             let output = Command::new("git")
                 .args(&[&worktree, &gitdir, "--no-pager", "add", &gitignore_path])
                 .output()
-                .expect("Calling 'git add' failed");
+                .context("Calling 'git add' failed")?;
+
             if output.status.success() {
-                writeln!(out, "{}", String::from_utf8(output.stdout).expect("No UTF-8 output"))
-                    .to_exit_code()
-                    .unwrap_or_exit();
-                writeln!(out, "'git {} {} --no-pager add {}' succeeded", worktree, gitdir, gitignore_path)
-                    .to_exit_code()
-                    .unwrap_or_exit();
+                writeln!(out, "{}", String::from_utf8(output.stdout).expect("No UTF-8 output"))?;
+                writeln!(out, "'git {} {} --no-pager add {}' succeeded", worktree, gitdir, gitignore_path)?;
             } else {
-                writeln!(out, "{}", String::from_utf8(output.stderr).expect("No UTF-8 output"))
-                    .to_exit_code()
-                    .unwrap_or_exit();
-                ::std::process::exit(output.status.code().unwrap_or(1));
+                writeln!(out, "{}", String::from_utf8(output.stderr).expect("No UTF-8 output"))?;
+                if !output.status.success() {
+                    return Err(err_msg("Failed to execute git command"));
+                }
             }
         }
 
@@ -233,34 +223,24 @@ pub fn imag_init() {
             let output = Command::new("git")
                 .args(&[&worktree, &gitdir, "--no-pager", "commit", &gitignore_path, "-m", "'Initial import'"])
                 .output()
-                .expect("Calling 'git commit' failed");
+                .context("Calling 'git commit' failed")?;
             if output.status.success() {
-                writeln!(out, "{}", String::from_utf8(output.stdout).expect("No UTF-8 output"))
-                    .to_exit_code()
-                    .unwrap_or_exit();
-                writeln!(out, "'git {} {} --no-pager commit {} -m 'Initial import'' succeeded", worktree, gitdir, gitignore_path)
-                    .to_exit_code()
-                    .unwrap_or_exit();
+                writeln!(out, "{}", String::from_utf8(output.stdout).expect("No UTF-8 output"))?;
+                writeln!(out, "'git {} {} --no-pager commit {} -m 'Initial import'' succeeded", worktree, gitdir, gitignore_path)?;
             } else {
-                writeln!(out, "{}", String::from_utf8(output.stderr).expect("No UTF-8 output"))
-                    .to_exit_code()
-                    .unwrap_or_exit();
-                ::std::process::exit(output.status.code().unwrap_or(1));
+                writeln!(out, "{}", String::from_utf8(output.stderr).expect("No UTF-8 output"))?;
+                if !output.status.success() {
+                    return Err(err_msg("Failed to execute git command"));
+                }
             }
         }
 
-        writeln!(out, "git stuff finished!")
-            .to_exit_code()
-            .unwrap_or_exit();
+        writeln!(out, "git stuff finished!")?;
     } else {
-        writeln!(out, "No git repository will be initialized")
-            .to_exit_code()
-            .unwrap_or_exit();
+        writeln!(out, "No git repository will be initialized")?;
     }
 
-    writeln!(out, "Ready. Have fun with imag!")
-        .to_exit_code()
-        .unwrap_or_exit();
+    writeln!(out, "Ready. Have fun with imag!").map_err(Error::from)
 }
 
 fn get_config() -> String {
