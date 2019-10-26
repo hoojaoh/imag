@@ -47,6 +47,7 @@ use clap::App;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
+use libimagrt::iter::ReportTouchedResultEntry;
 use libimagstore::iter::create::StoreIdCreateIteratorExtension;
 use libimagstore::iter::retrieve::StoreIdRetrieveIteratorExtension;
 
@@ -65,9 +66,9 @@ impl ImagApplication for ImagCreate {
             .map(Ok);
 
         if force {
-            ids.into_retrieve_iter(rt.store()).collect::<Result<Vec<_>>>()
+            ids.into_retrieve_iter(rt.store()).map_report_touched(&rt).collect::<Result<Vec<_>>>()
         } else {
-            ids.into_create_iter(rt.store()).collect::<Result<Vec<_>>>()
+            ids.into_create_iter(rt.store()).map_report_touched(&rt).collect::<Result<Vec<_>>>()
         }.map(|_| ())
     }
 
