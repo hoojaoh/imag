@@ -60,6 +60,7 @@ use failure::Error;
 use failure::err_msg;
 use failure::Fallible as Result;
 use resiter::AndThen;
+use resiter::IterInnerOkOrElse;
 use clap::App;
 
 use libimagrt::runtime::Runtime;
@@ -69,7 +70,6 @@ use libimagentryview::builtin::md::MarkdownViewer;
 use libimagentryview::viewer::Viewer;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagstore::store::FileLockEntry;
-use libimagerror::iter::IterInnerOkOrElse;
 
 mod ui;
 
