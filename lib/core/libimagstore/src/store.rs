@@ -1212,7 +1212,9 @@ mod store_tests {
                 assert!(r.map_err(|e| debug!("ERROR: {:?}", e)).is_ok());
 
                 {
-                    assert!(store.entries.read().unwrap().get(&id_mv).is_some());
+                    assert!(store.entries.read().unwrap().get(&id_mv).is_none()); // entry not in cache yet
+                    assert!(store.get(id_mv.clone()).unwrap().is_some()); // get entry from backend
+                    assert!(store.entries.read().unwrap().get(&id_mv).is_some()); // entry in cache
                 }
 
                 let res = store.get(id.clone());
