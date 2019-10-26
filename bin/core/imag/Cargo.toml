@@ -23,6 +23,33 @@ libimagutil     = { version = "0.10.0", path = "../../../lib/etc/libimagutil" }
 failure	        = "0.1.5"
 log             = "0.4.6"
 
+# Build time dependencies for cli completion
+imag-annotate = { optional = true, path = "../imag-annotate" }
+imag-create = { optional = true, path = "../imag-create" }
+imag-diagnostics = { optional = true, path = "../imag-diagnostics" }
+imag-edit = { optional = true, path = "../imag-edit" }
+imag-gps = { optional = true, path = "../imag-gps" }
+imag-grep = { optional = true, path = "../imag-grep" }
+imag-ids = { optional = true, path = "../imag-ids" }
+imag-init = { optional = true, path = "../imag-init" }
+imag-link = { optional = true, path = "../imag-link" }
+imag-mv = { optional = true, path = "../imag-mv" }
+imag-ref = { optional = true, path = "../imag-ref" }
+imag-store = { optional = true, path = "../imag-store" }
+imag-tag = { optional = true, path = "../imag-tag" }
+imag-view = { optional = true, path = "../imag-view" }
+imag-bookmark = { optional = true, path = "../../domain/imag-bookmark" }
+imag-calendar = { optional = true, path = "../../domain/imag-calendar" }
+imag-contact = { optional = true, path = "../../domain/imag-contact" }
+imag-diary = { optional = true, path = "../../domain/imag-diary" }
+imag-habit = { optional = true, path = "../../domain/imag-habit" }
+imag-log = { optional = true, path = "../../domain/imag-log" }
+imag-mail = { optional = true, path = "../../domain/imag-mail" }
+imag-notes = { optional = true, path = "../../domain/imag-notes" }
+imag-timetrack = { optional = true, path = "../../domain/imag-timetrack" }
+imag-todo = { optional = true, path = "../../domain/imag-todo" }
+imag-wiki = { optional = true, path = "../../domain/imag-wiki" }
+
 [badges]
 travis-ci                         = { repository = "matthiasbeyer/imag" }
 is-it-maintained-issue-resolution = { repository = "matthiasbeyer/imag" }
@@ -48,3 +75,59 @@ version  = "0.10.0"
 path     = "../../../lib/core/libimagrt"
 features = ["pub_logging_initialization"]
 
+[features]
+default = [ "cc-all" ]
+
+# Features for enabling cli completion files for individual subcommands
+cc-all = [
+  "cc-imag-annotate",
+  "cc-imag-create",
+  "cc-imag-diagnostics",
+  "cc-imag-edit",
+  "cc-imag-gps",
+  "cc-imag-grep",
+  "cc-imag-ids",
+  "cc-imag-init",
+  "cc-imag-link",
+  "cc-imag-mv",
+  "cc-imag-ref",
+  "cc-imag-store",
+  "cc-imag-tag",
+  "cc-imag-view",
+  "cc-imag-bookmark",
+  "cc-imag-calendar",
+  "cc-imag-contact",
+  "cc-imag-diary",
+  "cc-imag-habit",
+  "cc-imag-log",
+  "cc-imag-mail",
+  "cc-imag-notes",
+  "cc-imag-timetrack",
+  "cc-imag-todo",
+  "cc-imag-wiki",
+]
+cc-imag-annotate = [ "imag-annotate" ]
+cc-imag-create = [ "imag-create" ]
+cc-imag-diagnostics = [ "imag-diagnostics" ]
+cc-imag-edit = [ "imag-edit" ]
+cc-imag-gps = [ "imag-gps" ]
+cc-imag-grep = [ "imag-grep" ]
+cc-imag-ids = [ "imag-ids" ]
+cc-imag-init = [ "imag-init" ]
+cc-imag-link = [ "imag-link" ]
+cc-imag-mv = [ "imag-mv" ]
+cc-imag-ref = [ "imag-ref" ]
+cc-imag-store = [ "imag-store" ]
+cc-imag-tag = [ "imag-tag" ]
+cc-imag-view = [ "imag-view" ]
+cc-imag-bookmark = [ "imag-bookmark" ]
+cc-imag-calendar = [ "imag-calendar" ]
+cc-imag-contact = [ "imag-contact" ]
+cc-imag-diary = [ "imag-diary" ]
+cc-imag-habit = [ "imag-habit" ]
+cc-imag-log = [ "imag-log" ]
+cc-imag-mail = [ "imag-mail" ]
+cc-imag-notes = [ "imag-notes" ]
+cc-imag-timetrack = [ "imag-timetrack" ]
+cc-imag-todo = [ "imag-todo" ]
+cc-imag-wiki = [ "imag-wiki" ]

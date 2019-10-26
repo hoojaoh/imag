@@ -23,6 +23,7 @@ maintenance                       = { status     = "actively-developed" }
 log        = "0.4.6"
 toml       = "0.5.1"
 toml-query = "0.9.2"
+failure    = "0.1.5"
 
 libimagrt    = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
@@ -32,3 +33,10 @@ version          = "2.33.0"
 default-features = false
 features         = ["color", "suggestions", "wrap_help"]
 
+[lib]
+name = "libimaggitcmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-git"
+path = "src/bin.rs"

@@ -1,0 +1,156 @@
+//
+// imag - the personal information management suite for the commandline
+// Copyright (C) 2015-2019 Matthias Beyer <mail@beyermatthias.de> and contributors
+//
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; version
+// 2.1 of the License.
+//
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+//
+
+#![forbid(unsafe_code)]
+
+#![deny(
+    non_camel_case_types,
+    non_snake_case,
+    path_statements,
+    trivial_numeric_casts,
+    unstable_features,
+    unused_allocation,
+    unused_import_braces,
+    unused_imports,
+    unused_must_use,
+    unused_mut,
+    unused_qualifications,
+    while_true,
+)]
+
+#[macro_use] extern crate log;
+extern crate clap;
+extern crate regex;
+extern crate failure;
+
+extern crate libimagstore;
+extern crate libimagrt;
+extern crate libimagerror;
+
+use std::io::Write;
+
+use regex::Regex;
+use failure::Fallible as Result;
+use clap::App;
+
+use libimagrt::runtime::Runtime;
+use libimagrt::application::ImagApplication;
+use libimagstore::store::Entry;
+use libimagerror::trace::MapErrTrace;
+use libimagerror::exit::ExitUnwrap;
+use libimagerror::io::ToExitCode;
+
+mod ui;
+
+struct Options {
+    files_with_matches: bool,
+    count: bool,
+}
+
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagGrep {}
+impl ImagApplication for ImagGrep {
+    fn run(rt: Runtime) -> Result<()> {
+        let opts = Options {
+            files_with_matches    : rt.cli().is_present("files-with-matches"),
+            count                 : rt.cli().is_present("count"),
+        };
+
+        let mut count : usize = 0;
+
+        let pattern = rt
+            .cli()
+            .value_of("pattern")
+            .map(Regex::new)
+            .unwrap() // ensured by clap
+            .unwrap_or_else(|e| {
+                error!("Regex building error: {:?}", e);
+                ::std::process::exit(1)
+            });
+
+        let overall_count = rt
+            .store()
+            .entries()
+            .map_err_trace_exit_unwrap()
+            .into_get_iter()
+            .filter_map(|res| res.map_err_trace_exit_unwrap())
+            .filter_map(|entry| if pattern.is_match(entry.get_content()) {
+                show(&rt, &entry, &pattern, &opts, &mut count);
+                Some(())
+            } else {
+                None
+            })
+            .count();
+
+        if opts.count {
+            writeln!(rt.stdout(), "{}", count).to_exit_code().unwrap_or_exit();
+        } else if !opts.files_with_matches {
+            writeln!(rt.stdout(), "Processed {} files, {} matches, {} nonmatches",
+                     overall_count,
+                     count,
+                     overall_count - count)
+                .to_exit_code()
+                .unwrap_or_exit();
+        }
+
+        Ok(())
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "grep through entries text"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
+    }
+}
+
+fn show(rt: &Runtime, e: &Entry, re: &Regex, opts: &Options, count: &mut usize) {
+    if opts.files_with_matches {
+        writeln!(rt.stdout(), "{}", e.get_location()).to_exit_code().unwrap_or_exit();
+    } else if opts.count {
+        *count += 1;
+    } else {
+        writeln!(rt.stdout(), "{}:", e.get_location()).to_exit_code().unwrap_or_exit();
+        for capture in re.captures_iter(e.get_content()) {
+            for mtch in capture.iter() {
+                if let Some(m) = mtch {
+                    writeln!(rt.stdout(), " '{}'", m.as_str()).to_exit_code().unwrap_or_exit();
+                }
+            }
+        }
+
+        writeln!(rt.stdout()).to_exit_code().unwrap_or_exit();
+        *count += 1;
+    }
+
+    rt.report_touched(e.get_location()).unwrap_or_exit();
+}
+

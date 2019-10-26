@@ -49,3 +49,10 @@ path             = "../../../lib/core/libimagrt"
 default-features = false
 features         = ["testing"]
 
+[lib]
+name = "libimageditcmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-edit"
+path = "src/bin.rs"

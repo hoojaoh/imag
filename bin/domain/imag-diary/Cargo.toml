@@ -42,3 +42,10 @@ version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
+[lib]
+name = "libimagdiaryfrontend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-diary"
+path = "src/bin.rs"

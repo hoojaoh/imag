@@ -45,6 +45,7 @@ macro_rules! make_mock_app {
         modulename $module:ident;
         version $version:expr;
         with help $help:expr;
+        with ui builder function $buildui:path;
     }=> {
         mod $module {
             use clap::{App, ArgMatches};
@@ -64,7 +65,7 @@ macro_rules! make_mock_app {
                 fn new(args: Vec<&'static str>) -> Self {
                     MockLinkApp {
                         args: args,
-                        inner: ::build_ui(Runtime::get_default_cli_builder($appname, $version, $help)),
+                        inner: ($buildui)(Runtime::get_default_cli_builder($appname, $version, $help)),
                     }
                 }
             }

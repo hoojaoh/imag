@@ -55,6 +55,7 @@ extern crate libimagutil;
 extern crate libimagerror;
 extern crate libimaginteraction;
 
+pub mod application;
 pub mod configuration;
 pub mod logger;
 pub mod io;

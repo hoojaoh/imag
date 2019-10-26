@@ -43,3 +43,10 @@ path = "../../../lib/etc/libimagutil"
 default-features = false
 features         = ["testing"]
 
+[lib]
+name = "libimaggpscmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-gps"
+path = "src/bin.rs"

@@ -41,3 +41,10 @@ version = "0.9.2"
 default-features = false
 features = ["typed"]
 
+[lib]
+name = "libimagmailfrontend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-mail"
+path = "src/bin.rs"

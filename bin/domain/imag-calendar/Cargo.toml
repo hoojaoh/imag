@@ -48,3 +48,10 @@ version          = "0.9.2"
 default-features = false
 features         = ["typed"]
 
+[lib]
+name = "libimagcalendarfrontend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-calendar"
+path = "src/bin.rs"

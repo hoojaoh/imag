@@ -168,6 +168,7 @@ mod tests {
         modulename mock;
         version env!("CARGO_PKG_VERSION");
         with help "imag-store mocking app";
+        with ui builder function crate::ui::build_ui;
     }
     use self::mock::generate_test_runtime;
 
