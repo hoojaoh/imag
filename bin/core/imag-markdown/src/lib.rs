@@ -50,12 +50,12 @@ use failure::err_msg;
 use failure::Fallible as Result;
 use resiter::AndThen;
 use resiter::Map;
+use resiter::IterInnerOkOrElse;
 use clap::App;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
-use crate::libimagerror::iter::IterInnerOkOrElse;
 
 mod ui;
 
