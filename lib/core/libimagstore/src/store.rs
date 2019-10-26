@@ -1196,22 +1196,29 @@ mod store_tests {
                 let id    = StoreId::new(PathBuf::from(format!("t-{}", n))).unwrap();
                 let id_mv = StoreId::new(PathBuf::from(format!("t-{}", n - 1))).unwrap();
 
+                debug!("Trying to move: {} -> {}", id, id_mv);
+
                 {
+                    debug!("Checking presence: {}", id);
                     assert!(store.entries.read().unwrap().get(&id).is_none());
                 }
 
                 {
+                    debug!("Creating : {}", id);
                     assert!(store.create(id.clone()).is_ok());
                 }
 
                 {
+                    debug!("Checking presence: {}", id);
                     assert!(store.entries.read().unwrap().get(&id).is_some());
                 }
 
+                debug!("Moving: {} -> {}", id, id_mv);
                 let r = store.move_by_id(id.clone(), id_mv.clone());
                 assert!(r.map_err(|e| debug!("ERROR: {:?}", e)).is_ok());
 
                 {
+                    debug!("Checking presence: {}", id_mv);
                     assert!(store.entries.read().unwrap().get(&id_mv).is_none()); // entry not in cache yet
                     assert!(store.get(id_mv.clone()).unwrap().is_some()); // get entry from backend
                     assert!(store.entries.read().unwrap().get(&id_mv).is_some()); // entry in cache
