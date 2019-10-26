@@ -590,17 +590,20 @@ impl Store {
             }
             debug!("New id does not exist in cache");
 
-            // if we do not have an entry here, we fail in `FileAbstraction::rename()` below.
-            // if we have one, but it is borrowed, we really should not rename it, as this might
-            // lead to strange errors
-            if hsmap.get(&old_id).map(|e| e.is_borrowed()).unwrap_or(false) {
-                return Err(format_err!("Entry already borrowed: {}", old_id));
-            }
-
-            debug!("Old id is not yet borrowed");
-
             let old_id_pb = old_id.clone().with_base(self.path()).into_pathbuf()?;
             let new_id_pb = new_id.clone().with_base(self.path()).into_pathbuf()?;
+
+            if !self.backend.exists(&old_id_pb)? {
+                return Err(format_err!("Entry does not exist: {}", old_id));
+            }
+
+            // if it is borrowed, we really should not rename it, as this might
+            // lead to strange errors
+            //
+            // Also, remove this object from the cache
+            if hsmap.remove(&old_id).map(|e| e.is_borrowed()).unwrap_or(false) {
+                return Err(format_err!("Entry already borrowed: {}", old_id));
+            }
 
             if self.backend.exists(&new_id_pb)? {
                 return Err(format_err!("Entry already exists: {}", new_id));
@@ -617,17 +620,6 @@ impl Store {
                 })?;
 
             debug!("Rename worked on filesystem");
-
-            // assert enforced through check hsmap.contains_key(&new_id) above.
-            // Should therefor never fail
-            let hsmap_does_not_have_key = hsmap
-                .remove(&old_id)
-                .and_then(|mut entry| {
-                    entry.id = new_id.clone();
-                    hsmap.insert(new_id.clone(), entry)
-                })
-                .is_none();
-            assert!(hsmap_does_not_have_key);
         }
 
         debug!("Moved");
