@@ -40,6 +40,7 @@ extern crate log;
 #[macro_use]
 extern crate failure;
 extern crate toml_query;
+extern crate resiter;
 
 extern crate libimagentryannotation;
 extern crate libimagentryedit;
@@ -55,6 +56,9 @@ use failure::Error;
 use failure::Fallible as Result;
 use failure::ResultExt;
 use failure::err_msg;
+use resiter::IterInnerOkOrElse;
+use resiter::AndThen;
+use resiter::Map;
 use toml_query::read::TomlValueReadTypeExt;
 use clap::App;
 
@@ -67,6 +71,7 @@ use libimagrt::application::ImagApplication;
 use libimagstore::store::FileLockEntry;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagentrylink::linkable::Linkable;
+use libimagrt::iter::ReportTouchedResultEntry;
 
 mod ui;
 
@@ -121,12 +126,13 @@ fn add(rt: &Runtime) -> Result<()> {
 
         annotation.edit_content(&rt)?;
 
-        for id in ids {
-            let mut entry = rt.store().get(id.clone())?
-                .ok_or_else(|| format_err!("Not found: {}", id.local_display_string()))?;
-
-            entry.add_link(&mut annotation)?;
-        }
+        rt.report_touched(&first)?; // report first one first
+        ids.map(Ok).into_get_iter(rt.store())
+            .map_inner_ok_or_else(|| err_msg("Did not find one entry"))
+            .and_then_ok(|mut entry| entry.add_link(&mut annotation).map(|_| entry))
+            .map_report_touched(&rt)
+            .map_ok(|_| ())
+            .collect::<Result<Vec<_>>>()?;
 
         if !scmd.is_present("dont-print-name") {
             if let Some(annotation_id) = annotation
@@ -139,6 +145,8 @@ fn add(rt: &Runtime) -> Result<()> {
                     .context("This is most likely a BUG, please report!")?;
             }
         }
+
+        rt.report_touched(annotation.get_location())?;
     } else {
         debug!("No entries to annotate");
     }
@@ -176,7 +184,7 @@ fn remove(rt: &Runtime) -> Result<()> {
                 debug!("Not deleting annotation object");
             }
 
-            Ok(())
+            rt.report_touched(entry.get_location()).map_err(Error::from)
         })
         .collect()
 }
@@ -200,7 +208,9 @@ fn list(rt: &Runtime) -> Result<()> {
                     .into_get_iter(rt.store())
                     .map(|el| el.and_then(|o| o.ok_or_else(|| format_err!("Cannot find entry"))))
                     .enumerate()
-                    .map(|(i, entry)| entry.and_then(|e| list_annotation(&rt, i, e, with_text)))
+                    .map(|(i, entry)| entry.and_then(|e| list_annotation(&rt, i, &e, with_text).map(|_| e)))
+                    .map_report_touched(&rt)
+                    .map_ok(|_| ())
                     .collect())
             })
             .flatten()
@@ -212,12 +222,14 @@ fn list(rt: &Runtime) -> Result<()> {
             .into_get_iter()
             .map(|el| el.and_then(|opt| opt.ok_or_else(|| format_err!("Cannot find entry"))))
             .enumerate()
-            .map(|(i, entry)| entry.and_then(|e| list_annotation(&rt, i, e, with_text)))
+            .map(|(i, entry)| entry.and_then(|e| list_annotation(&rt, i, &e, with_text).map(|_| e)))
+            .map_report_touched(&rt)
+            .map_ok(|_| ())
             .collect()
     }
 }
 
-fn list_annotation<'a>(rt: &Runtime, i: usize, a: FileLockEntry<'a>, with_text: bool) -> Result<()> {
+fn list_annotation<'a>(rt: &Runtime, i: usize, a: &FileLockEntry<'a>, with_text: bool) -> Result<()> {
     if with_text {
         writeln!(rt.stdout(),
                  "--- {i: >5} | {id}\n{text}\n\n",
