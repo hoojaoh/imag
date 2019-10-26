@@ -58,6 +58,8 @@ extern crate libimagtagcmd;
 extern crate libimagviewcmd;
 #[cfg(feature = "cc-imag-bookmark")]
 extern crate libimagbookmarkfrontend;
+#[cfg(feature = "cc-imag-calendar")]
+extern crate libimagcalendarfrontend;
 #[cfg(feature = "cc-imag-contact")]
 extern crate libimagcontactfrontend;
 #[cfg(feature = "cc-imag-diary")]
@@ -135,6 +137,8 @@ fn main() {
     let app = app.subcommand(build_subcommand!("view",         libimagviewcmd, ImagView));
     #[cfg(feature = "cc-imag-bookmark")]
     let app = app.subcommand(build_subcommand!("bookmark",    libimagbookmarkfrontend, ImagBookmark));
+    #[cfg(feature = "cc-imag-calendar")]
+    let app = app.subcommand(build_subcommand!("calendar",    libimagcalendarfrontend, ImagCalendar));
     #[cfg(feature = "cc-imag-contact")]
     let app = app.subcommand(build_subcommand!("contact",     libimagcontactfrontend, ImagContact));
     #[cfg(feature = "cc-imag-diary")]

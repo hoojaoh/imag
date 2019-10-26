@@ -43,7 +43,7 @@ extern crate handlebars;
 extern crate chrono;
 extern crate kairos;
 
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 extern crate libimagcalendar;
 extern crate libimagerror;
 extern crate libimagstore;
@@ -61,6 +61,7 @@ use toml_query::read::TomlValueReadExt;
 use walkdir::DirEntry;
 use walkdir::WalkDir;
 use vobject::icalendar::Event;
+use clap::App;
 
 use libimagcalendar::store::EventStore;
 use libimagerror::io::ToExitCode;
@@ -68,35 +69,53 @@ use libimagerror::exit::ExitUnwrap;
 use libimagerror::iter::TraceIterator;
 use libimagerror::trace::MapErrTrace;
 use libimagrt::runtime::Runtime;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
 
 mod filters;
 mod ui;
 mod util;
 
-fn main() {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-calendar",
-                                    &version,
-                                    "Calendar management tool",
-                                    crate::ui::build_ui);
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binary crates to execute business logic or to
+/// build a CLI completion.
+pub enum ImagCalendar {}
+impl ImagApplication for ImagCalendar {
+    fn run(rt: Runtime) -> Result<()> {
+	if let Some(name) = rt.cli().subcommand_name() {
+            debug!("Call {}", name);
+            match name {
+		"import" => import(&rt),
+		"list"   => list(&rt),
+		"show"   => show(&rt),
+		other    => {
+                    warn!("Right now, only the 'import' command is available");
+                    debug!("Unknown command");
+                    let _ = rt.handle_unknown_subcommand("imag-calendar", other, rt.cli())
+			.map_err_trace_exit_unwrap()
+			.code()
+			.map(::std::process::exit);
+		},
+            }
+	}
 
+	Ok(())
+    }
 
-    if let Some(name) = rt.cli().subcommand_name() {
-        debug!("Call {}", name);
-        match name {
-            "import" => import(&rt),
-            "list"   => list(&rt),
-            "show"   => show(&rt),
-            other    => {
-                warn!("Right now, only the 'import' command is available");
-                debug!("Unknown command");
-                let _ = rt.handle_unknown_subcommand("imag-calendar", other, rt.cli())
-                    .map_err_trace_exit_unwrap()
-                    .code()
-                    .map(::std::process::exit);
-            },
-        }
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+	ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+	env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+	"Calendar management tool"
+    }
+
+    fn version() -> &'static str {
+	env!("CARGO_PKG_VERSION")
     }
 }
 

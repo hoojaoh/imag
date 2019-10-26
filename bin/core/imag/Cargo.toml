@@ -39,6 +39,7 @@ imag-store = { optional = true, path = "../imag-store" }
 imag-tag = { optional = true, path = "../imag-tag" }
 imag-view = { optional = true, path = "../imag-view" }
 imag-bookmark = { optional = true, path = "../../domain/imag-bookmark" }
+imag-calendar = { optional = true, path = "../../domain/imag-calendar" }
 imag-contact = { optional = true, path = "../../domain/imag-contact" }
 imag-diary = { optional = true, path = "../../domain/imag-diary" }
 imag-habit = { optional = true, path = "../../domain/imag-habit" }
@@ -94,6 +95,7 @@ cc-all = [
   "cc-imag-tag",
   "cc-imag-view",
   "cc-imag-bookmark",
+  "cc-imag-calendar",
   "cc-imag-contact",
   "cc-imag-diary",
   "cc-imag-habit",
@@ -119,6 +121,7 @@ cc-imag-store = [ "imag-store" ]
 cc-imag-tag = [ "imag-tag" ]
 cc-imag-view = [ "imag-view" ]
 cc-imag-bookmark = [ "imag-bookmark" ]
+cc-imag-calendar = [ "imag-calendar" ]
 cc-imag-contact = [ "imag-contact" ]
 cc-imag-diary = [ "imag-diary" ]
 cc-imag-habit = [ "imag-habit" ]
