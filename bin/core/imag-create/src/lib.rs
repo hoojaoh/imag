@@ -59,47 +59,47 @@ mod ui;
 pub enum ImagCreate {}
 impl ImagApplication for ImagCreate {
     fn run(rt: Runtime) -> Result<()> {
-	let force = rt.cli().is_present("force");
-	debug!("Detected force = {}", force);
+        let force = rt.cli().is_present("force");
+        debug!("Detected force = {}", force);
 
-	let ids = rt.ids::<crate::ui::PathProvider>()
+        let ids = rt.ids::<crate::ui::PathProvider>()
             .map_err_trace_exit_unwrap()
             .unwrap_or_else(|| {
-		error!("No ids supplied");
-		::std::process::exit(1);
+                error!("No ids supplied");
+                ::std::process::exit(1);
             })
             .into_iter()
             .map(|id| { debug!("id = {}", id); id })
             .map(Ok);
 
-	if force {
+        if force {
             ids.into_retrieve_iter(rt.store()).collect::<Result<Vec<_>>>()
-	} else {
+        } else {
             ids.into_create_iter(rt.store()).collect::<Result<Vec<_>>>()
-	}.map_err_trace_exit_unwrap()
-	    .into_iter()
-	    .for_each(|el| {
-		rt.report_touched(el.get_location()).unwrap_or_exit();
-		trace!("Entry = {}", el.get_location());
-	    });
+        }.map_err_trace_exit_unwrap()
+        .into_iter()
+        .for_each(|el| {
+            rt.report_touched(el.get_location()).unwrap_or_exit();
+            trace!("Entry = {}", el.get_location());
+        });
 
-	Ok(())
+        Ok(())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
-	ui::build_ui(app)
+        ui::build_ui(app)
     }
 
     fn name() -> &'static str {
-	env!("CARGO_PKG_NAME")
+        env!("CARGO_PKG_NAME")
     }
 
     fn description() -> &'static str {
-	"Plumbing tool to create entries"
+        "Plumbing tool to create entries"
     }
 
     fn version() -> &'static str {
-	env!("CARGO_PKG_VERSION")
+        env!("CARGO_PKG_VERSION")
     }
 }
 
