@@ -38,3 +38,10 @@ features         = ["color", "suggestions", "wrap_help"]
 [dev-dependencies]
 env_logger = "0.7"
 
+[lib]
+name = "libimagidincollectioncmd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "imag-id-in-collection"
+path = "src/bin.rs"
