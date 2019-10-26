@@ -36,6 +36,7 @@
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate failure;
+extern crate resiter;
 extern crate clap;
 
 extern crate libimagrt;
@@ -54,10 +55,10 @@ use libimagstore::store::Store;
 use libimagstore::store::FileLockEntry;
 use libimagentrylink::linkable::Linkable;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
-use libimagerror::iter::IterInnerOkOrElse;
 
 use failure::Fallible as Result;
 use failure::err_msg;
+use resiter::IterInnerOkOrElse;
 use clap::App;
 
 
