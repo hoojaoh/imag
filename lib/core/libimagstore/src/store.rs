@@ -1226,4 +1226,43 @@ mod store_tests {
         }
     }
 
+    #[test]
+    fn test_moving_entry_with_writing_before_and_after() {
+        use crate::storeid::StoreId;
+        setup_logging();
+
+        let store = get_store();
+
+        let old_name = StoreId::new(PathBuf::from("old")).unwrap();
+        let new_name = StoreId::new(PathBuf::from("new")).unwrap();
+
+        debug!("Creating old entry");
+        {
+            let mut entry = store.create(old_name.clone()).unwrap();
+            entry.get_content_mut().push_str("first line");
+            drop(entry);
+        } // make sure entry is dropped
+
+        debug!("Moving");
+        store.move_by_id(old_name.clone(), new_name.clone()).unwrap();
+
+        debug!("Getting old entry again (should not work)");
+        assert!(store.get(old_name).unwrap().is_none());
+
+        debug!("Getting new entry");
+        {
+            let mut entry = store.get(new_name.clone()).unwrap().unwrap();
+            assert_eq!(entry.get_content(), "first line");
+            entry.get_content_mut().push_str("second line");
+            drop(entry);
+        } // make sure entry is dropped
+
+        {
+            debug!("Getting new entry again");
+            debug!("Store = {:#?}", store);
+            let new_entry = store.get(new_name).unwrap().unwrap();
+            assert_eq!(new_entry.get_content(), "first linesecond line");
+        }
+    }
+
 }
