@@ -61,6 +61,46 @@ mod reporting {
     }
 
 
+    pub trait ReportTouchedResultEntry<'a, I, D>
+        where I: Iterator<Item = Result<D>>,
+              D: Deref<Target = Entry>,
+    {
+        fn map_report_touched(self, rt: &'a Runtime) -> ReportTouchedResultEntryImpl<'a, I, D>;
+    }
+
+    impl<'a, I, D> ReportTouchedResultEntry<'a, I, D> for I
+        where I: Iterator<Item = Result<D>>,
+              D: Deref<Target = Entry>,
+    {
+        fn map_report_touched(self, rt: &'a Runtime) -> ReportTouchedResultEntryImpl<'a, I, D> {
+            ReportTouchedResultEntryImpl(self, rt)
+        }
+    }
+
+    pub struct ReportTouchedResultEntryImpl<'a, I, D>(I, &'a Runtime<'a>)
+        where I: Iterator<Item = Result<D>>,
+              D: Deref<Target = Entry>;
+
+    impl<'a, I, D> Iterator for ReportTouchedResultEntryImpl<'a, I, D>
+        where I: Iterator<Item = Result<D>>,
+              D: Deref<Target = Entry>,
+    {
+        type Item = Result<D>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.0.next()
+                .map(|r| {
+                    r.and_then(|e| {
+                        self.1
+                            .report_touched(e.get_location())
+                            .map_err(Error::from)
+                            .map(|_| e)
+                    })
+                 })
+        }
+    }
+
+
 
 
     pub trait ReportTouchedStoreId<'a, I>
