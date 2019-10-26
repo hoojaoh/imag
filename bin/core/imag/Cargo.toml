@@ -29,6 +29,7 @@ imag-diagnostics = { optional = true, path = "../imag-diagnostics" }
 imag-edit = { optional = true, path = "../imag-edit" }
 imag-gps = { optional = true, path = "../imag-gps" }
 imag-grep = { optional = true, path = "../imag-grep" }
+imag-id-in-collection = { optional = true, path = "../imag-id-in-collection" }
 imag-ids = { optional = true, path = "../imag-ids" }
 imag-init = { optional = true, path = "../imag-init" }
 imag-link = { optional = true, path = "../imag-link" }
@@ -86,6 +87,7 @@ cc-all = [
   "cc-imag-edit",
   "cc-imag-gps",
   "cc-imag-grep",
+  "cc-imag-id-in-collection",
   "cc-imag-ids",
   "cc-imag-init",
   "cc-imag-link",
@@ -112,6 +114,7 @@ cc-imag-diagnostics = [ "imag-diagnostics" ]
 cc-imag-edit = [ "imag-edit" ]
 cc-imag-gps = [ "imag-gps" ]
 cc-imag-grep = [ "imag-grep" ]
+cc-imag-id-in-collection = [ "imag-id-in-collection" ]
 cc-imag-ids = [ "imag-ids" ]
 cc-imag-init = [ "imag-init" ]
 cc-imag-link = [ "imag-link" ]
