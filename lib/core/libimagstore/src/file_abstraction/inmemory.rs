@@ -28,6 +28,7 @@ use libimagerror::errors::ErrorMsg as EM;
 
 use failure::Fallible as Result;
 use failure::Error;
+use failure::err_msg;
 
 use super::FileAbstraction;
 use super::FileAbstractionInstance;
@@ -137,7 +138,18 @@ impl FileAbstraction for InMemoryFileAbstraction {
         let backend = mtx.get_mut();
 
         let a = backend.remove(from).ok_or_else(|| EM::FileNotFound)?;
-        backend.insert(to.clone(), a);
+        let new_entry = {
+            let new_location = if to.starts_with("/") {
+                let s = to.to_str().map(String::from).ok_or_else(|| err_msg("Failed to convert path to str"))?;
+                PathBuf::from(s.replace("/", ""))
+            } else {
+                to.to_path_buf()
+            };
+
+            Entry::from_str(crate::storeid::StoreId::new(new_location)?, &a.to_str()?)?
+        };
+
+        backend.insert(to.clone(), new_entry);
         debug!("Renaming: {:?} -> {:?} worked", from, to);
         Ok(())
     }

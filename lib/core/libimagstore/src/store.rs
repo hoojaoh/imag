@@ -590,17 +590,20 @@ impl Store {
             }
             debug!("New id does not exist in cache");
 
-            // if we do not have an entry here, we fail in `FileAbstraction::rename()` below.
-            // if we have one, but it is borrowed, we really should not rename it, as this might
-            // lead to strange errors
-            if hsmap.get(&old_id).map(|e| e.is_borrowed()).unwrap_or(false) {
-                return Err(format_err!("Entry already borrowed: {}", old_id));
-            }
-
-            debug!("Old id is not yet borrowed");
-
             let old_id_pb = old_id.clone().with_base(self.path()).into_pathbuf()?;
             let new_id_pb = new_id.clone().with_base(self.path()).into_pathbuf()?;
+
+            if !self.backend.exists(&old_id_pb)? {
+                return Err(format_err!("Entry does not exist: {}", old_id));
+            }
+
+            // if it is borrowed, we really should not rename it, as this might
+            // lead to strange errors
+            //
+            // Also, remove this object from the cache
+            if hsmap.remove(&old_id).map(|e| e.is_borrowed()).unwrap_or(false) {
+                return Err(format_err!("Entry already borrowed: {}", old_id));
+            }
 
             if self.backend.exists(&new_id_pb)? {
                 return Err(format_err!("Entry already exists: {}", new_id));
@@ -617,17 +620,6 @@ impl Store {
                 })?;
 
             debug!("Rename worked on filesystem");
-
-            // assert enforced through check hsmap.contains_key(&new_id) above.
-            // Should therefor never fail
-            let hsmap_does_not_have_key = hsmap
-                .remove(&old_id)
-                .and_then(|mut entry| {
-                    entry.id = new_id.clone();
-                    hsmap.insert(new_id.clone(), entry)
-                })
-                .is_none();
-            assert!(hsmap_does_not_have_key);
         }
 
         debug!("Moved");
@@ -1204,23 +1196,32 @@ mod store_tests {
                 let id    = StoreId::new(PathBuf::from(format!("t-{}", n))).unwrap();
                 let id_mv = StoreId::new(PathBuf::from(format!("t-{}", n - 1))).unwrap();
 
+                debug!("Trying to move: {} -> {}", id, id_mv);
+
                 {
+                    debug!("Checking presence: {}", id);
                     assert!(store.entries.read().unwrap().get(&id).is_none());
                 }
 
                 {
+                    debug!("Creating : {}", id);
                     assert!(store.create(id.clone()).is_ok());
                 }
 
                 {
+                    debug!("Checking presence: {}", id);
                     assert!(store.entries.read().unwrap().get(&id).is_some());
                 }
 
+                debug!("Moving: {} -> {}", id, id_mv);
                 let r = store.move_by_id(id.clone(), id_mv.clone());
                 assert!(r.map_err(|e| debug!("ERROR: {:?}", e)).is_ok());
 
                 {
-                    assert!(store.entries.read().unwrap().get(&id_mv).is_some());
+                    debug!("Checking presence: {}", id_mv);
+                    assert!(store.entries.read().unwrap().get(&id_mv).is_none()); // entry not in cache yet
+                    assert!(store.get(id_mv.clone()).unwrap().is_some()); // get entry from backend
+                    assert!(store.entries.read().unwrap().get(&id_mv).is_some()); // entry in cache
                 }
 
                 let res = store.get(id.clone());
@@ -1231,6 +1232,45 @@ mod store_tests {
                 assert!(match res { Ok(Some(_)) => true, _ => false },
                         "New id ({:?}) is not in store: {:?}", id_mv, res);
             }
+        }
+    }
+
+    #[test]
+    fn test_moving_entry_with_writing_before_and_after() {
+        use crate::storeid::StoreId;
+        setup_logging();
+
+        let store = get_store();
+
+        let old_name = StoreId::new(PathBuf::from("old")).unwrap();
+        let new_name = StoreId::new(PathBuf::from("new")).unwrap();
+
+        debug!("Creating old entry");
+        {
+            let mut entry = store.create(old_name.clone()).unwrap();
+            entry.get_content_mut().push_str("first line");
+            drop(entry);
+        } // make sure entry is dropped
+
+        debug!("Moving");
+        store.move_by_id(old_name.clone(), new_name.clone()).unwrap();
+
+        debug!("Getting old entry again (should not work)");
+        assert!(store.get(old_name).unwrap().is_none());
+
+        debug!("Getting new entry");
+        {
+            let mut entry = store.get(new_name.clone()).unwrap().unwrap();
+            assert_eq!(entry.get_content(), "first line");
+            entry.get_content_mut().push_str("second line");
+            drop(entry);
+        } // make sure entry is dropped
+
+        {
+            debug!("Getting new entry again");
+            debug!("Store = {:#?}", store);
+            let new_entry = store.get(new_name).unwrap().unwrap();
+            assert_eq!(new_entry.get_content(), "first linesecond line");
         }
     }
 
