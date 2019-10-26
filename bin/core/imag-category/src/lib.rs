@@ -53,7 +53,6 @@ use clap::App;
 use libimagerror::trace::MapErrTrace;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
-use libimagerror::iter::IterInnerOkOrElse;
 
 mod ui;
 
@@ -62,6 +61,7 @@ use std::io::Write;
 use failure::err_msg;
 use failure::Error;
 use resiter::AndThen;
+use resiter::IterInnerOkOrElse;
 
 use libimagentrycategory::store::CategoryStore;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
