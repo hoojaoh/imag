@@ -52,11 +52,11 @@ use failure::Error;
 use failure::Fallible as Result;
 use failure::err_msg;
 use resiter::AndThen;
+use resiter::IterInnerOkOrElse;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
 use libimagstore::store::Entry;
-use libimagerror::iter::IterInnerOkOrElse;
 
 
 mod ui;
