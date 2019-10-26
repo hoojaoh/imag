@@ -54,7 +54,6 @@ use libimagrt::application::ImagApplication;
 use libimagstore::store::FileLockEntry;
 use libimagstore::storeid::StoreId;
 use libimagentrylink::linkable::Linkable;
-use libimagerror::iter::IterInnerOkOrElse;
 
 use toml::Value;
 use toml_query::read::TomlValueReadExt;
@@ -63,6 +62,7 @@ use failure::Fallible as Result;
 use failure::err_msg;
 use clap::App;
 use resiter::AndThen;
+use resiter::IterInnerOkOrElse;
 
 use std::collections::BTreeMap;
 
