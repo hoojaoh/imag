@@ -92,7 +92,7 @@ impl ImagApplication for ImagTag {
                 ::std::process::exit(1);
             })
             .into_iter();
-        
+
         if let Some(name) = rt.cli().subcommand_name() {
             match name {
                 "list" => for id in ids {
@@ -282,6 +282,7 @@ mod tests {
         modulename mock;
         version env!("CARGO_PKG_VERSION");
         with help "imag-tag mocking app";
+        with ui builder function crate::ui::build_ui;
     }
     use self::mock::generate_test_runtime;
 
