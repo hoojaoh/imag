@@ -42,6 +42,7 @@ extern crate walkdir;
 extern crate handlebars;
 extern crate chrono;
 extern crate kairos;
+extern crate resiter;
 
 extern crate libimagrt;
 extern crate libimagcalendar;
@@ -50,7 +51,6 @@ extern crate libimagstore;
 extern crate libimagutil;
 
 use std::path::PathBuf;
-use std::result::Result as RResult;
 use std::io::Write;
 
 use failure::Error;
@@ -62,14 +62,14 @@ use walkdir::DirEntry;
 use walkdir::WalkDir;
 use vobject::icalendar::Event;
 use clap::App;
+use resiter::AndThen;
+use resiter::Filter;
+use resiter::Map;
 
 use libimagcalendar::store::EventStore;
-use libimagerror::io::ToExitCode;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::iter::TraceIterator;
-use libimagerror::trace::MapErrTrace;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
+use crate::resiter::IterInnerOkOrElse;
 
 mod filters;
 mod ui;
@@ -82,66 +82,58 @@ mod util;
 pub enum ImagCalendar {}
 impl ImagApplication for ImagCalendar {
     fn run(rt: Runtime) -> Result<()> {
-	if let Some(name) = rt.cli().subcommand_name() {
-            debug!("Call {}", name);
-            match name {
-		"import" => import(&rt),
-		"list"   => list(&rt),
-		"show"   => show(&rt),
-		other    => {
-                    warn!("Right now, only the 'import' command is available");
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-calendar", other, rt.cli())
-			.map_err_trace_exit_unwrap()
-			.code()
-			.map(::std::process::exit);
-		},
-            }
-	}
-
-	Ok(())
+        match rt.cli().subcommand_name().ok_or_else(|| err_msg("No subcommand called"))? {
+            "import" => import(&rt),
+            "list"   => list(&rt),
+            "show"   => show(&rt),
+            other    => {
+                warn!("Right now, only the 'import' command is available");
+                debug!("Unknown command");
+                if rt.handle_unknown_subcommand("imag-calendar", other, rt.cli())?.success() {
+                    Ok(())
+                } else {
+                    Err(err_msg("Failed to handle unknown subcommand"))
+                }
+            },
+        }
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
-	ui::build_ui(app)
+        ui::build_ui(app)
     }
 
     fn name() -> &'static str {
-	env!("CARGO_PKG_NAME")
+        env!("CARGO_PKG_NAME")
     }
 
     fn description() -> &'static str {
-	"Calendar management tool"
+        "Calendar management tool"
     }
 
     fn version() -> &'static str {
-	env!("CARGO_PKG_VERSION")
+        env!("CARGO_PKG_VERSION")
     }
 }
 
-fn import(rt: &Runtime) {
+fn import(rt: &Runtime) -> Result<()> {
     let scmd            = rt.cli().subcommand_matches("import").unwrap(); // safe by clap
     let collection_name = rt.cli().value_of("calendar-ref-collection-name").unwrap(); // default by clap
     let do_fail         = scmd.is_present("import-fail");
     let force_override  = scmd.is_present("import-force-override");
     let ref_config      = rt.config()
-        .ok_or_else(|| format_err!("No configuration, cannot continue!"))
-        .map_err_trace_exit_unwrap()
-        .read_partial::<libimagentryref::reference::Config>()
-        .map_err(Error::from)
-        .map_err_trace_exit_unwrap()
-        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))
-        .map_err_trace_exit_unwrap();
+        .ok_or_else(|| format_err!("No configuration, cannot continue!"))?
+        .read_partial::<libimagentryref::reference::Config>()?
+        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))?;
 
     // sanity check
     debug!("Doing sanity check on config, to see whether the configuration required for importing is there");
     if ref_config.get(collection_name).is_none() {
-        error!("Configuration missing: {}.{}", libimagentryref::reference::Config::LOCATION, collection_name);
-        ::std::process::exit(1);
+        return Err(format_err!("Configuration missing: {}.{}", libimagentryref::reference::Config::LOCATION, collection_name))
     }
 
     debug!("Starting import...");
-    scmd.values_of("filesordirs")
+    let iter = scmd
+        .values_of("filesordirs")
         .unwrap() // save by clap
         .into_iter()
         .map(PathBuf::from)
@@ -166,51 +158,49 @@ fn import(rt: &Runtime) {
             Box::new(std::iter::once(Ok(path)))
         })
         .flat_map(|it| it)   // From Iter<Iter<Result<PathBuf>>> to Iter<Result<PathBuf>>
-        .trace_unwrap_exit() //... to Iter<PathBuf>
-        .map(|path| {
+        .and_then_ok(|path| {
             trace!("Importing {}", path.display());
-            let v = rt.store().import_from_path(path, collection_name, &ref_config, force_override)?;
-            Ok(v.into_iter()
-                .filter_map(|result| if do_fail {
-                    Some(result.map_err_trace_exit_unwrap())
-                } else {
-                    match result {
-                        Err(e)  => { warn!("Error while importing: {}", e); None }
-                        Ok(fle) => Some(fle),
-                    }
-                }))
-        })
-        .trace_unwrap_exit()
+            Ok({
+                rt.store()
+                    .import_from_path(path, collection_name, &ref_config, force_override)?
+                    .into_iter()
+            })
+        }) // Iter<Result<Iter<_>>
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
         .flat_map(|it| it)
-        .for_each(|fle| rt.report_touched(fle.get_location()).unwrap_or_exit());
+        .and_then_ok(|fle| rt.report_touched(fle.get_location()).map_err(Error::from));
+
+    if do_fail {
+        iter.collect()
+    } else {
+        for element in iter {
+            if let Err(e) = element {
+                writeln!(rt.stderr(), "Error while importing: {:?}", e)?;
+            }
+        }
+        Ok(())
+    }
 }
 
-fn list(rt: &Runtime) {
+fn list(rt: &Runtime) -> Result<()> {
     use util::*;
 
-    let scmd        = rt.cli().subcommand_matches("list").unwrap(); // safe by clap
-    let list_format = get_event_print_format("calendar.list_format", rt, &scmd)
-        .map_err_trace_exit_unwrap();
-
+    let scmd             = rt.cli().subcommand_matches("list").unwrap(); // safe by clap
+    let list_format      = get_event_print_format("calendar.list_format", rt, &scmd)?;
     let do_filter_past   = !scmd.is_present("list-past");
     let do_filter_before = scmd.value_of("list-before");
     let do_filter_after  = scmd.value_of("list-after");
-
-    let ref_config      = rt.config()
-        .ok_or_else(|| format_err!("No configuration, cannot continue!"))
-        .map_err_trace_exit_unwrap()
-        .read_partial::<libimagentryref::reference::Config>()
-        .map_err(Error::from)
-        .map_err_trace_exit_unwrap()
-        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))
-        .map_err_trace_exit_unwrap();
-
+    let ref_config       = rt.config()
+        .ok_or_else(|| format_err!("No configuration, cannot continue!"))?
+        .read_partial::<libimagentryref::reference::Config>()?
+        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))?;
 
     debug!("List format: {:?}", list_format);
     debug!("Ref config : {:?}", ref_config);
     let today = ::chrono::Local::now().naive_local();
 
-    let event_filter = |e: &'_ Event| { // what a crazy hack to make the compiler happy
+    let event_filter = |e: &'_ Event| -> Result<bool> { // what a crazy hack to make the compiler happy
         debug!("Filtering event: {:?}", e);
 
         // generate a function `filter_past` which filters out the past or not
@@ -220,105 +210,104 @@ fn list(rt: &Runtime) {
             true
         };
 
-        let do_filter_before = do_filter_before.map(|spec| kairos_parse(spec).map_err_trace_exit_unwrap());
+        let do_filter_before = do_filter_before.map(|spec| kairos_parse(spec));
 
-        let allow_events_before_date = |event| do_filter_before.as_ref().map(|spec| {
-            filters::event_is_before(event, spec)
-        }).unwrap_or(true);
+        let allow_events_before_date = |event| -> Result<bool> {
+            Ok(do_filter_before.transpose()?.as_ref().map(|spec| {
+                filters::event_is_before(event, spec)
+            }).unwrap_or(true))
+        };
 
 
-        let do_filter_after = do_filter_after.map(|spec| kairos_parse(spec).map_err_trace_exit_unwrap());
+        let do_filter_after = do_filter_after.map(|spec| kairos_parse(spec));
 
-        let allow_events_after_date = |event| do_filter_after.as_ref().map(|spec| {
-            filters::event_is_after(event, spec)
-        }).unwrap_or(true);
+        let allow_events_after_date = |event| -> Result<bool> {
+            Ok(do_filter_after.transpose()?.as_ref().map(|spec| {
+                filters::event_is_after(event, spec)
+            }).unwrap_or(true))
+        };
 
-        allow_all_past_events(e) && allow_events_before_date(e) && allow_events_after_date(e)
+        Ok(allow_all_past_events(e) && allow_events_before_date(e)? && allow_events_after_date(e)?)
     };
 
     let mut listed_events = 0;
 
     rt.store()
-        .all_events()
-        .map_err_trace_exit_unwrap()
-        .trace_unwrap_exit()
-        .map(|sid| rt.store().get(sid))
-        .trace_unwrap_exit()
-        .map(|oe| oe.ok_or_else(|| err_msg("Missing entry while calling all_events()")))
-        .trace_unwrap_exit()
-        .map(|ev| ParsedEventFLE::parse(ev, &ref_config))
-        .trace_unwrap_exit()
-        .for_each(|parsed_entry| {
+        .all_events()?
+        .and_then_ok(|sid| rt.store().get(sid))
+        .map_inner_ok_or_else(|| err_msg("Missing entrty while calling all_events()"))
+        .and_then_ok(|ev| ParsedEventFLE::parse(ev, &ref_config))
+        .and_then_ok(|parsed_entry| {
             parsed_entry
                 .get_data()
                 .events()
-                .filter_map(RResult::ok)
-                .filter(event_filter)
-                .for_each(|event| {
+                .map_err(|component| Error::from(format_err!("Failed to parse entry: {}", component.name)))
+                .and_then_ok(|event| {
+                    event_filter(&event).map(|b| (event, b))
+                })
+                .filter_ok(|tpl| (*tpl).1)
+                .map_ok(|tpl| tpl.0)
+                .and_then_ok(|event| {
                     listed_events = listed_events + 1;
                     let data      = build_data_object_for_handlebars(listed_events, &event);
 
-                    let rendered = list_format
-                        .render("format", &data)
-                        .map_err(Error::from)
-                        .map_err_trace_exit_unwrap();
+                    let rendered = list_format.render("format", &data)?;
 
-                    writeln!(rt.stdout(), "{}", rendered).to_exit_code().unwrap_or_exit()
-                });
+                    writeln!(rt.stdout(), "{}", rendered).map_err(Error::from)
+                })
+                .collect::<Result<Vec<_>>>()?;
 
-            rt.report_touched(parsed_entry.get_entry().get_location()).unwrap_or_exit();
-        });
+            rt.report_touched(parsed_entry.get_entry().get_location()).map_err(Error::from)
+        })
+        .collect()
 }
 
-fn show(rt: &Runtime) {
+fn show(rt: &Runtime) -> Result<()> {
     let scmd        = rt.cli().subcommand_matches("show").unwrap(); // safe by clap
     let ref_config  = rt.config()
-        .ok_or_else(|| format_err!("No configuration, cannot continue!"))
-        .map_err_trace_exit_unwrap()
-        .read_partial::<libimagentryref::reference::Config>()
-        .map_err(Error::from)
-        .map_err_trace_exit_unwrap()
-        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))
-        .map_err_trace_exit_unwrap();
+        .ok_or_else(|| format_err!("No configuration, cannot continue!"))?
+        .read_partial::<libimagentryref::reference::Config>()?
+        .ok_or_else(|| format_err!("Configuration missing: {}", libimagentryref::reference::Config::LOCATION))?;
 
-    let list_format = util::get_event_print_format("calendar.show_format", rt, &scmd)
-        .map_err_trace_exit_unwrap();
+    let list_format = util::get_event_print_format("calendar.show_format", rt, &scmd)?;
 
     let mut shown_events = 0;
 
     scmd.values_of("show-ids")
         .unwrap() // safe by clap
         .into_iter()
-        .filter_map(|id| {
-            util::find_event_by_id(rt.store(), id, &ref_config)
-                .map(|entry| { debug!("Found => {:?}", entry); entry })
-                .map_err_trace_exit_unwrap()
-                .map(|parsed| (parsed, id))
+        .map(|id| {
+            let e = util::find_event_by_id(rt.store(), id, &ref_config)?;
+            debug!("Found => {:?}", e);
+            Ok((e, id))
         })
-        .for_each(|(parsed_entry, id)| {
+        .and_then_ok(|tpl| match tpl {
+            (None, id)    => Err(format_err!("Missing entry: {}", id)),
+            (Some(e), id) => Ok((e, id)),
+        })
+        .and_then_ok(|(parsed_entry, id)| {
             parsed_entry
                 .get_data()
                 .events()
-                .filter_map(RResult::ok)
-                .filter(|pent| {
+                .map_err(|component| Error::from(format_err!("Failed to parse entry: {}", component.name)))
+                .filter_ok(|pent| {
                     let relevant = pent.uid().map(|uid| uid.raw().starts_with(id)).unwrap_or(false);
                     debug!("Relevant {} => {}", parsed_entry.get_entry().get_location(), relevant);
                     relevant
                 })
-                .for_each(|event| {
+                .and_then_ok(|event| {
                     shown_events = shown_events + 1;
                     let data     = util::build_data_object_for_handlebars(shown_events, &event);
 
-                    let rendered = list_format
-                        .render("format", &data)
-                        .map_err(Error::from)
-                        .map_err_trace_exit_unwrap();
+                    let rendered = list_format.render("format", &data)?;
 
-                    writeln!(rt.stdout(), "{}", rendered).to_exit_code().unwrap_or_exit()
-                });
+                    writeln!(rt.stdout(), "{}", rendered).map_err(Error::from)
+                })
+                .collect::<Result<Vec<_>>>()?;
 
-            rt.report_touched(parsed_entry.get_entry().get_location()).unwrap_or_exit();
-        });
+            rt.report_touched(parsed_entry.get_entry().get_location()).map_err(Error::from)
+        })
+        .collect()
 }
 
 /// helper function to check whether a DirEntry points to something hidden (starting with dot)

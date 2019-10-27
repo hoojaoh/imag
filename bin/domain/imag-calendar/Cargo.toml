@@ -28,6 +28,7 @@ vobject    = "0.7"
 handlebars = "2"
 chrono     = "0.4"
 kairos     = "0.3"
+resiter    = "0.4.0"
 
 libimagrt          = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
 libimagstore       = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
