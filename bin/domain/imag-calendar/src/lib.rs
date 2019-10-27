@@ -82,40 +82,40 @@ mod util;
 pub enum ImagCalendar {}
 impl ImagApplication for ImagCalendar {
     fn run(rt: Runtime) -> Result<()> {
-	if let Some(name) = rt.cli().subcommand_name() {
+        if let Some(name) = rt.cli().subcommand_name() {
             debug!("Call {}", name);
             match name {
-		"import" => import(&rt),
-		"list"   => list(&rt),
-		"show"   => show(&rt),
-		other    => {
+                "import" => import(&rt),
+                "list"   => list(&rt),
+                "show"   => show(&rt),
+                other    => {
                     warn!("Right now, only the 'import' command is available");
                     debug!("Unknown command");
                     let _ = rt.handle_unknown_subcommand("imag-calendar", other, rt.cli())
-			.map_err_trace_exit_unwrap()
-			.code()
-			.map(::std::process::exit);
-		},
+                        .map_err_trace_exit_unwrap()
+                        .code()
+                        .map(::std::process::exit);
+                },
             }
-	}
+        }
 
-	Ok(())
+        Ok(())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
-	ui::build_ui(app)
+        ui::build_ui(app)
     }
 
     fn name() -> &'static str {
-	env!("CARGO_PKG_NAME")
+        env!("CARGO_PKG_NAME")
     }
 
     fn description() -> &'static str {
-	"Calendar management tool"
+        "Calendar management tool"
     }
 
     fn version() -> &'static str {
-	env!("CARGO_PKG_VERSION")
+        env!("CARGO_PKG_VERSION")
     }
 }
 
