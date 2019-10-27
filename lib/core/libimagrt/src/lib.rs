@@ -59,6 +59,7 @@ pub mod application;
 pub mod configuration;
 pub mod logger;
 pub mod io;
+pub mod iter;
 pub mod runtime;
 pub mod setup;
 pub mod spec;
