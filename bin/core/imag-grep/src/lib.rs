@@ -95,6 +95,7 @@ impl ImagApplication for ImagGrep {
             .and_then_ok(|entry| {
                 if pattern.is_match(entry.get_content()) {
                     debug!("Matched: {}", entry.get_location());
+                    rt.report_touched(entry.get_location())?;
                     show(&rt, &entry, &pattern, &opts, &mut count)
                 } else {
                     debug!("Not matched: {}", entry.get_location());

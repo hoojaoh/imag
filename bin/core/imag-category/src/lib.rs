@@ -48,10 +48,11 @@ extern crate libimagstore;
 extern crate libimaginteraction;
 
 use failure::Fallible as Result;
+use resiter::Map;
 use clap::App;
 
-use libimagerror::trace::MapErrTrace;
 use libimagrt::runtime::Runtime;
+use libimagrt::iter::ReportTouchedResultEntry;
 use libimagrt::application::ImagApplication;
 
 mod ui;
@@ -120,7 +121,9 @@ fn set(rt: &Runtime) -> Result<()> {
         .map(Ok)
         .into_get_iter(rt.store())
         .map_inner_ok_or_else(|| err_msg("Did not find one entry"))
-        .and_then_ok(|mut e| e.set_category_checked(rt.store(), &name))
+        .and_then_ok(|mut e| e.set_category_checked(rt.store(), &name).map(|_| e))
+        .map_report_touched(&rt)
+        .map_ok(|_| ())
         .collect()
 }
 
@@ -132,9 +135,10 @@ fn get(rt: &Runtime) -> Result<()> {
         .into_iter()
         .map(Ok)
         .into_get_iter(rt.store())
-        .map(|el| el.and_then(|o| o.ok_or_else(|| err_msg("Did not find one entry"))))
-        .map(|entry| entry.and_then(|e| e.get_category()))
-        .map(|name| name.and_then(|n| writeln!(outlock, "{}", n).map_err(Error::from)))
+        .map_inner_ok_or_else(|| err_msg("Did not find one entry"))
+        .map_report_touched(&rt)
+        .and_then_ok(|e| e.get_category())
+        .and_then_ok(|n| writeln!(outlock, "{}", n).map_err(Error::from))
         .collect()
 }
 
@@ -147,8 +151,8 @@ fn list_category(rt: &Runtime) -> Result<()> {
         let mut outlock = out.lock();
 
         category
-            .get_entries(rt.store())
-            .map_err_trace_exit_unwrap()
+            .get_entries(rt.store())?
+            .map_report_touched(&rt)
             .map(|entry| writeln!(outlock, "{}", entry?.get_location()).map_err(Error::from))
             .collect()
     } else {
@@ -159,7 +163,9 @@ fn list_category(rt: &Runtime) -> Result<()> {
 fn create_category(rt: &Runtime) -> Result<()> {
     let scmd = rt.cli().subcommand_matches("create-category").unwrap(); // safed by main()
     let name = scmd.value_of("create-category-name").map(String::from).unwrap(); // safed by clap
-    rt.store().create_category(&name).map(|_| ())
+    rt.store()
+        .create_category(&name)
+        .and_then(|e| rt.report_touched(e.get_location()).map_err(Error::from))
 }
 
 fn delete_category(rt: &Runtime) -> Result<()> {
@@ -175,7 +181,7 @@ fn delete_category(rt: &Runtime) -> Result<()> {
 
     if answer {
         info!("Deleting category '{}'", name);
-        rt.store().delete_category(&name).map(|_| ())
+        rt.store().delete_category(&name)
     } else {
         info!("Not doing anything");
         Ok(())
@@ -188,7 +194,7 @@ fn list_categories(rt: &Runtime) -> Result<()> {
 
     rt.store()
         .all_category_names()?
-        .map(|name| name.and_then(|n| writeln!(outlock, "{}", n).map_err(Error::from)))
+        .and_then_ok(|n| writeln!(outlock, "{}", n).map_err(Error::from))
         .collect()
 }
 

@@ -49,6 +49,7 @@ use libimagentryedit::edit::Edit;
 use libimagentryedit::edit::EditHeader;
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
+use libimagrt::iter::ReportTouchedResultEntry;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 
 use failure::Fallible as Result;
@@ -76,6 +77,7 @@ impl ImagApplication for ImagEdit {
             .into_get_iter(rt.store())
             .map_inner_ok_or_else(|| err_msg("Did not find one entry"))
             .inspect(|e| debug!("Editing = {:?}", e))
+            .map_report_touched(&rt)
             .and_then_ok(|mut entry| {
                 if edit_header {
                     entry.edit_header_and_content(&rt)
