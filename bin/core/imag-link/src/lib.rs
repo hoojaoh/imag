@@ -140,6 +140,7 @@ fn get_entry_by_name<'a>(rt: &'a Runtime, name: &str) -> Result<Option<FileLockE
 fn link_from_to<'a, I>(rt: &'a Runtime, from: &'a str, to: I) -> Result<()>
     where I: Iterator<Item = &'a str>
 {
+    let directional = rt.cli().is_present("directional");
     let mut from_entry = get_entry_by_name(rt, from)?.ok_or_else(|| err_msg("No 'from' entry"))?;
 
     for entry in to {
@@ -168,7 +169,11 @@ fn link_from_to<'a, I>(rt: &'a Runtime, from: &'a str, to: I) -> Result<()>
                 .get(entr_id)?
                 .ok_or_else(|| format_err!("No 'to' entry: {}", entry))?;
 
-            from_entry.add_link(&mut to_entry)?;
+            if directional {
+                from_entry.add_link_to(&mut to_entry)?;
+            } else {
+                from_entry.add_link(&mut to_entry)?;
+            }
 
             rt.report_touched(to_entry.get_location())?;
         }
