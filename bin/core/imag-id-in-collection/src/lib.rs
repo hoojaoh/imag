@@ -46,7 +46,7 @@ extern crate env_logger;
 
 extern crate libimagerror;
 extern crate libimagstore;
-#[macro_use] extern crate libimagrt;
+extern crate libimagrt;
 
 use std::io::Write;
 
@@ -54,9 +54,11 @@ use filters::filter::Filter;
 use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;
+use clap::App;
 
 use libimagstore::storeid::StoreId;
-use libimagrt::setup::generate_runtime_setup;
+use libimagrt::application::ImagApplication;
+use libimagrt::runtime::Runtime;
 
 mod ui;
 
@@ -83,35 +85,52 @@ impl<'a, A> Filter<StoreId> for IsInCollectionsFilter<'a, A>
 }
 
 
-fn main() -> Result<()> {
-    let version = make_imag_version!();
-    let rt = generate_runtime_setup("imag-id-in-collection",
-                                    &version,
-                                    "filter ids by collection",
-                                    crate::ui::build_ui);
-    let values = rt
-        .cli()
-        .values_of("in-collection-filter")
-        .map(|v| v.collect::<Vec<&str>>());
+/// Marker enum for implementing ImagApplication on
+///
+/// This is used by binaries crates to execute business logic
+/// or to build a CLI completion.
+pub enum ImagIdInCollection {}
+impl ImagApplication for ImagIdInCollection {
+    fn run(rt: Runtime) -> Result<()> {
+        let values = rt
+            .cli()
+            .values_of("in-collection-filter")
+            .map(|v| v.collect::<Vec<&str>>());
 
-    let collection_filter = IsInCollectionsFilter::new(values);
+        let collection_filter = IsInCollectionsFilter::new(values);
 
-    let mut stdout = rt.stdout();
-    trace!("Got output: {:?}", stdout);
+        let mut stdout = rt.stdout();
+        trace!("Got output: {:?}", stdout);
 
-    rt.ids::<crate::ui::PathProvider>()?
-        .ok_or_else(|| err_msg("No ids supplied"))?
-        .iter()
-        .filter(|id| collection_filter.filter(id))
-        .map(|id| {
-            if !rt.output_is_pipe() {
-                let id = id.to_str()?;
-                trace!("Writing to {:?}", stdout);
-                writeln!(stdout, "{}", id)?;
-            }
+        rt.ids::<crate::ui::PathProvider>()?
+            .ok_or_else(|| err_msg("No ids supplied"))?
+            .iter()
+            .filter(|id| collection_filter.filter(id))
+            .map(|id| {
+                if !rt.output_is_pipe() {
+                    let id = id.to_str()?;
+                    trace!("Writing to {:?}", stdout);
+                    writeln!(stdout, "{}", id)?;
+                }
 
-            rt.report_touched(&id).map_err(Error::from)
-        })
-        .collect()
+                rt.report_touched(&id).map_err(Error::from)
+            })
+            .collect()
+    }
+
+    fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
+        ui::build_ui(app)
+    }
+
+    fn name() -> &'static str {
+        env!("CARGO_PKG_NAME")
+    }
+
+    fn description() -> &'static str {
+        "print all ids"
+    }
+
+    fn version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
+    }
 }
-

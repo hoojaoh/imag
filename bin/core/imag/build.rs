@@ -40,6 +40,8 @@ extern crate libimageditcmd;
 extern crate libimaggpscmd;
 #[cfg(feature = "cc-imag-grep")]
 extern crate libimaggrepcmd;
+#[cfg(feature = "cc-imag-id-in-collection")]
+extern crate libimagidincollectioncmd;
 #[cfg(feature = "cc-imag-ids")]
 extern crate libimagidscmd;
 #[cfg(feature = "cc-imag-init")]
@@ -119,6 +121,8 @@ fn main() {
     let app = app.subcommand(build_subcommand!("gps",         libimaggpscmd, ImagGps));
     #[cfg(feature = "cc-imag-grep")]
     let app = app.subcommand(build_subcommand!("grep",        libimaggrepcmd, ImagGrep));
+    #[cfg(feature = "cc-imag-id-in-collection")]
+    let app = app.subcommand(build_subcommand!("id-in-colleciton", libimagidincollectioncmd, ImagIdInCollection));
     #[cfg(feature = "cc-imag-ids")]
     let app = app.subcommand(build_subcommand!("ids",         libimagidscmd, ImagIds));
     #[cfg(feature = "cc-imag-init")]
