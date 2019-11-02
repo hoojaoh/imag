@@ -107,6 +107,15 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
              .help("Link to this entries")
              .requires("from")
              .value_name("ENTRIES"))
+
+        .arg(Arg::with_name("directional")
+             .long("direction")
+             .takes_value(false)
+             .required(false)
+             .multiple(false)
+             .help("When creating links, make them directional")
+             .requires_all(&["from", "to"]))
+
 }
 
 /// PathProvider
