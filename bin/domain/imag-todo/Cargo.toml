@@ -43,6 +43,26 @@ version = "2.33.0"
 default-features = false
 features = ["color", "suggestions", "wrap_help"]
 
+[dependencies.task-hookrs]
+version = "0.7.0"
+optional = true
+
+[dependencies.uuid]
+version = "0.7.4"
+features = ["v4"]
+optional = true
+
+[dependencies.libimagentrytag]
+version = "0.10.0"
+path = "../../../lib/entry/libimagentrytag"
+optional = true
+
+[dependencies.libimagentrylink]
+version = "0.10.0"
+path = "../../../lib/entry/libimagentrylink"
+optional = true
+
+
 [lib]
 name = "libimagtodofrontend"
 path = "src/lib.rs"
@@ -50,3 +70,8 @@ path = "src/lib.rs"
 [[bin]]
 name = "imag-todo"
 path = "src/bin.rs"
+
+[features]
+default = []
+import-taskwarrior = [ "task-hookrs", "uuid", "libimagentrytag", "libimagentrylink" ]
+

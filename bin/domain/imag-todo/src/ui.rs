@@ -178,6 +178,16 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                                 )
         )
 
+
+        .subcommand(SubCommand::with_name("import")
+                    .about("Import todos from other tool")
+                    .version("0.1")
+                   .subcommand(SubCommand::with_name("taskwarrior")
+                               .about("Import from taskwarrior by piping 'task export' to this subcommand.")
+                               .version("0.1")
+                              )
+                   )
+
 }
 
 pub struct PathProvider;

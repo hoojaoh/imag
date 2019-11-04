@@ -44,6 +44,18 @@ extern crate kairos;
 #[macro_use] extern crate failure;
 extern crate resiter;
 
+#[cfg(feature = "import-taskwarrior")]
+extern crate task_hookrs;
+
+#[cfg(feature = "import-taskwarrior")]
+extern crate uuid;
+
+#[cfg(feature = "import-taskwarrior")]
+extern crate libimagentrytag;
+
+#[cfg(feature = "import-taskwarrior")]
+extern crate libimagentrylink;
+
 extern crate libimagrt;
 extern crate libimagstore;
 extern crate libimagerror;
@@ -79,6 +91,7 @@ use libimagtodo::store::TodoStore;
 use libimagutil::date::datetime_to_string;
 
 mod ui;
+mod import;
 
 /// Marker enum for implementing ImagApplication on
 ///
@@ -93,6 +106,7 @@ impl ImagApplication for ImagTodo {
             Some("mark")           => mark(&rt),
             Some("pending") | None => list_todos(&rt, &StatusMatcher::new().is(Status::Pending), false),
             Some("list")           => list(&rt),
+            Some("import")         => import::import(&rt),
             Some(other)         => {
                 debug!("Unknown command");
                 if rt.handle_unknown_subcommand("imag-todo", other, rt.cli())?.success() {
