@@ -34,6 +34,7 @@ extern crate libimagutil;
 #[macro_use] extern crate libimagstore;
 #[macro_use] extern crate libimagentryutil;
 
+pub mod builder;
 pub mod entry;
 pub mod iter;
 pub mod priority;
