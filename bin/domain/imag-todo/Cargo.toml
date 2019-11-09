@@ -1,5 +1,5 @@
 [package]
-authors = ["mario <mario-krehl@gmx.de>"]
+authors = ["Matthias Beyer <mail@beyermatthias.de>"]
 name = "imag-todo"
 version = "0.10.0"
 
@@ -25,10 +25,18 @@ toml = "0.5.1"
 toml-query = "0.9.2"
 is-match = "0.1.0"
 failure  = "0.1.5"
+chrono = "0.4"
+filters = "0.3"
+kairos = "0.3"
+resiter = "0.4.0"
 
-libimagrt    = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
-libimagerror = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
-libimagtodo  = { version = "0.10.0", path = "../../../lib/domain/libimagtodo" }
+libimagrt        = { version = "0.10.0", path = "../../../lib/core/libimagrt" }
+libimagstore        = { version = "0.10.0", path = "../../../lib/core/libimagstore" }
+libimagerror     = { version = "0.10.0", path = "../../../lib/core/libimagerror" }
+libimagentryedit = { version = "0.10.0", path = "../../../lib/entry/libimagentryedit" }
+libimagtodo      = { version = "0.10.0", path = "../../../lib/domain/libimagtodo" }
+libimagutil      = { version = "0.10.0", path = "../../../lib/etc/libimagutil" }
+libimagentryview      = { version = "0.10.0", path = "../../../lib/entry/libimagentryview" }
 
 [dependencies.clap]
 version = "2.33.0"

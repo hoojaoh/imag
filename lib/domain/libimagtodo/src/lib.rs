@@ -17,40 +17,28 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-#![forbid(unsafe_code)]
 
-#![recursion_limit="256"]
-
-#![deny(
-    dead_code,
-    non_camel_case_types,
-    non_snake_case,
-    path_statements,
-    trivial_numeric_casts,
-    unstable_features,
-    unused_allocation,
-    unused_import_braces,
-    unused_imports,
-    unused_must_use,
-    unused_mut,
-    unused_qualifications,
-    while_true,
-)]
-
-extern crate uuid;
+extern crate chrono;
+extern crate serde;
 extern crate toml;
 extern crate toml_query;
-#[macro_use] extern crate log;
-extern crate serde_json;
-#[macro_use] extern crate failure;
+extern crate uuid;
+extern crate filters;
 
-#[macro_use] extern crate libimagstore;
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate failure;
+#[macro_use] extern crate log;
+
 extern crate libimagerror;
-extern crate task_hookrs;
+extern crate libimagutil;
+#[macro_use] extern crate libimagstore;
+#[macro_use] extern crate libimagentryutil;
+
+pub mod entry;
+pub mod iter;
+pub mod priority;
+pub mod status;
+pub mod store;
 
 module_entry_path_mod!("todo");
-
-pub mod task;
-pub mod taskstore;
-pub mod iter;
 

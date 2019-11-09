@@ -17,35 +17,117 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-use libimagstore::iter::Entries;
-use libimagstore::storeid::StoreId;
+use std::result::Result as RResult;
 
 use failure::Fallible as Result;
+use failure::Error;
+use filters::failable::filter::FailableFilter;
 
-pub struct TaskIdIterator<'a>(Entries<'a>);
+use libimagstore::store::FileLockEntry;
+use libimagstore::store::Entry;
 
-impl<'a> TaskIdIterator<'a> {
+use crate::entry::Todo;
+use crate::status::Status;
+use crate::priority::Priority;
 
-    pub fn new(inner: Entries<'a>) -> Self {
-        TaskIdIterator(inner)
+/// Iterator adaptor which filters an Iterator<Item = FileLockEntry> so that only todos are left
+pub struct OnlyTodos<'a>(Box<dyn Iterator<Item = FileLockEntry<'a>>>);
+
+impl<'a> OnlyTodos<'a> {
+    pub fn new(it: Box<dyn Iterator<Item = FileLockEntry<'a>>>) -> Self {
+        OnlyTodos(it)
     }
-
 }
 
-impl<'a> Iterator for TaskIdIterator<'a> {
-    type Item = Result<StoreId>;
+impl<'a> Iterator for OnlyTodos<'a> {
+    type Item = Result<FileLockEntry<'a>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.0.next() {
-                None    => return None,
-                Some(Err(e)) => return Some(Err(e)),
-                Some(Ok(n)) => if n.is_in_collection(&["todo", "taskwarrior"]) {
-                    return Some(Ok(n))
-                }, // else continue
+        while let Some(next) = self.0.next() {
+            match next.is_todo() {
+                Ok(true)  => return Some(Ok(next)),
+                Ok(false) => continue,
+                Err(e)    => return Some(Err(e)),
             }
         }
-    }
 
+        None
+    }
+}
+
+/// Helper filter type
+///
+/// Can be used to filter an Iterator<Item = FileLockEntry> of Todos by status
+///
+pub struct StatusFilter(Status);
+
+impl FailableFilter<Entry> for StatusFilter {
+    type Error = Error;
+
+    fn filter(&self, entry: &Entry) -> RResult<bool, Self::Error> {
+        Ok(entry.get_status()? == self.0)
+    }
+}
+
+/// Helper filter type
+///
+/// Can be used to filter an Iterator<Item = FileLockEntry> of Todos for scheduled todos
+///
+pub struct IsScheduledFilter;
+
+impl FailableFilter<Entry> for IsScheduledFilter {
+    type Error = Error;
+
+    fn filter(&self, entry: &Entry) -> RResult<bool, Self::Error> {
+        entry.get_scheduled().map(|s| s.is_some())
+    }
+}
+
+/// Helper filter type
+///
+/// Can be used to filter an Iterator<Item = FileLockEntry> of Todos for hidden todos
+///
+pub struct IsHiddenFilter;
+
+impl FailableFilter<Entry> for IsHiddenFilter {
+    type Error = Error;
+
+    fn filter(&self, entry: &Entry) -> RResult<bool, Self::Error> {
+        entry.get_hidden().map(|s| s.is_some())
+    }
+}
+
+
+/// Helper filter type
+///
+/// Can be used to filter an Iterator<Item = FileLockEntry> of Todos for due todos
+///
+pub struct IsDueFilter;
+
+impl FailableFilter<Entry> for IsDueFilter {
+    type Error = Error;
+
+    fn filter(&self, entry: &Entry) -> RResult<bool, Self::Error> {
+        entry.get_due().map(|s| s.is_some())
+    }
+}
+
+
+/// Helper filter type
+///
+/// Can be used to filter an Iterator<Item = FileLockEntry> of Todos for priority
+///
+/// # Warning
+///
+/// If no priority is set for the entry, this filters out the entry
+///
+pub struct PriorityFilter(Priority);
+
+impl FailableFilter<Entry> for PriorityFilter {
+    type Error = Error;
+
+    fn filter(&self, entry: &Entry) -> RResult<bool, Self::Error> {
+        Ok(entry.get_priority()?.map(|p| p == self.0).unwrap_or(false))
+    }
 }
 
