@@ -22,20 +22,19 @@ use std::result::Result as RResult;
 use failure::Fallible as Result;
 use chrono::NaiveDateTime;
 use uuid::Uuid;
-use toml_query::insert::TomlValueInsertExt;
 
 use libimagstore::store::FileLockEntry;
 use libimagstore::store::Store;
 use libimagstore::iter::Entries;
-use libimagutil::date::datetime_to_string;
-use libimagentryutil::isa::Is;
 
 use crate::status::Status;
 use crate::priority::Priority;
-use crate::entry::TodoHeader;
-use crate::entry::IsTodo;
+use crate::builder::TodoBuilder;
 
 pub trait TodoStore<'a> {
+
+    fn todo_builder(&self) -> TodoBuilder;
+
     fn create_todo(&'a self,
                    status: Status,
                    scheduled: Option<NaiveDateTime>,
@@ -50,6 +49,13 @@ pub trait TodoStore<'a> {
 }
 
 impl<'a> TodoStore<'a> for Store {
+
+    /// Get a TodoBuilder instance, which can be used to build a todo object.
+    ///
+    /// The TodoBuilder::new() constructor is not exposed, this function should be used instead.
+    fn todo_builder(&self) -> TodoBuilder {
+        TodoBuilder::new()
+    }
 
     /// Create a new todo entry
     ///
@@ -70,35 +76,15 @@ impl<'a> TodoStore<'a> for Store {
                    prio: Option<Priority>,
                    check_sanity: bool) -> Result<FileLockEntry<'a>>
     {
-        if check_sanity {
-            trace!("Checking sanity before creating todo");
-            if let Err(s) = date_sanity_check(scheduled.as_ref(), hidden.as_ref(), due.as_ref()) {
-                trace!("Not sane.");
-                return Err(format_err!("{}", s))
-            }
-        }
-
-        let uuid = Uuid::new_v4();
-        let uuid_s = format!("{}", uuid.to_hyphenated_ref()); // TODO: not how it is supposed to be
-        debug!("Created new UUID for todo = {}", uuid_s);
-
-        let mut entry = crate::module_path::new_id(uuid_s).and_then(|id| self.create(id))?;
-
-        let header = TodoHeader {
-            uuid,
-            status,
-            scheduled: scheduled.as_ref().map(datetime_to_string),
-            hidden: hidden.as_ref().map(datetime_to_string),
-            due: due.as_ref().map(datetime_to_string),
-            priority: prio
-        };
-
-        debug!("Created header for todo: {:?}", header);
-
-        let _ = entry.get_header_mut().insert_serialized("todo", header)?;
-        let _ = entry.set_isflag::<IsTodo>()?;
-
-        Ok(entry)
+        TodoBuilder::new()
+            .with_status(Some(status))
+            .with_uuid(Some(Uuid::new_v4()))
+            .with_scheduled(scheduled)
+            .with_hidden(hidden)
+            .with_due(due)
+            .with_prio(prio)
+            .with_check_sanity(check_sanity)
+            .build(&self)
     }
 
     fn get_todo_by_uuid(&'a self, uuid: &Uuid) -> Result<Option<FileLockEntry<'a>>> {
