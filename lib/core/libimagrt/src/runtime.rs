@@ -336,10 +336,6 @@ impl<'a> Runtime<'a> {
         &self.cli_matches
     }
 
-    pub fn ids_from_stdin(&self) -> bool {
-        self.has_input_pipe
-    }
-
     pub fn ids<T: IdPathProvider>(&self) -> Result<Option<Vec<StoreId>>> {
         use std::io::Read;
 
@@ -409,6 +405,16 @@ impl<'a> Runtime<'a> {
     pub fn output_is_pipe(&self) -> bool {
         self.has_output_pipe
     }
+
+    pub fn input_is_pipe(&self) -> bool {
+        self.has_input_pipe
+    }
+
+    /// Alias for Runtime::input_is_pipe()
+    pub fn ids_from_stdin(&self) -> bool {
+        self.input_is_pipe()
+    }
+
 
     /// Check whether the runtime ignores touched ids
     ///
