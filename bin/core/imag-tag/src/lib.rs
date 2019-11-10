@@ -147,6 +147,45 @@ impl ImagApplication for ImagTag {
                         .map(|_| ())
                 },
 
+                ("missing", Some(scmd)) => {
+                    let must_be_missing = scmd
+                        .values_of("missing-tag")
+                        .unwrap()
+                        .map(String::from)
+                        .collect::<Vec<String>>();
+
+                    must_be_missing.iter().map(|t| is_tag_str(t)).collect::<Result<Vec<_>>>()?;
+
+                    iter.filter_map_ok(|id| {
+                            match rt.store().get(id.clone()) {
+                                Err(e) => Some(Err(e)),
+                                Ok(None) => Some(Err(format_err!("No entry for id {}", id))),
+                                Ok(Some(entry)) => {
+                                    let entry_tags = match entry.get_tags() {
+                                        Err(e) => return Some(Err(e)),
+                                        Ok(e) => e,
+                                    };
+
+                                    if must_be_missing.iter().all(|miss| !entry_tags.contains(miss)) {
+                                        Some(Ok(entry))
+                                    } else {
+                                        None
+                                    }
+                                }
+                            }
+                        })
+                        .flatten()
+                        .and_then_ok(|e| {
+                            if !rt.output_is_pipe() {
+                                writeln!(rt.stdout(), "{}", e.get_location())?;
+                            }
+                            Ok(e)
+                        })
+                        .and_then_ok(|e| rt.report_touched(e.get_location()).map_err(Error::from))
+                        .collect::<Result<Vec<_>>>()
+                        .map(|_| ())
+                },
+
                 (other, _) => {
                     debug!("Unknown command");
                     if rt.handle_unknown_subcommand("imag-tag", other, rt.cli())?.success() {
