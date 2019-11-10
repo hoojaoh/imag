@@ -17,13 +17,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 //
 
-extern crate assert_cmd;
-extern crate assert_fs;
-extern crate env_logger;
-extern crate predicates;
-extern crate semver;
-#[macro_use] extern crate log;
-#[macro_use] extern crate pretty_assertions;
+#[cfg(test)] extern crate assert_cmd;
+#[cfg(test)] extern crate assert_fs;
+#[cfg(test)] extern crate env_logger;
+#[cfg(test)] extern crate predicates;
+#[cfg(test)] extern crate semver;
+#[cfg(test)] #[macro_use] extern crate log;
+#[cfg(test)] #[macro_use] extern crate pretty_assertions;
 
 #[cfg(test)] mod imag;
 #[cfg(test)] mod imag_annotate;
@@ -57,8 +57,10 @@ extern crate semver;
 #[cfg(test)] mod imag_todo;
 #[cfg(test)] mod imag_wiki;
 
+#[cfg(test)]
 static LOG_SYNC: std::sync::Once = std::sync::Once::new();
 
+#[cfg(test)]
 pub fn setup_logging() {
     LOG_SYNC.call_once(|| { let _ = env_logger::try_init(); });
 }
