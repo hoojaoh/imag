@@ -134,10 +134,8 @@ pub fn kairos_parse(spec: &str) -> Result<NaiveDateTime> {
             trace!("before-filter spec resulted in timetype");
             let tt = tt.calculate()
                 .map_err_trace_exit_unwrap()
-                .get_moment().unwrap_or_else(|| {
-                    error!("Not a moment in time: {}", spec);
-                    ::std::process::exit(1);
-                })
+                .get_moment()
+                .ok_or_else(|| format_err!("Not a moment in time: {}", spec))?
                 .clone();
 
             trace!("Before filter spec {} => {}", spec, tt);
