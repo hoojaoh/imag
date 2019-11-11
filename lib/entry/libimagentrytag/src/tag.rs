@@ -36,7 +36,7 @@ pub fn is_tag_str(s: &str) -> Result<(), Error> {
 fn check_tag_string(s: &str) -> Result<(), String> {
     trace!("Checking whether '{}' is a valid tag", s);
 
-    let is_lower      = |s: &&str| s.chars().all(|c| c.is_lowercase());
+    let is_lower      = |s: &&str| s.chars().all(|c| c.is_lowercase() || c.is_ascii_digit());
     let no_whitespace = |s: &&str| s.chars().all(|c| !c.is_whitespace());
     let is_alphanum   = |s: &&str| s.chars().all(|c| c.is_alphanumeric());
 
