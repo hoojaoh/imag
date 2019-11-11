@@ -35,6 +35,7 @@
 )]
 
 extern crate clap;
+extern crate resiter;
 #[macro_use] extern crate log;
 
 #[cfg(test)] extern crate toml;
@@ -63,6 +64,8 @@ use std::io::Write;
 use failure::Fallible as Result;
 use failure::Error;
 use failure::err_msg;
+use resiter::AndThen;
+use resiter::Map;
 
 use libimagrt::runtime::Runtime;
 use libimagrt::application::ImagApplication;
@@ -82,39 +85,52 @@ mod ui;
 pub enum ImagTag {}
 impl ImagApplication for ImagTag {
     fn run(rt: Runtime) -> Result<()> {
-        let ids = rt.ids::<crate::ui::PathProvider>()?
-            .ok_or_else(|| err_msg("No ids supplied"))?
-            .into_iter();
+        let process = |iter: &mut dyn Iterator<Item = Result<StoreId>>| -> Result<()> {
+            if let Some(name) = rt.cli().subcommand_name() {
+                match name {
+                    "list" => iter
+                        .map_ok(|id| list(id, &rt))
+                        .collect::<Result<Vec<_>>>()
+                        .map(|_| ()),
 
-        if let Some(name) = rt.cli().subcommand_name() {
-            match name {
-                "list" => ids.into_iter().map(|id| list(id, &rt)).collect(),
+                    "remove" => iter.and_then_ok(|id| {
+                        let add = None;
+                        let rem = get_remove_tags(rt.cli())?;
+                        debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
+                        alter(&rt, id, add, rem)
+                    }).collect(),
 
-                "remove" => ids.into_iter().map(|id| {
-                    let add = None;
-                    let rem = get_remove_tags(rt.cli())?;
-                    debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
-                    alter(&rt, id, add, rem)
-                }).collect(),
+                    "add" => iter.and_then_ok(|id| {
+                        let add = get_add_tags(rt.cli())?;
+                        let rem = None;
+                        debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
+                        alter(&rt, id, add, rem)
+                    }).collect(),
 
-                "add" => ids.into_iter().map(|id| {
-                    let add = get_add_tags(rt.cli())?;
-                    let rem = None;
-                    debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
-                    alter(&rt, id, add, rem)
-                }).collect(),
-
-                other => {
-                    debug!("Unknown command");
-                    if rt.handle_unknown_subcommand("imag-tag", other, rt.cli())?.success() {
-                        Ok(())
-                    } else {
-                        Err(format_err!("Subcommand failed"))
-                    }
-                },
+                    other => {
+                        debug!("Unknown command");
+                        if rt.handle_unknown_subcommand("imag-tag", other, rt.cli())?.success() {
+                            Ok(())
+                        } else {
+                            Err(format_err!("Subcommand failed"))
+                        }
+                    },
+                }
+            } else {
+                Ok(())
             }
+        };
+
+        if rt.ids_from_stdin() {
+            debug!("Fetching IDs from stdin...");
+            let mut iter = rt.ids::<crate::ui::PathProvider>()?
+                .ok_or_else(|| err_msg("No ids supplied"))?
+                .into_iter()
+                .map(Ok);
+
+            process(&mut iter)
         } else {
-            Ok(())
+            process(&mut rt.store().entries()?)
         }
     }
 
