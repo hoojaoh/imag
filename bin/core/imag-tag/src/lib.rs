@@ -86,51 +86,40 @@ pub enum ImagTag {}
 impl ImagApplication for ImagTag {
     fn run(rt: Runtime) -> Result<()> {
         let process = |iter: &mut dyn Iterator<Item = Result<StoreId>>| -> Result<()> {
-            if let Some(name) = rt.cli().subcommand_name() {
-                match name {
-                    "list" => iter
-                        .map_ok(|id| list(id, &rt))
-                        .collect::<Result<Vec<_>>>()
-                        .map(|_| ()),
+            match rt.cli().subcommand() {
+                ("list", _) => iter
+                    .map_ok(|id| list(id, &rt))
+                    .collect::<Result<Vec<_>>>()
+                    .map(|_| ()),
 
-                    "remove" => iter.and_then_ok(|id| {
-                        let add = None;
-                        let rem = get_remove_tags(rt.cli())?;
-                        debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
-                        alter(&rt, id, add, rem)
-                    }).collect(),
+                ("remove", _) => iter.and_then_ok(|id| {
+                    let add = None;
+                    let rem = get_remove_tags(rt.cli())?;
+                    debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
+                    alter(&rt, id, add, rem)
+                }).collect(),
 
-                    "add" => iter.and_then_ok(|id| {
-                        let add = get_add_tags(rt.cli())?;
-                        let rem = None;
-                        debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
-                        alter(&rt, id, add, rem)
-                    }).collect(),
+                ("add", _) => iter.and_then_ok(|id| {
+                    let add = get_add_tags(rt.cli())?;
+                    let rem = None;
+                    debug!("id = {:?}, add = {:?}, rem = {:?}", id, add, rem);
+                    alter(&rt, id, add, rem)
+                }).collect(),
 
-                    other => {
-                        debug!("Unknown command");
-                        if rt.handle_unknown_subcommand("imag-tag", other, rt.cli())?.success() {
-                            Ok(())
-                        } else {
-                            Err(format_err!("Subcommand failed"))
-                        }
-                    },
-                }
-            } else {
-                Ok(())
+                (other, _) => {
+                    debug!("Unknown command");
+                    if rt.handle_unknown_subcommand("imag-tag", other, rt.cli())?.success() {
+                        Ok(())
+                    } else {
+                        Err(format_err!("Subcommand failed"))
+                    }
+                },
             }
         };
 
-        if rt.ids_from_stdin() {
-            debug!("Fetching IDs from stdin...");
-            let mut iter = rt.ids::<crate::ui::PathProvider>()?
-                .ok_or_else(|| err_msg("No ids supplied"))?
-                .into_iter()
-                .map(Ok);
-
-            process(&mut iter)
-        } else {
-            process(&mut rt.store().entries()?)
+        match rt.ids::<crate::ui::PathProvider>()? {
+            Some(ids) => process(&mut ids.into_iter().map(Ok)),
+            None => process(&mut rt.store().entries()?),
         }
     }
 
