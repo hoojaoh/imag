@@ -323,7 +323,7 @@ fn list_todos(rt: &Runtime, matcher: &StatusMatcher, show_hidden: bool) -> Resul
             }
         })
         .and_then_ok(|entry| {
-            if show_hidden || filter_hidden.filter(&entry)? {
+            if !rt.output_is_pipe() && (show_hidden || filter_hidden.filter(&entry)?) {
                 viewer.view_entry(&entry, &mut rt.stdout())?;
             }
 
