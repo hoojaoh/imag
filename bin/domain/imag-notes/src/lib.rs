@@ -37,7 +37,8 @@
 extern crate clap;
 #[macro_use] extern crate log;
 extern crate itertools;
-extern crate failure;
+#[macro_use] extern crate failure;
+extern crate resiter;
 
 extern crate libimagnotes;
 extern crate libimagrt;
@@ -47,11 +48,13 @@ extern crate libimagutil;
 extern crate libimagstore;
 
 use std::io::Write;
-use std::process::exit;
 
 use itertools::Itertools;
 use clap::App;
+use failure::Error;
+use failure::err_msg;
 use failure::Fallible as Result;
+use resiter::IterInnerOkOrElse;
 
 use libimagentryedit::edit::Edit;
 use libimagrt::runtime::Runtime;
@@ -59,11 +62,6 @@ use libimagrt::application::ImagApplication;
 use libimagstore::iter::get::StoreIdGetIteratorExtension;
 use libimagnotes::note::Note;
 use libimagnotes::notestore::*;
-use libimagerror::trace::MapErrTrace;
-use libimagerror::exit::ExitUnwrap;
-use libimagerror::io::ToExitCode;
-use libimagerror::iter::TraceIterator;
-use libimagutil::info_result::*;
 use libimagutil::warn_result::WarnResult;
 
 
@@ -76,25 +74,20 @@ mod ui;
 pub enum ImagNotes {}
 impl ImagApplication for ImagNotes {
     fn run(rt: Runtime) -> Result<()> {
-        if let Some(name) = rt.cli().subcommand_name() {
-
-            debug!("Call: {}", name);
-            match name {
-                "create" => create(&rt),
-                "delete" => delete(&rt),
-                "edit"   => edit(&rt),
-                "list"   => list(&rt),
-                other    => {
-                    debug!("Unknown command");
-                    let _ = rt.handle_unknown_subcommand("imag-notes", other, rt.cli())
-                        .map_err_trace_exit_unwrap()
-                        .code()
-                        .map(::std::process::exit);
-                },
-            };
+        match rt.cli().subcommand_name().ok_or_else(|| err_msg("No subcommand called"))? {
+            "create" => create(&rt),
+            "delete" => delete(&rt),
+            "edit"  => edit(&rt),
+            "list"  => list(&rt),
+            other    => {
+                debug!("Unknown command");
+                if rt.handle_unknown_subcommand("imag-notes", other, rt.cli())?.success() {
+                    Ok(())
+                } else {
+                    Err(err_msg("Failed to handle unknown subcommand"))
+                }
+            },
         }
-        
-        Ok(())
     }
 
     fn build_cli<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
@@ -118,74 +111,53 @@ fn name_from_cli(rt: &Runtime, subcmd: &str) -> String {
     rt.cli().subcommand_matches(subcmd).unwrap().value_of("name").map(String::from).unwrap()
 }
 
-fn create(rt: &Runtime) {
+fn create(rt: &Runtime) -> Result<()> {
     let name = name_from_cli(rt, "create");
-    let mut note = rt
-        .store()
-        .new_note(name.clone(), String::new())
-        .map_err_trace_exit_unwrap();
+    let mut note = rt.store().new_note(name.clone(), String::new())?;
 
     if rt.cli().subcommand_matches("create").unwrap().is_present("edit") {
-        note
-            .edit_content(rt)
-            .map_warn_err_str("Editing failed")
-            .map_err_trace_exit_unwrap();
+        note.edit_content(rt)?
     }
 
-    rt.report_touched(note.get_location()).unwrap_or_exit();
+    rt.report_touched(note.get_location()).map_err(Error::from)
 }
 
-fn delete(rt: &Runtime) {
-    rt.store()
-        .delete_note(name_from_cli(rt, "delete"))
-        .map_info_str("Ok")
-        .map_err_trace_exit_unwrap();
+fn delete(rt: &Runtime) -> Result<()> {
+    rt.store().delete_note(name_from_cli(rt, "delete")).map(|_| ())
 }
 
-fn edit(rt: &Runtime) {
+fn edit(rt: &Runtime) -> Result<()> {
     let name = name_from_cli(rt, "edit");
     rt
         .store()
-        .get_note(name.clone())
-        .map_err_trace_exit_unwrap()
-        .map(|mut note| {
-            note
-                .edit_content(rt)
-                .map_warn_err_str("Editing failed")
-                .map_err_trace_exit_unwrap();
-
-            rt.report_touched(note.get_location()).unwrap_or_exit();
+        .get_note(name.clone())?
+        .ok_or_else(|| format_err!("Name '{}' not found", name))
+        .and_then(|mut note| {
+            note.edit_content(rt).map_warn_err_str("Editing failed")?;
+            rt.report_touched(note.get_location()).map_err(Error::from)
         })
-        .unwrap_or_else(|| {
-            error!("Cannot find note with name '{}'", name);
-        });
 }
 
-fn list(rt: &Runtime) {
+fn list(rt: &Runtime) -> Result<()> {
     use std::cmp::Ordering;
 
     rt
         .store()
-        .all_notes()
-        .map_err_trace_exit_unwrap()
+        .all_notes()?
         .into_get_iter(rt.store())
-        .trace_unwrap_exit()
-        .map(|opt| opt.unwrap_or_else(|| {
-            error!("Fatal: Nonexistent entry where entry should exist");
-            exit(1)
-        }))
-        .sorted_by(|note_a, note_b| if let (Ok(a), Ok(b)) = (note_a.get_name(), note_b.get_name()) {
-            a.cmp(&b)
-        } else {
-            Ordering::Greater
+        .map_inner_ok_or_else(|| err_msg("Did not find one entry"))
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .sorted_by(|a, b| match (a.get_name(), b.get_name()) {
+            (Ok(a), Ok(b)) => a.cmp(&b),
+            _ => Ordering::Greater,
         })
-        .for_each(|note| {
-            let name = note.get_name().map_err_trace_exit_unwrap();
-            writeln!(rt.stdout(), "{}", name)
-                .to_exit_code()
-                .unwrap_or_exit();
-
-            rt.report_touched(note.get_location()).unwrap_or_exit();
-        });
+        .map(|note| {
+            let name = note.get_name().map_err(Error::from)?;
+            writeln!(rt.stdout(), "{}", name)?;
+            rt.report_touched(note.get_location()).map_err(Error::from)
+        })
+        .collect::<Result<Vec<_>>>()
+        .map(|_| ())
 }
 
