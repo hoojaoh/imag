@@ -101,6 +101,26 @@ pub fn build_ui<'a>(app: App<'a, 'a>) -> App<'a, 'a> {
                           .required(true))
                    )
 
+        .subcommand(SubCommand::with_name("present")
+                   .about("List entries that have a certain tag")
+                   .version("0.1")
+                   .arg(Arg::with_name("present-tag")
+                        .index(1)
+                        .required(true)
+                        .multiple(true)
+                        .help("Tag to list entries for"))
+                   )
+
+        .subcommand(SubCommand::with_name("missing")
+                   .about("List entries miss a certain tag")
+                   .version("0.1")
+                   .arg(Arg::with_name("missing-tag")
+                        .index(1)
+                        .required(true)
+                        .multiple(true)
+                        .help("Tag which should be missing in the entries"))
+                   )
+
 }
 
 pub struct PathProvider;
