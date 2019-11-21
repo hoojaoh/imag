@@ -63,4 +63,5 @@ members = [
     "lib/etc/libimagutil",
 
     "tests/ui",
+    "tests/version-sync",
 ]

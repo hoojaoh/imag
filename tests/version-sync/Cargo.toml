@@ -1,0 +1,18 @@
+[package]
+name = "version-sync"
+version = "0.10.0"
+authors = ["Matthias Beyer <mail@beyermatthias.de>"]
+edition = "2018"
+
+# We do not publish this crate because it contains tests which should only be
+# available during development and CI runs, but there's nothing that a user of
+# any imag command might need, ever.
+publish = false
+
+[dev-dependencies]
+env_logger   = "0.7"
+log          = "0.4.6"
+version-sync = "0.8"
+walkdir      = "2"
+toml-query   = "0.9"
+toml         = "0.5"
